@@ -30,61 +30,137 @@ if ($result) {
     }
 }
 
-// Session stats (SESSION_01 / SESSION_02 / SESSION_03) - shared helper
-/**
- * Returns paid / attended / remaining counts (unique students) for each session.
- *   paid      = students with a payment record
- *   attended  = students marked attended
- *   remaining = students who paid but have not attended
- * Used by BOTH scan.php (first page load) and fetch_session_stats.php (auto-refresh),
- * so the numbers always match.
- */
-function getSessionStats(mysqli $conn): array
-{
-    $sessions = ['SESSION_01', 'SESSION_02', 'SESSION_03'];
+// -------------------------
+// Session Stats (Morning & Evening) - Real-time
+// -------------------------
+$session1PaidStudents = 0;
+$session1AttendedStudents = 0;
+$session1NotAttendedStudents = 0;
+$session2PaidStudents = 0;
+$session2AttendedStudents = 0;
+$session2NotAttendedStudents = 0;
+// ------------------------------------------------------------------------------ 
 
-    // default zeros so every session always exists in the result
-    $stats = [];
-    foreach ($sessions as $s) {
-        $stats[strtolower($s)] = ['paid' => 0, 'attended' => 0, 'remaining' => 0];
-    }
-
-    $sql = "
-        SELECT dt.session AS session_code,
-               COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
-                                   THEN rs.student_id END) AS total_paid,
-               COUNT(DISTINCT CASE WHEN rs.attend = 'attended'
-                                   THEN rs.student_id END) AS total_attended,
-               COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
-                                    AND (rs.attend IS NULL OR rs.attend != 'attended')
-                                   THEN rs.student_id END) AS total_remaining
-        FROM registered_students rs
-        INNER JOIN data_tables dt ON rs.program_name = dt.programName
-        LEFT JOIN payment_records pr ON rs.student_id = pr.student_id
-        WHERE dt.session IN ('SESSION_01', 'SESSION_02', 'SESSION_03')
-        GROUP BY dt.session
-    ";
-
-    $result = $conn->query($sql);
-    if ($result === false) {
-        throw new RuntimeException('Session stats query failed: ' . $conn->error);
-    }
-
-    while ($row = $result->fetch_assoc()) {
-        $key = strtolower(trim($row['session_code']));
-        if (isset($stats[$key])) {
-            $stats[$key] = [
-                'paid'      => (int)$row['total_paid'],
-                'attended'  => (int)$row['total_attended'],
-                'remaining' => (int)$row['total_remaining'],
-            ];
-        }
-    }
-
-    return $stats;
+// Session 1 students who paid (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_01'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session1PaidStudents = $row['total_paid'] ?? 0;
+}
+// Session 1 students who attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    WHERE dt.session = 'SESSION_01' AND rs.attend = 'attended'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session1AttendedStudents = $row['total_attended'] ?? 0;
 }
 
-$sessionStats = getSessionStats($conn);
+// Session 1 students who paid but not attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_01' AND (rs.attend IS NULL OR rs.attend != 'attended')
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session1NotAttendedStudents = $row['total_not_attended'] ?? 0;
+}
+
+
+// ------------------------------------------------------------------------------ 
+// Session 2 students who paid (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_02'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session2PaidStudents = $row['total_paid'] ?? 0;
+}
+
+// Session 2 students who attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    WHERE dt.session = 'SESSION_02' AND rs.attend = 'attended'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session2AttendedStudents = $row['total_attended'] ?? 0;
+}
+
+// Session 2 students who paid but not attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_02' AND (rs.attend IS NULL OR rs.attend != 'attended')
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session2NotAttendedStudents = $row['total_not_attended'] ?? 0;
+}
+// ------------------------------------------------------------------------------ 
+
+$session3PaidStudents = 0;
+$session3AttendedStudents = 0;
+$session3NotAttendedStudents = 0;
+// ------------------------------------------------------------------------------ 
+
+// Session 3 students who paid (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_03'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session3PaidStudents = $row['total_paid'] ?? 0;
+}
+
+// Session 3 students who attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    WHERE dt.session = 'SESSION_03' AND rs.attend = 'attended'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session3AttendedStudents = $row['total_attended'] ?? 0;
+}
+
+// Session 3 students who paid but not attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_03' AND (rs.attend IS NULL OR rs.attend != 'attended')
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $session3NotAttendedStudents = $row['total_not_attended'] ?? 0;
+}
 
 ?>
 
@@ -171,10 +247,6 @@ $sessionStats = getSessionStats($conn);
         border-left: 4px solid #4e73df !important;
     }
 
-    .border-left-info {
-        border-left: 4px solid #36b9cc !important;
-    }
-
     .border-left-warning {
         border-left: 4px solid #f6c23e !important;
     }
@@ -251,15 +323,15 @@ $sessionStats = getSessionStats($conn);
                                 <div class="row text-center">
                                     <div class="col-4">
                                         <h6 class="text-success fw-bold">Paid Students</h6>
-                                        <h2 class="fw-bold text-dark" id="session_01Paid"><?php echo (int)$sessionStats['session_01']['paid']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_01Paid"><?php echo $session_01['paid']; ?></h2>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-info fw-bold">Attended Students</h6>
-                                        <h2 class="fw-bold text-dark" id="session_01Attended"><?php echo (int)$sessionStats['session_01']['attended']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_01Attended"><?php echo $session_01['attended']; ?></h2>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-danger fw-bold">Remaining</h6>
-                                        <h2 class="fw-bold text-dark" id="session_01Remaining"><?php echo (int)$sessionStats['session_01']['remaining']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_01Remaining"><?php echo $session_01['remaining']; ?></h2>
                                     </div>
                                 </div>
                             </div>
@@ -274,15 +346,15 @@ $sessionStats = getSessionStats($conn);
                                 <div class="row text-center">
                                     <div class="col-4">
                                         <h6 class="text-success fw-bold">Paid Students</h6>
-                                        <h2 class="fw-bold text-dark" id="session_02Paid"><?php echo (int)$sessionStats['session_02']['paid']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_02Paid"><?php echo $session_02PaidStudents; ?></h2>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-info fw-bold">Attended Students</h6>
-                                        <h2 class="fw-bold text-dark" id="session_02Attended"><?php echo (int)$sessionStats['session_02']['attended']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_02Attended"><?php echo $session_02AttendedStudents; ?></h2>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-danger fw-bold">Remaining</h6>
-                                        <h2 class="fw-bold text-dark" id="session_02Remaining"><?php echo (int)$sessionStats['session_02']['remaining']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_02Remaining"><?php echo $session_02Remaining; ?></h2>
                                     </div>
                                 </div>
                             </div>
@@ -298,15 +370,15 @@ $sessionStats = getSessionStats($conn);
                                 <div class="row text-center">
                                     <div class="col-4">
                                         <h6 class="text-success fw-bold">Paid Students</h6>
-                                        <h2 class="fw-bold text-dark" id="session_03Paid"><?php echo (int)$sessionStats['session_03']['paid']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_03Paid"><?php echo $session_03PaidStudents; ?></h2>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-info fw-bold">Attended Students</h6>
-                                        <h2 class="fw-bold text-dark" id="session_03Attended"><?php echo (int)$sessionStats['session_03']['attended']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_03Attended"><?php echo $session_03AttendedStudents; ?></h2>
                                     </div>
                                     <div class="col-4">
                                         <h6 class="text-danger fw-bold">Remaining</h6>
-                                        <h2 class="fw-bold text-dark" id="session_03Remaining"><?php echo (int)$sessionStats['session_03']['remaining']; ?></h2>
+                                        <h2 class="fw-bold text-dark" id="session_03Remaining"><?php echo $session_03Remaining; ?></h2>
                                     </div>
                                 </div>
                             </div>
@@ -325,7 +397,7 @@ $sessionStats = getSessionStats($conn);
                             <h4 class="fw-bold archivo">Session 01</h4>
                         </div>
                         <?php foreach ($summaries as $sum): ?>
-                            <?php if (stripos((string)($sum['session_time'] ?? ''), 'session_01') !== false): ?>
+                            <?php if (stripos($sum['session_time'], 'session_01') !== false): ?>
                                 <div class="mb-3">
                                     <div class="card border-primary shadow-sm">
                                         <div class="card-body text-center">
@@ -344,7 +416,7 @@ $sessionStats = getSessionStats($conn);
                             <h4 class="fw-bold archivo">Session 02</h4>
                         </div>
                         <?php foreach ($summaries as $sum): ?>
-                            <?php if (stripos((string)($sum['session_time'] ?? ''), 'session_02') !== false): ?>
+                            <?php if (stripos($sum['session_time'], 'session_02') !== false): ?>
                                 <div class="mb-3">
                                     <div class="card border-primary shadow-sm">
                                         <div class="card-body text-center">
@@ -366,7 +438,7 @@ $sessionStats = getSessionStats($conn);
                             <h4 class="fw-bold archivo">Session 03</h4>
                         </div>
                         <?php foreach ($summaries as $sum): ?>
-                            <?php if (stripos((string)($sum['session_time'] ?? ''), 'session_03') !== false): ?>
+                            <?php if (stripos($sum['session_time'], 'session_03') !== false): ?>
                                 <div class="mb-3">
                                     <div class="card border-primary shadow-sm">
                                         <div class="card-body text-center">
@@ -456,14 +528,6 @@ $sessionStats = getSessionStats($conn);
             $('body').removeClass('sidebar-open');
         });
 
-        // Store student data for receipt printing
-        let currentStudentData = null;
-
-        // Escape text before putting it into HTML
-        function esc(v) {
-            return $('<div>').text(v ?? '').html();
-        }
-
         const $studentID = $('#studentID');
         const $studentForm = $('#studentIDForm');
 
@@ -485,12 +549,12 @@ $sessionStats = getSessionStats($conn);
             $.ajax({
                 url: 'check_student.php',
                 type: 'POST',
-                dataType: 'json',
                 data: {
                     studentID
                 },
 
-                success: function(res) {
+                success: function(response) {
+                    let res = JSON.parse(response);
 
                     if (res.status === 'success') {
                         // Store student data for receipt printing
@@ -498,23 +562,23 @@ $sessionStats = getSessionStats($conn);
                         currentStudentData = res.data;
 
                         $('#studentInfo').html(`
-                        <p><strong>Student ID:</strong> ${esc(res.data.student_id)}</p>
-                        <p><strong>Name:</strong> ${esc(res.data.full_name)}</p>
-                        <p><strong>Program:</strong> ${esc(res.data.program_name)}</p>
-                        <h2 class="text-primary my-3" style="font-weight: bold;">SEAT NO: ${esc(res.data.seat_no)}</h2>
-                        <h5 class="text-primary"><strong>SESSION:</strong> ${esc(res.data.session)}</h5>
-                        <p><strong>Graduation Payment:</strong> ${esc(res.data.graduation_payment_status)}</p>
+                        <p><strong>Student ID:</strong> ${res.data.student_id}</p>
+                        <p><strong>Name:</strong> ${res.data.full_name}</p>
+                        <p><strong>Program:</strong> ${res.data.program_name}</p>
+                        <h2 class="text-primary my-3" style="font-weight: bold;">SEAT NO: ${res.data.seat_no}</h2>
+                        <h5 class="text-primary"><strong>SESSION:</strong> ${res.data.session}</h5>
+                        <p><strong>Graduation Payment:</strong> ${res.data.graduation_payment_status}</p>
                     `);
                         $('#successModal').modal('show');
 
                     } else if (res.status === 'attended') {
                         $('#attendedInfo').html(`
-                        <p><strong>Name:</strong> ${esc(res.data.full_name)}</p>
-                        <p><strong>Program:</strong> ${esc(res.data.program_name)}</p>
-                        <h5><strong>Student ID:</strong> ${esc(res.data.student_id)}</h5>
-                        <h2 class="text-primary my-3" style="font-weight: bold;">SEAT NO: ${esc(res.data.seat_no)}</h2>
-                        <h5 class="text-primary"><strong>SESSION:</strong> ${esc(res.data.session)}</h5>
-                        <p><strong>Graduation Payment:</strong> ${esc(res.data.graduation_payment_status)}</p>
+                        <p><strong>Name:</strong> ${res.data.full_name}</p>
+                        <p><strong>Program:</strong> ${res.data.program_name}</p>
+                        <h5><strong>Student ID:</strong> ${res.data.student_id}</h5>
+                        <h2 class="text-primary my-3" style="font-weight: bold;">SEAT NO: ${res.data.seat_no}</h2>
+                        <h5 class="text-primary"><strong>SESSION:</strong> ${res.data.session}</h5>
+                        <p><strong>Graduation Payment:</strong> ${res.data.graduation_payment_status}</p>
                     `);
                         $('#attendedModal').modal('show');
 
@@ -533,6 +597,9 @@ $sessionStats = getSessionStats($conn);
         $studentID.on('keypress', function(e) {
             if (e.which === 13) $studentForm.submit();
         });
+
+        // Store student data for receipt printing
+        let currentStudentData = null;
 
         // Function to update session stats in real-time
         function updateSessionStats() {

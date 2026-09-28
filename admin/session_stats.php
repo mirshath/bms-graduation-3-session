@@ -1,6 +1,4 @@
 <?php
-session_start();
-require_once __DIR__ . "/../database/connection.php";
 
 /**
  * Returns paid / attended / remaining counts (unique students) for each session.
@@ -54,21 +52,3 @@ function getSessionStats(mysqli $conn): array
 
     return $stats;
 }
-
-header('Content-Type: application/json');
-
-// Check if admin is logged in
-if (!isset($_SESSION['admin_id'])) {
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
-    exit;
-}
-
-try {
-    $response = ['status' => 'success'] + getSessionStats($conn);
-} catch (Throwable $e) {
-    error_log($e->getMessage());
-    $response = ['status' => 'error', 'message' => 'Could not load session stats'];
-}
-
-echo json_encode($response);
-$conn->close();

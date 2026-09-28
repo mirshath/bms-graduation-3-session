@@ -1,5 +1,13 @@
 <?php
-include("../database/connection.php");
+session_start();
+require_once __DIR__ . "/../database/connection.php";
+
+header('Content-Type: application/json');
+
+if (!isset($_SESSION['admin_id'])) {
+    echo json_encode(["status" => "error", "message" => "Unauthorized"]);
+    exit;
+}
 
 $studentID = trim($_POST['studentID'] ?? '');
 if ($studentID === '') {
@@ -7,51 +15,55 @@ if ($studentID === '') {
     exit;
 }
 
-// Fetch student info and seat number from bulk_data_table
-$sql = "
-    SELECT rs.student_id, rs.name_in_full, rs.*, rs.attend, bd.seat_no, bd.*
-    FROM registered_students rs
-    LEFT JOIN bulk_data_table bd ON rs.student_id = bd.student_id
-    WHERE rs.student_id = ?
-";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $studentID);
-$stmt->execute();
-$result = $stmt->get_result();
+try {
+    // 1) registered student
+    $stmt = $conn->prepare("SELECT * FROM registered_students WHERE student_id = ? LIMIT 1");
+    $stmt->bind_param("s", $studentID);
+    $stmt->execute();
+    $rs = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
 
-if ($result->num_rows > 0) {
-    $row = $result->fetch_assoc();
-
-    // Check if student already attended
-    if (!empty($row['attend'])) {
-        echo json_encode([
-            "status" => "attended",
-            "data" => [
-                "student_id" => $row['student_id'],
-                "full_name" => $row['name_in_full'],
-                "program_name" => $row['program_name'],
-                "attend" => $row['attend'],
-                "seat_no" => $row['seat_no'] ?? 'N/A',
-                "session" => $row['session_time'] ?? 'N/A',
-                "graduation_payment_status" => $row['graduation_payment_status'] ?? 'N/A'
-            ]
-        ]);
-    } else {
-        echo json_encode([
-            "status" => "success",
-            "data" => [
-                "student_id" => $row['student_id'],
-                "full_name" => $row['name_in_full'],
-                "program_name" => $row['program_name'],
-                "seat_no" => $row['seat_no'] ?? 'N/A',
-                "session" => $row['session_time'] ?? 'N/A',
-                "graduation_payment_status" => $row['graduation_payment_status'] ?? 'N/A'
-            ]
-        ]);
+    if (!$rs) {
+        echo json_encode(["status" => "error", "message" => "Student not found"]);
+        $conn->close();
+        exit;
     }
-} else {
-    echo json_encode(["status" => "error", "message" => "Student not found"]);
+
+    // 2) seat / session info (may not exist yet)
+    $stmt = $conn->prepare("SELECT * FROM bulk_data_table WHERE student_id = ? LIMIT 1");
+    $stmt->bind_param("s", $studentID);
+    $stmt->execute();
+    $bd = $stmt->get_result()->fetch_assoc() ?: [];
+    $stmt->close();
+
+    // Merge: bulk_data_table fields added on top, but the core student fields
+    // always come from registered_students (a LEFT JOIN with bd.* used to
+    // overwrite them with NULL when no seat row existed).
+    $row = array_merge($rs, $bd);
+    foreach (['student_id', 'name_in_full', 'program_name', 'attend'] as $k) {
+        $row[$k] = $rs[$k] ?? null;
+    }
+
+    $data = [
+        "student_id"                => $row['student_id'],
+        "full_name"                 => $row['name_in_full'],
+        "program_name"              => $row['program_name'],
+        "seat_no"                   => $row['seat_no'] ?? 'N/A',
+        "in_no"                     => $row['in_no'] ?? 'N/A',
+        "session"                   => $row['session_time'] ?? 'N/A',
+        "graduation_payment_status" => $row['graduation_payment_status'] ?? 'N/A',
+    ];
+
+    // Same rule the stats use: attend = 'attended'
+    if (($row['attend'] ?? '') === 'attended') {
+        $data['attend'] = $row['attend'];
+        echo json_encode(["status" => "attended", "data" => $data]);
+    } else {
+        echo json_encode(["status" => "success", "data" => $data]);
+    }
+} catch (Throwable $e) {
+    error_log($e->getMessage());
+    echo json_encode(["status" => "error", "message" => "Server error"]);
 }
 
-$stmt->close();
 $conn->close();

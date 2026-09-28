@@ -1,0 +1,150 @@
+<?php
+session_start();
+include("../database/connection.php");
+
+// Set JSON header
+header('Content-Type: application/json');
+
+// Check if admin is logged in
+if (!isset($_SESSION['admin_id'])) {
+    echo json_encode(['status' => 'error', 'message' => 'Unauthorized']);
+    exit;
+}
+
+$response = [
+    'status' => 'success',
+    'session_01' => [
+        'paid' => 0,
+        'attended' => 0,
+        'remaining' => 0
+    ],
+    'session_02' => [
+        'paid' => 0,
+        'attended' => 0,
+        'remaining' => 0
+    ],
+    'session_03' => [
+        'paid' => 0,
+        'attended' => 0,
+        'remaining' => 0
+    ]
+];
+
+// Morning session students who paid (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_01'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_01']['paid'] = (int)($row['total_paid'] ?? 0);
+}
+
+// Morning session students who attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    WHERE dt.session = 'SESSION_01' AND rs.attend = 'attended'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_01']['attended'] = (int)($row['total_attended'] ?? 0);
+}
+
+// Morning session students who paid but not attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_01' AND (rs.attend IS NULL OR rs.attend != 'attended')
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_01']['remaining'] = (int)($row['total_not_attended'] ?? 0);
+}
+
+// Evening session students who paid (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_02'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_02']['paid'] = (int)($row['total_paid'] ?? 0);
+}
+
+// Evening session students who attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    WHERE dt.session = 'SESSION_02' AND rs.attend = 'attended'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_02']['attended'] = (int)($row['total_attended'] ?? 0);
+}
+
+// Evening session students who paid but not attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_02' AND (rs.attend IS NULL OR rs.attend != 'attended')
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_02']['remaining'] = (int)($row['total_not_attended'] ?? 0);
+}
+
+// Third session students who paid (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_03'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_03']['paid'] = (int)($row['total_paid'] ?? 0);
+}
+
+// Third session students who attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    WHERE dt.session = 'SESSION_03' AND rs.attend = 'attended'
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_03']['attended'] = (int)($row['total_attended'] ?? 0);
+}
+
+// Third session students who paid but not attended (unique students only)
+$sql = "
+    SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+    FROM registered_students rs
+    INNER JOIN data_tables dt ON rs.program_name = dt.programName
+    INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+    WHERE dt.session = 'SESSION_03' AND (rs.attend IS NULL OR rs.attend != 'attended')
+";
+$result = $conn->query($sql);
+if ($result && $row = $result->fetch_assoc()) {
+    $response['session_03']['remaining'] = (int)($row['total_not_attended'] ?? 0);
+}
+
+
+
+echo json_encode($response);
+$conn->close();
