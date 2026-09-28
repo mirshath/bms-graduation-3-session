@@ -24,20 +24,12 @@ include("includes/header.php");
                         <h5 class="mb-3 text-primary"><i class="fas fa-user-tag"></i> Clothing Collections</h5>
                         <?php
                         // Filters
-                        $sessionFilter = isset($_GET['session']) ? trim($_GET['session']) : '';
+                        $sessionFilter = isset($_GET['session']) ? strtoupper(trim($_GET['session'])) : '';
                         $returnFilter  = isset($_GET['return_status']) ? trim($_GET['return_status']) : '';
                         $programFilter = isset($_GET['program']) ? trim($_GET['program']) : '';
                         $issueFilter   = isset($_GET['issue_status']) ? trim($_GET['issue_status']) : '';
 
-                        // Sessions = unique values of data_tables.session (SESSION_01, SESSION_02, SESSION_03 ...)
-                        $allowedSessions = [];
-                        $sessRes = mysqli_query($conn, "SELECT DISTINCT session FROM data_tables WHERE session IS NOT NULL AND session <> '' ORDER BY session");
-                        if ($sessRes) {
-                            while ($sr = mysqli_fetch_assoc($sessRes)) {
-                                $allowedSessions[] = $sr['session'];
-                            }
-                        }
-
+                        $allowedSessions = ['MORNING', 'EVENING'];
                         $allowedReturn   = ['issued', 'returned', 'not_returned', 'fully_returned', 'partial_returned'];
                         // NEW: "did not get cloak" checks (paid students vs. required clothing per program)
                         $allowedIssue    = ['not_issued', 'partial_issued', 'any_missing'];
@@ -55,24 +47,6 @@ include("includes/header.php");
                         $missingMode = ($issueFilter !== '');
                         if ($missingMode) {
                             $returnFilter = '';
-                        }
-
-                        // Programs for the Program dropdown (data_tables) - only the chosen session's programs
-                        $programs = [];
-                        $progSql = "SELECT DISTINCT programName FROM data_tables WHERE programName IS NOT NULL AND programName <> ''";
-                        if ($sessionFilter !== '') {
-                            $progSql .= " AND session = '" . mysqli_real_escape_string($conn, $sessionFilter) . "'";
-                        }
-                        $progSql .= " ORDER BY programName";
-                        $progRes = mysqli_query($conn, $progSql);
-                        if ($progRes) {
-                            while ($row = mysqli_fetch_assoc($progRes)) {
-                                $programs[] = $row['programName'];
-                            }
-                        }
-                        // A program that isn't in the chosen session is ignored
-                        if ($programFilter !== '' && !in_array($programFilter, $programs, true)) {
-                            $programFilter = '';
                         }
 
                         // Build WHERE clause
@@ -117,6 +91,16 @@ include("includes/header.php");
                         ";
                         $collections = $missingMode ? false : mysqli_query($conn, $query);
 
+                        // Preload programs for filter
+                        $programs = [];
+                        $progRes = mysqli_query($conn, "SELECT DISTINCT programName FROM data_tables ORDER BY programName");
+                        if ($progRes) {
+                            while ($row = mysqli_fetch_assoc($progRes)) {
+                                if (!empty($row['programName'])) {
+                                    $programs[] = $row['programName'];
+                                }
+                            }
+                        }
 
                         // Counters
                         $totalRecords      = 0;
@@ -318,9 +302,8 @@ include("includes/header.php");
                                             <label for="session" class="form-label small text-muted mb-1">Session</label>
                                             <select name="session" id="session" class="form-control form-control-sm select2-filter w-100">
                                                 <option value="">All Sessions</option>
-                                                <?php foreach ($allowedSessions as $sess): ?>
-                                                    <option value="<?= htmlspecialchars($sess) ?>" <?= $sessionFilter === $sess ? 'selected' : '' ?>><?= htmlspecialchars($sess) ?></option>
-                                                <?php endforeach; ?>
+                                                <option value="MORNING" <?= $sessionFilter === 'MORNING' ? 'selected' : '' ?>>Morning</option>
+                                                <option value="EVENING" <?= $sessionFilter === 'EVENING' ? 'selected' : '' ?>>Evening</option>
                                             </select>
                                         </div>
                                         <div class="col-md-3 col-sm-6">
@@ -335,7 +318,7 @@ include("includes/header.php");
                                         <div class="col-md-3 col-sm-6">
                                             <label for="issue_status" class="form-label small text-muted mb-1">Didn't Get Cloak (Paid Students)</label>
                                             <select name="issue_status" id="issue_status" class="form-control form-control-sm select2-filter w-100">
-                                                <option value="">- select here -</option>
+                                                <option value="" >- select here -</option>
                                                 <!--<option value="any_missing" <?= $issueFilter === 'any_missing' ? 'selected' : '' ?>>Any Missing (not / partially issued)</option>-->
                                                 <option value="not_issued" <?= $issueFilter === 'not_issued' ? 'selected' : '' ?>>Not Issued (nothing collected)</option>
                                                 <!--<option value="partial_issued" <?= $issueFilter === 'partial_issued' ? 'selected' : '' ?>>Partially Issued (items missing)</option>-->
@@ -672,12 +655,7 @@ include("includes/header.php");
         });
 
         // Auto-submit filters on any change
-        $('#program, #return_status').on('change', function() {
-            $('#filterForm')[0].submit();
-        });
-        // Changing the session reloads the Program list with only that session's programs
-        $('#session').on('change', function() {
-            $('#program').val('');
+        $('#session, #program, #return_status').on('change', function() {
             $('#filterForm')[0].submit();
         });
         // Return-status doesn't apply to the "didn't get cloak" check, so clear it

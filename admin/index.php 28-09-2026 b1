@@ -2,7 +2,7 @@
 session_start();
 
 
-if (!isset($_SESSION['admin_id']) || ($_SESSION['admin_name'] ?? '') === 'Unknown Admin') {
+if (!isset($_SESSION['admin_id']) || $_SESSION['admin_name'] === 'Unknown Admin') {
     header("Location: login");
     exit();
 }
@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_id']) || ($_SESSION['admin_name'] ?? '') === 'Unknow
 include("../database/connection.php");
 include("includes/header.php");
 
-$role = $_SESSION['role'] ?? '';
+$role = $_SESSION['role'];
 $today = date('Y-m-d');
 
 // -------------------------
@@ -110,103 +110,143 @@ if ($result && $row = $result->fetch_assoc()) {
 
 
 // -------------------------
-// 🔟 Session-wise Stats (SESSION_01 / SESSION_02 / SESSION_03)
+// 🔟 Session-wise Stats (Enhanced)
 // -------------------------
-$sessionLabels = [
-    'SESSION_01' => 'Session 01',
-    'SESSION_02' => 'Session 02',
-    'SESSION_03' => 'Session 03',
-];
+$sessions = ['MORNING', 'EVENING'];
 $sessionSummary = [];
 
-// ALL extra_ticket_log tickets are added to SESSION_01 (same rule as the old MORNING logic)
-$extraLogTotal = 0;
-$resultLog = $conn->query("SELECT SUM(added_tickets) AS t FROM extra_ticket_log");
-if ($resultLog && $rowLog = $resultLog->fetch_assoc()) {
-    $extraLogTotal = (int)($rowLog['t'] ?? 0);
-}
-
-$stmtSession = $conn->prepare("
-    SELECT
-        COUNT(DISTINCT rs.student_id)            AS total_registered,
-        COUNT(DISTINCT pr.student_id)            AS total_paid_students,
-        COALESCE(SUM(pr.free_ticket_count), 0)   AS total_free_tickets,
-        COALESCE(SUM(pr.extra_ticket_count), 0)  AS total_extra_tickets
-    FROM registered_students rs
-    LEFT JOIN payment_records pr ON rs.student_id = pr.student_id
-    WHERE rs.program_name IN (SELECT programName FROM data_tables WHERE session = ?)
-");
-
-foreach ($sessionLabels as $sessionCode => $sessionLabel) {
-    $row = null;
-    if ($stmtSession) {
-        $stmtSession->bind_param("s", $sessionCode);
-        $stmtSession->execute();
-        $res = $stmtSession->get_result();
-        $row = $res ? $res->fetch_assoc() : null;
-    }
-
-    $session_added = ($sessionCode === 'SESSION_01') ? $extraLogTotal : 0;
-    $base_extra = (int)($row['total_extra_tickets'] ?? 0);
-
-    $sessionSummary[$sessionCode] = [
-        'registered_students' => (int)($row['total_registered'] ?? 0),
-        'paid_students'       => (int)($row['total_paid_students'] ?? 0),
-        'free_tickets'        => (int)($row['total_free_tickets'] ?? 0),
-        'extra_tickets'       => $base_extra + $session_added,
-        'base_extra'          => $base_extra,
-        'session_added'       => $session_added,
-    ];
-}
-if ($stmtSession) {
-    $stmtSession->close();
-}
-
-// -------------------------
-// 🔟 Session Stats (paid / attended / not attended) - Admin & Registration Desk
-// -------------------------
-function getSessionStats(mysqli $conn): array
-{
-    $stats = [];
-    foreach (['session_01', 'session_02', 'session_03'] as $key) {
-        $stats[$key] = ['paid' => 0, 'attended' => 0, 'remaining' => 0];
-    }
-
+foreach ($sessions as $session) {
     $sql = "
-        SELECT dt.session AS session_code,
-               COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
-                                   THEN rs.student_id END) AS total_paid,
-               COUNT(DISTINCT CASE WHEN rs.attend = 'attended'
-                                   THEN rs.student_id END) AS total_attended,
-               COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
-                                    AND (rs.attend IS NULL OR rs.attend != 'attended')
-                                   THEN rs.student_id END) AS total_remaining
+        SELECT 
+            COUNT(DISTINCT rs.student_id) AS total_registered,
+            COUNT(DISTINCT pr.student_id) AS total_paid_students,
+            SUM(pr.free_ticket_count) AS total_free_tickets,
+            SUM(pr.extra_ticket_count) AS total_extra_tickets
         FROM registered_students rs
-        INNER JOIN data_tables dt ON rs.program_name = dt.programName
         LEFT JOIN payment_records pr ON rs.student_id = pr.student_id
-        WHERE dt.session IN ('SESSION_01', 'SESSION_02', 'SESSION_03')
-        GROUP BY dt.session
+        LEFT JOIN data_tables dt ON rs.program_name = dt.programName
+        WHERE dt.session = '$session'
     ";
 
     $result = $conn->query($sql);
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $key = strtolower(trim($row['session_code']));
-            if (isset($stats[$key])) {
-                $stats[$key] = [
-                    'paid'      => (int)$row['total_paid'],
-                    'attended'  => (int)$row['total_attended'],
-                    'remaining' => (int)$row['total_remaining'],
-                ];
-            }
-        }
+
+    // Add ALL extra_ticket_log tickets to the MORNING session (as requested, disregarding session mappings)
+    $session_added = 0;
+    if ($session === 'MORNING') {
+        $sql_log = "SELECT SUM(added_tickets) AS session_added_tickets FROM extra_ticket_log";
+        $result_log = $conn->query($sql_log);
+        $session_added = ($result_log && $row_log = $result_log->fetch_assoc()) ? ($row_log['session_added_tickets'] ?? 0) : 0;
     }
-    return $stats;
+
+    if ($result && $row = $result->fetch_assoc()) {
+        $base_extra = $row['total_extra_tickets'] ?? 0;
+        $sessionSummary[$session] = [
+            'registered_students' => $row['total_registered'] ?? 0,
+            'paid_students' => $row['total_paid_students'] ?? 0,
+            'free_tickets' => $row['total_free_tickets'] ?? 0,
+            'extra_tickets' => $base_extra + $session_added,
+            'base_extra' => $base_extra,
+            'session_added' => $session_added
+        ];
+    }
+    else {
+        $sessionSummary[$session] = [
+            'registered_students' => 0,
+            'paid_students' => 0,
+            'free_tickets' => 0,
+            'extra_tickets' => 0,
+            'base_extra' => 0,
+            'session_added' => 0
+        ];
+    }
 }
 
-$sessionStats = [];
+// -------------------------
+// 🔟 Session Stats (Morning & Evening) - Admin & Registration Desk
+// -------------------------
+$morningPaidStudents = 0;
+$morningAttendedStudents = 0;
+$morningNotAttendedStudents = 0;
+$eveningPaidStudents = 0;
+$eveningAttendedStudents = 0;
+$eveningNotAttendedStudents = 0;
+
 if (in_array($role, ['admin', 'registrationDesk'])) {
-    $sessionStats = getSessionStats($conn);
+    // Morning session students who paid (unique students only)
+    $sql = "
+        SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+        FROM registered_students rs
+        INNER JOIN data_tables dt ON rs.program_name = dt.programName
+        INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+        WHERE dt.session = 'MORNING'
+    ";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        $morningPaidStudents = $row['total_paid'] ?? 0;
+    }
+
+    // Morning session students who attended (unique students only)
+    $sql = "
+        SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+        FROM registered_students rs
+        INNER JOIN data_tables dt ON rs.program_name = dt.programName
+        WHERE dt.session = 'MORNING' AND rs.attend = 'attended'
+    ";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        $morningAttendedStudents = $row['total_attended'] ?? 0;
+    }
+
+    // Morning session students who paid but not attended (unique students only)
+    $sql = "
+        SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+        FROM registered_students rs
+        INNER JOIN data_tables dt ON rs.program_name = dt.programName
+        INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+        WHERE dt.session = 'MORNING' AND (rs.attend IS NULL OR rs.attend != 'attended')
+    ";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        $morningNotAttendedStudents = $row['total_not_attended'] ?? 0;
+    }
+
+    // Evening session students who paid (unique students only)
+    $sql = "
+        SELECT COUNT(DISTINCT rs.student_id) AS total_paid
+        FROM registered_students rs
+        INNER JOIN data_tables dt ON rs.program_name = dt.programName
+        INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+        WHERE dt.session = 'EVENING'
+    ";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        $eveningPaidStudents = $row['total_paid'] ?? 0;
+    }
+
+    // Evening session students who attended (unique students only)
+    $sql = "
+        SELECT COUNT(DISTINCT rs.student_id) AS total_attended
+        FROM registered_students rs
+        INNER JOIN data_tables dt ON rs.program_name = dt.programName
+        WHERE dt.session = 'EVENING' AND rs.attend = 'attended'
+    ";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        $eveningAttendedStudents = $row['total_attended'] ?? 0;
+    }
+
+    // Evening session students who paid but not attended (unique students only)
+    $sql = "
+        SELECT COUNT(DISTINCT rs.student_id) AS total_not_attended
+        FROM registered_students rs
+        INNER JOIN data_tables dt ON rs.program_name = dt.programName
+        INNER JOIN payment_records pr ON rs.student_id = pr.student_id
+        WHERE dt.session = 'EVENING' AND (rs.attend IS NULL OR rs.attend != 'attended')
+    ";
+    $result = $conn->query($sql);
+    if ($result && $row = $result->fetch_assoc()) {
+        $eveningNotAttendedStudents = $row['total_not_attended'] ?? 0;
+    }
 }
 
 ?>
@@ -295,38 +335,54 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
                 <!-- Summary Cards Section -->
                 <div class="row text-center">
                     <?php if (in_array($role, ['admin', 'registrationDesk'])): ?>
-                        <!-- Session 01 / 02 / 03 Cards - Admin & Registration Desk -->
-                        <?php
-                        $cardColors = ['session_01' => 'primary', 'session_02' => 'warning', 'session_03' => 'info'];
-                        foreach ($sessionLabels as $code => $label):
-                            $key = strtolower($code);
-                            $color = $cardColors[$key];
-                            $st = $sessionStats[$key] ?? ['paid' => 0, 'attended' => 0, 'remaining' => 0];
-                        ?>
-                            <div class="col-md-4 mb-4">
-                                <div class="card shadow border-left-<?php echo $color; ?> py-3">
-                                    <div class="card-body">
-                                        <h5 class="text-<?php echo $color; ?> fw-bold mb-4"><?php echo $label; ?></h5>
-                                        <div class="row text-center">
-                                            <div class="col-4">
-                                                <h6 class="text-success fw-bold">Paid Students</h6>
-                                                <h2 class="fw-bold text-dark"><?php echo (int)$st['paid']; ?></h2>
-                                            </div>
-                                            <div class="col-4">
-                                                <h6 class="text-info fw-bold">Attended Students</h6>
-                                                <h2 class="fw-bold text-dark"><?php echo (int)$st['attended']; ?></h2>
-                                            </div>
-                                            <div class="col-4">
-                                                <h6 class="text-danger fw-bold">Not Attended</h6>
-                                                <h2 class="fw-bold text-dark"><?php echo (int)$st['remaining']; ?></h2>
-                                            </div>
+                        <!-- Morning & Evening Session Cards - Admin & Registration Desk -->
+                        <!-- Morning Session Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow border-left-primary py-3">
+                                <div class="card-body">
+                                    <h5 class="text-primary fw-bold mb-4">Morning Session</h5>
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <h6 class="text-success fw-bold">Paid Students</h6>
+                                            <h2 class="fw-bold text-dark"><?php echo $morningPaidStudents; ?></h2>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-info fw-bold">Attended Students</h6>
+                                            <h2 class="fw-bold text-dark"><?php echo $morningAttendedStudents; ?></h2>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-danger fw-bold">Not Attended</h6>
+                                            <h2 class="fw-bold text-dark"><?php echo $morningNotAttendedStudents; ?></h2>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
+
+                        <!-- Evening Session Card -->
+                        <div class="col-md-6 mb-4">
+                            <div class="card shadow border-left-warning py-3">
+                                <div class="card-body">
+                                    <h5 class="text-warning fw-bold mb-4">Evening Session</h5>
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <h6 class="text-success fw-bold">Paid Students</h6>
+                                            <h2 class="fw-bold text-dark"><?php echo $eveningPaidStudents; ?></h2>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-info fw-bold">Attended Students</h6>
+                                            <h2 class="fw-bold text-dark"><?php echo $eveningAttendedStudents; ?></h2>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-danger fw-bold">Not Attended</h6>
+                                            <h2 class="fw-bold text-dark"><?php echo $eveningNotAttendedStudents; ?></h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     <?php
-                    endif; ?>
+endif; ?>
 
                     <!-- General Stats Cards - ALL ROLES -->
                     <div class="col-md-3 mb-4">
@@ -406,15 +462,15 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
 
                             <?php foreach ($sessionSummary as $session => $data): ?>
                                 <?php
-                                // Total = Paid Students + Free Tickets + Extra Tickets
-                                $total = ($data['paid_students'] ?? 0) +
-                                    ($data['free_tickets'] ?? 0) +
-                                    ($data['extra_tickets'] ?? 0);
-                                ?>
-                                <div class="col-md-4 mb-4">
+        // Total = Paid Students + Free Tickets + Extra Tickets
+        $total = ($data['paid_students'] ?? 0) +
+            ($data['free_tickets'] ?? 0) +
+            ($data['extra_tickets'] ?? 0);
+?>
+                                <div class="col-md-6 mb-4">
                                     <div class="card shadow border-left-primary py-3">
                                         <div class="card-body">
-                                            <h6 class="text-primary fw-bold"><?php echo $sessionLabels[$session]; ?></h6>
+                                            <h6 class="text-primary fw-bold"><?php echo $session; ?> Session</h6>
                                             <p class="mb-1">Registered Students: <?php echo $data['registered_students']; ?></p>
                                             <p class="mb-1">Paid Students: <?php echo $data['paid_students']; ?></p>
                                             <p class="mb-1">Free Tickets: <?php echo $data['free_tickets']; ?></p>
@@ -425,19 +481,19 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
                                     </div>
                                 </div>
                             <?php
-                            endforeach; ?>
+    endforeach; ?>
                             <div class="row mt-4">
-                                <?php foreach ($sessionLabels as $session => $sessionLabel): ?>
-                                    <div class="col-md-4 text-center mb-3">
+                                <?php foreach (['MORNING', 'EVENING'] as $session): ?>
+                                    <div class="col-md-6 text-center mb-3">
                                         <form action="export_session_data.php" method="POST">
                                             <input type="hidden" name="session" value="<?php echo $session; ?>">
                                             <button type="submit" class="btn btn-success fw-bold">
-                                                <i class="fas fa-file-csv"></i> Export <?php echo $sessionLabel; ?> Data (CSV)
+                                                <i class="fas fa-file-csv"></i> Export <?php echo $session; ?> Session Data (CSV)
                                             </button>
                                         </form>
                                     </div>
                                 <?php
-                                endforeach; ?>
+    endforeach; ?>
                             </div>
                         </div>
 
@@ -472,24 +528,24 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
                                                         <td><?php echo htmlspecialchars($note['student_id']); ?></td>
                                                         <td>
                                                             <?php
-                                                            $action = htmlspecialchars($note['action_type']);
-                                                            $badgeClass = ($action == 'INSERT') ? 'bg-success' : (($action == 'UPDATE') ? 'bg-warning text-dark' : 'bg-secondary');
-                                                            ?>
+            $action = htmlspecialchars($note['action_type']);
+            $badgeClass = ($action == 'INSERT') ? 'bg-success' : (($action == 'UPDATE') ? 'bg-warning text-dark' : 'bg-secondary');
+?>
                                                             <span class="badge <?php echo $badgeClass; ?>"><?php echo $action; ?></span>
                                                         </td>
                                                         <td><?php echo htmlspecialchars($note['description']); ?></td>
                                                         <td><?php echo htmlspecialchars($note['created_at']); ?></td>
                                                     </tr>
                                                 <?php
-                                                endforeach; ?>
+        endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
                                 <?php
-                                else: ?>
+    else: ?>
                                     <p class="text-muted text-center mb-0">No notifications available.</p>
                                 <?php
-                                endif; ?>
+    endif; ?>
                             </div>
 
                             <div class="card-footer text-center">
@@ -497,7 +553,7 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
                             </div>
                         </div>
                     <?php
-                    endif; ?>
+endif; ?>
                 </div>
 
 

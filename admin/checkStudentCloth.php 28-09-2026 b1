@@ -39,7 +39,7 @@ if ($payResult->num_rows == 0) {
 // Step 3: Registered + paid — get items by program, check if already issued
 $programName = $regStudent['program_name'];
 
-$itemStmt = $conn->prepare("SELECT cloak, slashes, hats, session FROM data_tables WHERE programName = ?");
+$itemStmt = $conn->prepare("SELECT cloak, slashes, hats FROM data_tables WHERE programName = ?");
 $itemStmt->bind_param("s", $programName);
 $itemStmt->execute();
 $itemResult = $itemStmt->get_result();
@@ -52,7 +52,6 @@ if ($itemResult->num_rows > 0) {
     if (!empty($items['slashes']) && $items['slashes'] == 1) $assigned[] = "Slashes";
     if (!empty($items['hats']) && $items['hats'] == 1) $assigned[] = "Hats";
     $items_str = count($assigned) > 0 ? implode(", ", $assigned) : "None";
-    $session_str = $items['session'] ?? 'None';
 }
 
 $check = $conn->prepare("SELECT * FROM clothing_collections WHERE student_id = ?");
@@ -64,8 +63,7 @@ $response = [
     'student_name' => $regStudent['calling_name'],
     'student_id'   => $studentID,
     'program'      => $regStudent['program_name'],
-    'items'        => $items_str,
-    'session'      => $session_str
+    'items'        => $items_str
 ];
 
 if ($checkResult->num_rows > 0) {

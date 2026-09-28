@@ -2,14 +2,6 @@
 session_start();
 require_once __DIR__ . "/../database/connection.php";
 
-/**
- * Returns paid / attended / remaining counts (unique students) for each session.
- *   paid      = students with a payment record
- *   attended  = students marked attended
- *   remaining = students who paid but have not attended
- * Used by BOTH scan.php (first page load) and fetch_session_stats.php (auto-refresh),
- * so the numbers always match.
- */
 function getSessionStats(mysqli $conn): array
 {
     $sessions = ['SESSION_01', 'SESSION_02', 'SESSION_03'];
