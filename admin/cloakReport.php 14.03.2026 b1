@@ -1,0 +1,192 @@
+<?php
+session_start();
+if (!isset($_SESSION['admin_id'])) {
+    header("Location: login");
+    exit();
+}
+
+include("../database/connection.php");
+include("includes/header.php");
+?>
+
+<div id="wrapper">
+    <?php include("nav.php"); ?>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <?php include("includes/topnav.php"); ?>
+            <div class="container-fluid mt-4">
+
+                <h4 class="mb-4 text-danger text-center">Cloak Issued Report and Return Report</h4>
+
+
+                <div class="card w-100 container shadow-sm">
+                    <div class="card-body">
+                        <h5 class="mb-3 text-primary"><i class="fas fa-user-tag"></i> Clothing Collections</h5>
+                        <?php
+                        $sessionFilter = isset($_GET['session']) ? strtoupper(trim($_GET['session'])) : '';
+                        $returnFilter = isset($_GET['return_status']) ? trim($_GET['return_status']) : '';
+                        $allowedSessions = ['MORNING', 'EVENING'];
+                        $allowedReturn = ['issued', 'returned', 'not_returned'];
+                        if (!in_array($sessionFilter, $allowedSessions)) {
+                            $sessionFilter = '';
+                        }
+                        if (!in_array($returnFilter, $allowedReturn)) {
+                            $returnFilter = '';
+                        }
+                        $where = [];
+                        if ($sessionFilter !== '') {
+                            $where[] = "dt.session = '" . mysqli_real_escape_string($conn, $sessionFilter) . "'";
+                        }
+                        if ($returnFilter === 'issued') {
+                            $where[] = "(COALESCE(cc.collect_cloak,'')!='' OR COALESCE(cc.collect_slashes,'')!='' OR COALESCE(cc.collect_hats,'')!='')";
+                        }
+                        if ($returnFilter === 'returned') {
+                            $where[] = "(COALESCE(cc.return_cloak,'')!='' OR COALESCE(cc.return_slashes,'')!='' OR COALESCE(cc.return_hats,'')!='')";
+                        }
+                        if ($returnFilter === 'not_returned') {
+                            $where[] = "((COALESCE(cc.collect_cloak,'')!='' OR COALESCE(cc.collect_slashes,'')!='' OR COALESCE(cc.collect_hats,'')!='') AND (COALESCE(cc.return_cloak,'')='' AND COALESCE(cc.return_slashes,'')='' AND COALESCE(cc.return_hats,'')=''))";
+                        }
+                        $where_sql = count($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+                        $query = "
+                            SELECT cc.id, cc.student_id, cc.student_name, cc.program_name,
+                                   cc.collect_cloak, cc.collect_slashes, cc.collect_hats, cc.collected_at,
+                                   cc.return_cloak, cc.return_slashes, cc.return_hats,
+                                   dt.session
+                            FROM clothing_collections cc
+                            LEFT JOIN data_tables dt ON cc.program_name = dt.programName
+                            $where_sql
+                            ORDER BY cc.collected_at DESC
+                        ";
+                        $collections = mysqli_query($conn, $query);
+                        ?>
+                        <form id="filterForm" method="get" class="form-inline mb-3">
+                            <select name="session" id="session" class="form-control form-control-sm select2 mr-2" style="min-width: 160px;">
+                                <option value="">All Sessions</option>
+                                <option value="MORNING" <?= $sessionFilter === 'MORNING' ? 'selected' : '' ?>>Morning</option>
+                                <option value="EVENING" <?= $sessionFilter === 'EVENING' ? 'selected' : '' ?>>Evening</option>
+                            </select>
+                            <select name="return_status" id="return_status" class="form-control form-control-sm select2 mr-2" style="min-width: 180px;">
+                                <option value="">All Status</option>
+                                <option value="issued" <?= $returnFilter === 'issued' ? 'selected' : '' ?>>Issued</option>
+                                <option value="returned" <?= $returnFilter === 'returned' ? 'selected' : '' ?>>Returned</option>
+                                <option value="not_returned" <?= $returnFilter === 'not_returned' ? 'selected' : '' ?>>Not Returned</option>
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-filter"></i> Apply</button>
+                            <a href="cloakReport.php" class="btn btn-secondary btn-sm ml-2"><i class="fas fa-undo"></i> Reset</a>
+                        </form>
+                        <div class="table-responsive">
+                            <table id="collectionsTable" class="table table-bordered table-striped" style="font-size: 13px;">
+                                <thead class="thead-dark">
+                                    <tr>
+                                        <th>Student ID</th>
+                                        <th>Name</th>
+                                        <th>Program</th>
+                                        <th>Session</th>
+                                        <th>Issued Items</th>
+                                        <th>Issued At</th>
+                                        <th>Returned Items</th>
+                                        <th>Cloak</th>
+                                        <th>Slashes</th>
+                                        <th>Hats</th>
+                                        <th>Return Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if ($collections && mysqli_num_rows($collections) > 0) {
+                                        while ($c = mysqli_fetch_assoc($collections)) {
+                                            $collected_items = [];
+                                            if (!empty($c['collect_cloak'])) {
+                                                $collected_items[] = 'Cloak';
+                                            }
+                                            if (!empty($c['collect_slashes'])) {
+                                                $collected_items[] = 'Slashes';
+                                            }
+                                            if (!empty($c['collect_hats'])) {
+                                                $collected_items[] = 'Hats';
+                                            }
+                                            $returned_items = [];
+                                            if (!empty($c['return_cloak'])) {
+                                                $returned_items[] = 'Cloak';
+                                            }
+                                            if (!empty($c['return_slashes'])) {
+                                                $returned_items[] = 'Slashes';
+                                            }
+                                            if (!empty($c['return_hats'])) {
+                                                $returned_items[] = 'Hats';
+                                            }
+                                            $cloak_status = !empty($c['collect_cloak']) ? (!empty($c['return_cloak']) ? 'Returned' : 'Issued') : 'Not Issued';
+                                            $slashes_status = !empty($c['collect_slashes']) ? (!empty($c['return_slashes']) ? 'Returned' : 'Issued') : 'Not Issued';
+                                            $hats_status = !empty($c['collect_hats']) ? (!empty($c['return_hats']) ? 'Returned' : 'Issued') : 'Not Issued';
+                                            $collected_count = count($collected_items);
+                                            $returned_count = count($returned_items);
+                                            $overall_status = 'N/A';
+                                            if ($collected_count > 0) {
+                                                if ($returned_count === 0) {
+                                                    $overall_status = 'Issued';
+                                                } elseif ($returned_count >= $collected_count) {
+                                                    $overall_status = 'Fully Returned';
+                                                } else {
+                                                    $overall_status = 'Partial Returned';
+                                                }
+                                            }
+                                            $cloak_class = $cloak_status === 'Returned' ? 'badge-success' : ($cloak_status === 'Issued' ? 'badge-warning' : 'badge-secondary');
+                                            $slashes_class = $slashes_status === 'Returned' ? 'badge-success' : ($slashes_status === 'Issued' ? 'badge-warning' : 'badge-secondary');
+                                            $hats_class = $hats_status === 'Returned' ? 'badge-success' : ($hats_status === 'Issued' ? 'badge-warning' : 'badge-secondary');
+                                            $overall_class = $overall_status === 'Fully Returned' ? 'badge-success' : ($overall_status === 'Partial Returned' ? 'badge-info' : ($overall_status === 'Issued' ? 'badge-warning' : 'badge-secondary'));
+                                    ?>
+                                            <tr>
+                                                <td><?= htmlspecialchars($c['student_id']) ?></td>
+                                                <td><?= htmlspecialchars($c['student_name']) ?></td>
+                                                <td><?= htmlspecialchars($c['program_name']) ?></td>
+                                                <td><?= htmlspecialchars($c['session'] ?? '') ?></td>
+                                                <td><?php foreach ($collected_items as $ci) { ?><span class="badge badge-info mr-1"><?= htmlspecialchars($ci) ?></span><?php } ?></td>
+                                                <td><?= htmlspecialchars($c['collected_at']) ?></td>
+                                                <td><?php foreach ($returned_items as $ri) { ?><span class="badge badge-success mr-1"><?= htmlspecialchars($ri) ?></span><?php } ?></td>
+                                                <td><span class="badge <?= $cloak_class ?>"><?= htmlspecialchars($cloak_status) ?></span></td>
+                                                <td><span class="badge <?= $slashes_class ?>"><?= htmlspecialchars($slashes_status) ?></span></td>
+                                                <td><span class="badge <?= $hats_class ?>"><?= htmlspecialchars($hats_status) ?></span></td>
+                                                <td><span class="badge <?= $overall_class ?>"><?= htmlspecialchars($overall_status) ?></span></td>
+                                            </tr>
+                                    <?php }
+                                    } ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- /container-fluid -->
+        </div> <!-- /content -->
+    </div> <!-- /content-wrapper -->
+</div> <!-- /wrapper -->
+
+<!-- ========== JS & CSS ========== -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link rel="stylesheet" href="./vendor/datatables/dataTables.bootstrap4.min.css">
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<script src="vendor/jquery/jquery.min.js"></script>
+<!-- <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script> -->
+<script src="vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(function() {
+        $('#collectionsTable').DataTable({
+            pageLength: 500,
+            lengthMenu: [
+                [50, 100, 250, 500, -1],
+                [50, 100, 250, 500, "All"]
+            ],
+            order: [
+                [5, 'desc']
+            ]
+        });
+        $('.select2').select2({
+            width: 'resolve'
+        });
+        $('#session, #return_status').on('change', function() {
+            $('#filterForm')[0].submit();
+        });
+    });
+</script>

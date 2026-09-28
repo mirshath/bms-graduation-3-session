@@ -1,0 +1,39 @@
+<?php
+include("../database/connection.php");
+session_start();
+
+$student_id = $_POST['student_id'];
+$addTickets = intval($_POST['addTickets']);
+$ticketPrice = floatval($_POST['ticketPrice']);
+$added_by = $_SESSION['admin_id'] ?? 0;
+
+// Fetch existing values
+$query = $conn->prepare("SELECT graduation_fee, extra_ticket_count, extra_ticket_fee FROM payment_records WHERE student_id = ?");
+$query->bind_param("s", $student_id);
+$query->execute();
+$result = $query->get_result();
+
+if ($row = $result->fetch_assoc()) {
+    $new_extra_count = $row['extra_ticket_count'] + $addTickets;
+    $new_extra_fee = $row['extra_ticket_fee'] + ($addTickets * $ticketPrice);
+    $new_total = $row['graduation_fee'] + $new_extra_fee;
+
+    // Update payment record
+    $update = $conn->prepare("
+        UPDATE payment_records 
+        SET extra_ticket_count=?, extra_ticket_fee=?, total_amount=? 
+        WHERE student_id=?
+    ");
+    $update->bind_param("idds", $new_extra_count, $new_extra_fee, $new_total, $student_id);
+    $update->execute();
+
+    // Optional: log entry (if log table exists)
+    @$conn->query("
+        INSERT INTO extra_ticket_log (student_id, added_tickets, ticket_price, total_added, added_by)
+        VALUES ('$student_id', '$addTickets', '$ticketPrice', '" . ($addTickets * $ticketPrice) . "', '$added_by')
+    ");
+
+    echo "Extra tickets added successfully!";
+} else {
+    echo "Student not found!";
+}

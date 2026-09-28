@@ -1,0 +1,57 @@
+<!-- wanna create a column name "attend" 
+
+
+
+BMS credential
+---------------------------------
+
+bms@alumini.ac.lk
+Bms@alumini
+
+
+ -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- ---------------------------------------------------------------- -->
+
+<link rel="stylesheet" href="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/css/alertify.min.css" />
+<script src="//cdn.jsdelivr.net/npm/alertifyjs@1.13.1/build/alertify.min.js"></script>
+
+
+<!-- or  -->
+
+<script src="https://cdn.jsdelivr.net/npm/alertifyjs/build/alertify.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs/build/css/alertify.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/alertifyjs/build/css/themes/default.min.css" />
+
+
+<?php
+// Check if the success message exists, display it, and then unset it
+if (isset($_SESSION['success_message'])) {
+    echo '<script>
+        console.log("Success: ' . $_SESSION['success_message'] . '");
+        alertify.success("' . $_SESSION['success_message'] . '");
+    </script>';
+    unset($_SESSION['success_message']); // Unset the message after showing it
+}
+
+// Check if the error message exists, display it, and then unset it
+if (isset($_SESSION['error_message'])) {
+    echo '<script>
+        console.log("Error: ' . $_SESSION['error_message'] . '");
+        alertify.error("' . $_SESSION['error_message'] . '");
+    </script>';
+    unset($_SESSION['error_message']); // Unset the message after showing it
+}
+?>

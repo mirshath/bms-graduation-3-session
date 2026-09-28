@@ -1,0 +1,6 @@
+student_id,seat_no,student_result,calling_name
+STU001,S001,PASS,A
+STU002,S002,PASS,B
+STU003,S003,FAIL,C
+STU004,S004,,D
+STU005,S005,MERIT,E
