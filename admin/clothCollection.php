@@ -535,7 +535,42 @@ include("includes/header.php");
             //     }
             // });
 
+// Old without preloaded  14.03.2026 b1 ------ before change ----------------------------------------------
 
+            // $.ajax({
+            //     url: 'markClothAttended.php',
+            //     type: 'POST',
+            //     data: {
+            //         studentID: studentID
+            //     },
+            //     dataType: 'json',
+            //     success: function(response) {
+            //         if (response.status === 'success') {
+            //             // Show success message and close modal
+            //             $('#successModal').modal('hide');
+            //             alert('Student marked as collected successfully!');
+            //             location.reload(); // Refresh the page in real-time
+
+            //         } else {
+            //             var msg = response.message || 'Failed to mark as collected.';
+            //             if (response.debug) msg += '\n' + response.debug;
+            //             alert(msg);
+            //             btn.prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Mark as Collected');
+            //         }
+            //     },
+            //     error: function(xhr) {
+            //         var msg = 'An error occurred. Please try again.';
+            //         try {
+            //             var r = typeof xhr.responseText === 'string' && xhr.responseText ? JSON.parse(xhr.responseText) : {};
+            //             if (r.message) msg = r.message;
+            //             if (r.debug) msg += '\n' + r.debug;
+            //         } catch (e) {}
+            //         alert(msg);
+            //         btn.prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Mark as Collected');
+            //     }
+            // });
+            
+            //  ------------------------------------- new with preloaded  14.03.2026 b1 -------------------------------------------
 
             $.ajax({
                 url: 'markClothAttended.php',
@@ -573,8 +608,6 @@ include("includes/header.php");
                     btn.prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Mark as Issued');
                 }
             });
-
-
 
 
 

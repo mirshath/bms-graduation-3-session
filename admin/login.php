@@ -1,5 +1,3 @@
-<!-- Graduation Login  -->
-
 <?php
 session_start();
 include '../database/connection.php';
@@ -63,7 +61,7 @@ $conn->close();
                 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGkKtuN4jwLcLnigNTh1sGRqxzyEdf_HGDow&s" alt="Admin Logo" class="h-full w-full object-contain rounded-full p-2">
             </div>
             <h2 class="mt-6 text-3xl font-bold text-gray-900">Admin Portal</h2>
-            <p class="mt-2 text-sm text-gray-600">2025 BMS Graduations</p>
+            <p class="mt-2 text-sm text-gray-600">BMS Graduations</p>
         </div>
 
         <!-- Login Form -->
@@ -127,7 +125,7 @@ $conn->close();
         <!-- Footer -->
         <div class="text-center mt-4">
             <p class="text-xs text-gray-500">
-                © 2025 BMS Graduation. All rights reserved.
+                © 2026 BMS Graduation. All rights reserved.
             </p>
         </div>
     </div>

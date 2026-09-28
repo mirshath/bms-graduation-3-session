@@ -18,6 +18,8 @@ if ($session == '') {
 //         LEFT JOIN registered_students r ON b.student_id = r.student_id
 //         WHERE b.session_time = ?
 //         ORDER BY CAST(SUBSTRING(b.seat_no, 2) AS UNSIGNED) ASC"; // Order by numeric part of seat_no
+
+
 // $sql = "SELECT b.id, b.*, b.student_id, b.seat_no, b.program_name, r.name_in_full, b.calling_name
 //         FROM bulk_data_table b
 //         LEFT JOIN registered_students r ON b.student_id = r.student_id
@@ -25,8 +27,28 @@ if ($session == '') {
 //         ORDER BY b.seat_no ASC";
 
 
-// Order by integer value only - extract numeric part from seat_no and order by that integer
-// This extracts all digits from seat_no and converts to integer for sorting
+// $sql = "SELECT b.id, b.*, b.student_id, b.seat_no, b.program_name, r.name_in_full, b.calling_name
+//         FROM bulk_data_table b
+//         LEFT JOIN registered_students r ON b.student_id = r.student_id
+//         WHERE b.session_time = ?
+//         ORDER BY 
+//             CAST(
+//                 RIGHT(TRIM(b.seat_no), 2)
+//                 AS UNSIGNED
+//             ) ASC";
+
+
+// $sql = "SELECT b.id, b.*, b.student_id, b.seat_no, b.program_name, r.name_in_full, b.calling_name
+//         FROM bulk_data_table b
+//         LEFT JOIN registered_students r ON b.student_id = r.student_id
+//         WHERE b.session_time = ?
+//         ORDER BY 
+//             LEFT(TRIM(b.seat_no), 1) ASC,
+//             CAST(SUBSTRING_INDEX(TRIM(b.seat_no), ' ', -1) AS UNSIGNED) ASC";
+
+
+
+
 
 $sql = "SELECT b.id, b.*, b.student_id, b.seat_no, b.program_name, r.name_in_full, b.calling_name
         FROM bulk_data_table b

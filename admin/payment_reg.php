@@ -46,7 +46,10 @@ $summaryQuery = $conn->query("
 $summary = $summaryQuery->fetch_assoc();
 
 $adminId = intval($_SESSION['admin_id'] ?? 0);
+
+// inlcuded additionally for the today summary 
 $adminIdStr = strval($adminId);
+
 $adminName = $_SESSION['admin_name'] ?? 'Unknown Admin';
 $myStmt = $conn->prepare("
     SELECT 
@@ -64,6 +67,7 @@ $myStmt = $conn->prepare("
             extra_ticket_count AS extra_qty,
             payment_date AS summary_date
         FROM payment_records
+        
         WHERE (created_by = ? OR created_by = ?)
         
         UNION ALL
@@ -80,7 +84,11 @@ $myStmt = $conn->prepare("
     ) AS combined_summary
     WHERE DATE(summary_date) = CURDATE()
 ");
+// $myStmt->bind_param("ii", $adminId, $adminId);
+
+// inlcuded for the today summary 
 $myStmt->bind_param("ssii", $adminName, $adminIdStr, $adminId, $adminId);
+
 $myStmt->execute();
 $myResult = $myStmt->get_result();
 $mySummary = $myResult->fetch_assoc();

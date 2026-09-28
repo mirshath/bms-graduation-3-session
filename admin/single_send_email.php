@@ -74,7 +74,7 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
         $mail->Host       = 'smtp.office365.com';
         $mail->SMTPAuth   = true;
         $mail->Username   = 'bmsgraduation@bms.ac.lk';
-        $mail->Password   = 'nvjqswbrtcccghph';
+        $mail->Password   = 'vspcktnnkhtwhxgr';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
 

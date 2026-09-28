@@ -69,7 +69,7 @@ $totalCollectedToday = $totalCollectedTodayResult->fetch_assoc()['total_collecte
                                         <input type="text" class="form-control text-center fw-bold"
                                             style="font-size: 15px; padding:25px; letter-spacing: 1px;"
                                             id="studentID" name="studentID"
-                                            placeholder="Scan or Enter StudentID|InvitationNumber" required>
+                                            placeholder="Scan or Enter StudentID" required>
                                     </div>
 
                                     <button type="button" class="btn btn-primary w-50 p-2 fw-bold" onclick="checkStudentID()">Check</button>
@@ -84,7 +84,7 @@ $totalCollectedToday = $totalCollectedTodayResult->fetch_assoc()['total_collecte
                     <div class="card-header py-3 d-flex justify-content-between align-items-center">
                         <h5 class="m-0 font-weight-bold text-primary">Collected Invitations</h5>
                         <span class="badge bg-success fs-6">Total Collected: <?= $totalCollected ?></span>
-                        <span class="badge bg-danger fs-6">Today Collected: <?= $totalCollectedToday ?></span>
+                          <span class="badge bg-danger fs-6">Today Collected: <?= $totalCollectedToday ?></span>
                     </div>
 
                     <div class="card-body">
@@ -156,7 +156,39 @@ $totalCollectedToday = $totalCollectedTodayResult->fetch_assoc()['total_collecte
         });
     });
 
-   
+    // function checkStudentID() {
+    //     let inputValue = $('#studentID').val().trim();
+    //     if (inputValue === "") {
+    //         showModal(`<div class="alert alert-danger">Please scan or enter StudentID|InvitationNumber.</div>`);
+    //         return;
+    //     }
+
+    //     let parts = inputValue.split('|');
+    //     if (parts.length !== 2) {
+    //         showModal(`<div class="alert alert-danger">Invalid format. Use StudentID|InvitationNumber (e.g., 123|2)</div>`);
+    //         return;
+    //     }
+
+    //     let student_id = parts[0].trim();
+    //     let invitation_number = parts[1].trim();
+
+    //     $.ajax({
+    //         url: "check_invitation.php",
+    //         type: "POST",
+    //         data: {
+    //             student_id: student_id,
+    //             invitation_number: invitation_number
+    //         },
+    //         success: function(response) {
+    //             showModal(response);
+    //             $('#studentID').val('');
+    //         },
+    //         error: function() {
+    //             showModal(`<div class="alert alert-danger">Server error. Try again.</div>`);
+    //         }
+    //     });
+    // }
+
     function checkStudentID() {
         let student_id = $('#studentID').val().trim();
 
@@ -181,7 +213,25 @@ $totalCollectedToday = $totalCollectedTodayResult->fetch_assoc()['total_collecte
         });
     }
 
-   
+    // function collectInvitation(student_id) {
+    //     $.ajax({
+    //         url: "update_invitation_status.php",
+    //         type: "POST",
+    //         data: {
+    //             student_id: student_id
+    //         },
+    //         success: function(response) {
+    //             showModal(response);
+    //             setTimeout(() => location.reload(), 1500);
+    //         },
+    //         error: function() {
+    //             showModal(`<div class="alert alert-danger">Failed to update. Try again.</div>`);
+    //         }
+    //     });
+    // }
+
+
+
     function collectInvitation(student_id) {
         $.ajax({
             url: "update_invitation_status.php",

@@ -64,9 +64,86 @@ include("includes/header.php");
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
-<!-- 
+
+
+
+
 <script>
-    $(document).ready(function() {
+    // $(document).ready(function() {
+    //     $('.select2').select2({
+    //         placeholder: "-- Select Session --",
+    //         width: '100%'
+    //     });
+
+    //     $('#sessionSelect').on('change', function() {
+    //         let session = $(this).val();
+
+    //         if (session === "") {
+    //             $('#sessionData').html("");
+    //             return;
+    //         }
+
+    //         $.ajax({
+    //             url: "load_session_data.php",
+    //             type: "POST",
+    //             data: {
+    //                 session: session
+    //             },
+    //             beforeSend: function() {
+    //                 $('#sessionData').html("<p class='text-info'>Loading...</p>");
+    //             },
+    //             success: function(response) {
+    //                 $('#sessionData').html(response);
+
+    //                 $('#sessionTable').DataTable({
+    //                     dom: 'Bfrtip',
+    //                     buttons: [
+    //                         {
+    //                             extend: 'copy',
+    //                             className: 'btn btn-sm btn-primary me-1'
+    //                         },
+    //                         {
+    //                             extend: 'csv',
+    //                             className: 'btn btn-sm btn-success me-1'
+    //                         },
+    //                         {
+    //                             extend: 'excel',
+    //                             className: 'btn btn-sm btn-success me-1'
+    //                         },
+    //                         {
+    //                             extend: 'pdf',
+    //                             className: 'btn btn-sm btn-danger me-1'
+    //                         },
+    //                         {
+    //                             extend: 'print',
+    //                             className: 'btn btn-sm btn-info'
+    //                         }
+    //                     ],
+    //                     // ordering: true,
+    //                     // order: [
+    //                     //     [4, 'asc']
+    //                     // ], 
+    //                     // pageLength: 500, 
+    //                     // lengthMenu: [[500, -1, 10, 25, 50, 100], [500, "All", 10, 25, 50, 100]]
+                        
+    //                      pageLength: 500, // Show 500 rows by default
+    //                     lengthMenu: [
+    //                         [500, -1, 10, 25, 50, 100],
+    //                         [500, "All", 10, 25, 50, 100]
+    //                     ],
+    //                     columnDefs: [{
+    //                         targets: 4, // Seat No column index
+    //                         type: 'seat-sort'
+    //                     }]
+                        
+    //                 });
+    //             }
+    //         });
+    //     });
+    // });
+
+
+  $(document).ready(function() {
         $('.select2').select2({
             placeholder: "-- Select Session --",
             width: '100%'
@@ -92,86 +169,16 @@ include("includes/header.php");
                 success: function(response) {
                     $('#sessionData').html(response);
 
-                    $('#sessionTable').DataTable({
-                        dom: 'Bfrtip',
-                        buttons: [{
-                                extend: 'copy',
-                                className: 'btn btn-sm btn-primary me-1'
-                            },
-                            {
-                                extend: 'csv',
-                                className: 'btn btn-sm btn-success me-1'
-                            },
-                            {
-                                extend: 'excel',
-                                className: 'btn btn-sm btn-success me-1'
-                            },
-                            {
-                                extend: 'pdf',
-                                className: 'btn btn-sm btn-danger me-1'
-                            },
-                            {
-                                extend: 'print',
-                                className: 'btn btn-sm btn-info'
-                            }
-                        ],
-                        // ordering: true,
-                        // order: [
-                        //     [4, 'asc']
-                        // ], // Seat No column
-                        pageLength: 500, // Show 500 rows by default
-                        lengthMenu: [
-                            [500, -1, 10, 25, 50, 100],
-                            [500, "All", 10, 25, 50, 100]
-                        ],
-                        columnDefs: [{
-                            targets: 4, // Seat No column index
-                            type: 'seat-sort'
-                        }]
-                    });
-                }
-            });
-        });
-    });
-</script> -->
+                    // 🔥 Custom Seat Sorting Function
+                    $.fn.dataTable.ext.type.order['seat-sort-pre'] = function(data) {
+                        let parts = data.trim().split(" ");
 
-
-
-<script>
-    $(document).ready(function() {
-        $('.select2').select2({
-            placeholder: "-- Select Session --",
-            width: '100%'
-        });
-
-        $('#sessionSelect').on('change', function() {
-            let session = $(this).val();
-
-            if (session === "") {
-                $('#sessionData').html("");
-                return;
-            }
-
-            $.ajax({
-                url: "load_session_data.php",
-                type: "POST",
-                data: {
-                    session: session
-                },
-                beforeSend: function() {
-                    $('#sessionData').html("<p class='text-info'>Loading...</p>");
-                },
-                success: function(response) {
-                    $('#sessionData').html(response);
-
-                    // Custom function to extract integer from seat number (e.g., "B 01" -> 1, "A 5" -> 5)
-                    $.fn.dataTable.ext.type.order['num-sort-pre'] = function(data) {
-                        // Extract only the numeric part from the seat number
-                        let numMatch = data.toString().match(/\d+/);
-                        if (numMatch) {
-                            return parseInt(numMatch[0], 10);
+                        if (parts.length === 2) {
+                            let prefix = parts[0];
+                            let number = parseInt(parts[1], 10);
+                            return prefix.charCodeAt(0) * 100000 + number;
                         }
-                        return 0; // Return 0 if no number found
+                        return data;
                     };
 
                     // Datatable Init
@@ -205,11 +212,14 @@ include("includes/header.php");
                         ],
                         columnDefs: [{
                             targets: 3, // Seat No column index
-                            type: 'num-sort' // Sort as integer
+                            // type: 'seat-sort'
+                             type: 'num-sort' // Sort as integer
                         }]
                     });
                 }
             });
         });
     });
+
+
 </script>

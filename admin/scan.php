@@ -244,13 +244,12 @@ if ($result && $row = $result->fetch_assoc()) {
                     <i class="fas fa-bars"></i>
                     <span class="fw-semibold">Menu</span>
                 </button>
-
-
-                <div class="text-end mt-5 mb-3">
-                    <a href="all_attended_student" class="btn btn-secondary">
-                        View All Attended Students
-                    </a>
-                </div>
+                
+                 <div class="text-end mt-5 mb-3">
+                            <a href="all_attended_student" class="btn btn-secondary">
+                                View All Attended Students
+                            </a>
+                        </div>
                 <div class="row justify-content-center">
                     <div class="col-md-8">
                         <div class=" ">
@@ -364,6 +363,7 @@ if ($result && $row = $result->fetch_assoc()) {
                             <?php endif; ?>
                         <?php endforeach; ?>
 
+                       
                     </div>
                 </div>
             </div>
@@ -541,55 +541,8 @@ if ($result && $row = $result->fetch_assoc()) {
         // Auto-refresh stats every 5 seconds
         setInterval(updateSessionStats, 5000);
 
-        // Handle "Mark as Attended" button click
-        // $(document).on('click', '#attendedBtn', function() {
-        //     const studentID = $('#studentID').val().trim();
-        //     if (!studentID) return;
-
-        //     // console here 
-        //     console.log("Mark as Attended clicked. Student ID:", studentID);
-        //     $.ajax({
-        //         url: 'mark_attended.php',
-        //         type: 'POST',
-        //         data: {
-        //             studentID
-        //         },
-        //         success: function(response) {
-        //             let res = JSON.parse(response);
-
-        //             if (res.status === 'success') {
-        //                 // alert("✅ Attendance marked successfully!");
-        //                 $('#successModal').modal('hide');
-
-        //                 // Update stats immediately after marking attendance
-        //                 setTimeout(function() {
-        //                     updateSessionStats();
-        //                 }, 500);
-
-        //                 // Print receipt if student data is available
-        //                 // Use currentStudentData or fallback to window.lastStudentCheck
-        //                 const dataToPrint = currentStudentData || window.lastStudentCheck;
-        //                 if (dataToPrint) {
-        //                     setTimeout(function() {
-        //                         printReceipt(dataToPrint);
-        //                     }, 500); // Small delay to ensure modal is closed
-        //                 }
-
-        //                 // Optionally, you can immediately show "already attended" modal if scanned again
-        //                 console.log("Student marked as attended:", studentID);
-        //             } else {
-        //                 alert("❌ Error: " + res.message);
-        //             }
-        //         },
-        //         error: function() {
-        //             alert("Server error! Please try again.");
-        //         }
-        //     });
-        // });
-
-
-
-
+       
+        
         // Handle "Mark as Attended" button click
         $(document).on('click', '#attendedBtn', function() {
             const studentID = $('#studentID').val().trim();
@@ -625,6 +578,9 @@ if ($result && $row = $result->fetch_assoc()) {
                 }
             });
         });
+        
+        
+        
 
         // Print receipt function for 72mm thermal printer - Direct print without preview
         function printReceipt(studentData) {
@@ -632,7 +588,7 @@ if ($result && $row = $result->fetch_assoc()) {
             const receiptContent = `
                 <div class="receipt-container">
                     <div class="receipt-header">
-                        <h2>BMS GRADUATION 2025</h2>
+                        <h2>BMS GRADUATION 2026</h2>
                         <hr>
                     </div>
                     <div class="receipt-body">

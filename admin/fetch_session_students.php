@@ -11,9 +11,23 @@ if (empty($session_time)) {
 //         FROM bulk_data_table 
 //         WHERE session_time=? 
 //         ORDER BY seat_no ASC";
+// $sql = "SELECT 
+//             bdt.student_id, 
+//             rs.name_in_full, 
+//             bdt.program_name, 
+//             bdt.session_time, 
+//             bdt.seat_no, 
+//             bdt.graduated_status
+//         FROM bulk_data_table bdt
+//         LEFT JOIN registered_students rs 
+//             ON rs.student_id = bdt.student_id
+//         WHERE bdt.session_time = ?
+//         ORDER BY bdt.seat_no ASC";
+
+
 $sql = "SELECT 
             bdt.student_id,
-            bdt.*, 
+            bdt.*,
             rs.name_in_full, 
             bdt.program_name, 
             bdt.session_time, 
@@ -24,6 +38,7 @@ $sql = "SELECT
             ON rs.student_id = bdt.student_id
         WHERE bdt.session_time = ?
         ORDER BY CAST(SUBSTRING_INDEX(TRIM(bdt.seat_no), ' ', -1) AS UNSIGNED) ASC";
+
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("s", $session_time);

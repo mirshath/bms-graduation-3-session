@@ -52,7 +52,7 @@ include("includes/header.php");
                     <div class="card-body">
                         <!-- ✅ Program Filter Dropdown -->
                         <div class="row mb-3">
-                            <div class="col-md-8">
+                            <div class="col-md-6">
                                 <label for="programFilter" class="font-weight-bold">
                                     <i class="fas fa-filter"></i> Filter by Program:
                                 </label>
@@ -266,11 +266,9 @@ include("includes/header.php");
     .select2-container .select2-selection--single {
         height: 31px;
     }
-
     .select2-container--default .select2-selection--single .select2-selection__rendered {
         line-height: 31px;
     }
-
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 31px;
     }

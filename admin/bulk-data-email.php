@@ -38,8 +38,7 @@ include("includes/header.php");
                                 </select>
                             </div>
                             <div class="col-md-4 d-flex align-items-end">
-                                <button type="button" id="fetchProgramData" class="btn btn-success w-100">Fetch
-                                    Data</button>
+                                <button type="button" id="fetchProgramData" class="btn btn-success w-100">Fetch Data</button>
                             </div>
                         </div>
                     </div>
@@ -61,14 +60,14 @@ include("includes/header.php");
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
 <script>
-    $(document).ready(function () {
+    $(document).ready(function() {
         $('#programSelect').select2({
             placeholder: "-- Select Program --",
             allowClear: true,
             width: '100%'
         });
 
-        $('#fetchProgramData').click(function () {
+        $('#fetchProgramData').click(function() {
             var programName = $('#programSelect').val();
             if (!programName) {
                 alert('Please select a program.');
@@ -81,10 +80,10 @@ include("includes/header.php");
                 data: {
                     program_name: programName
                 },
-                success: function (response) {
+                success: function(response) {
                     $('#programDataResult').html(response);
                 },
-                error: function () {
+                error: function() {
                     alert('Something went wrong.');
                 }
             });

@@ -135,7 +135,12 @@ include("includes/header.php");
                                                 $program = htmlspecialchars($row['program'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
                                                 $in_no = htmlspecialchars($row['in_no'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
                                                 $payment_status = htmlspecialchars($row['payment_status'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
-                                                $status = htmlspecialchars($row['status'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+                                                // $status = htmlspecialchars($row['status'] ?? 'N/A', ENT_QUOTES, 'UTF-8');
+                                                
+                                                
+                                                 $status = trim($row['status'] ?? '');
+                                                $status = ($status === '') ? 'N/A' : htmlspecialchars($status, ENT_QUOTES, 'UTF-8');
+
 
                                                 echo "<tr>";
                                                 echo "<td>" . $counter++ . "</td>";
@@ -243,7 +248,7 @@ include("includes/header.php");
         // ✅ Error handling for DataTable initialization with Export Buttons
         try {
             var table = $('#dataTable').DataTable({
-                "pageLength": 100,
+                "pageLength": 200,
                 "order": [
                     [1, "asc"]
                 ], // ✅ Sort by counter column

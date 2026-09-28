@@ -64,7 +64,7 @@ include("includes/header.php");
 
                                             echo "<td>" . $row['name'] . "</td>";
                                             echo "<td><input type='text' class='dob-input form-control' style='width:120px;' value='" . $dobFormatted . "' data-id='" . $row['id'] . "' placeholder='mm/dd/yyyy'></td>";
-                                            echo "<td style='width:120px;'>" . $row['given_email'] . "</td>";
+                                            echo "<td>" . $row['given_email'] . "</td>";
                                             echo "<td>" . $row['program'] . "</td>";
                                             echo "<td>" . $row['payment_status'] . "</td>";
                                             echo "<td>" . $row['status'] . "</td>";

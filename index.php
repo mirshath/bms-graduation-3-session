@@ -13,14 +13,12 @@ include('./includes/header.php'); // Include your database connection file
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-8 col-12">
 
-            <img src="./images/AlumniBanner.jpg" alt="Google Form Header Banner" class="img-fluid"
+            <!-- <img src="./images/AlumniBanner.jpg" alt="Google Form Header Banner" class="img-fluid"
+                style="border-radius:10px 10px 0 0"> -->
+            <img src="./images/GradutionBanner2026.jpg" alt="Google Form Header Banner" class="img-fluid"
                 style="border-radius:10px 10px 0 0">
-            <!-- <img src="https://static.vecteezy.com/system/resources/thumbnails/075/044/953/small/abstract-red-and-black-diagonal-stripes-background-modern-gradient-dynamic-wallpaper-suitable-for-sports-templates-technology-banners-business-ads-websites-and-headers-vector.jpg" alt="Google Form Header Banner" class="img-fluid" -->
-            <!-- <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRZmqc2L6AhKpBi1IU0gO_XQ_oMThJFS16wzw&s"
-                alt="Google Form Header Banner" class="img-fluid" style="border-radius:10px 10px 0 0"> -->
             <div class="  rounded shadow-sm" style="background-color:#ddd3d3c2; padding: 12px;">
-                <h3 class="text-center  mb-2 eb-garamond" style="font-size: 50px; font-weight: 700; ">AWARD CEREMONY
-                    2026 <br>
+                <h3 class="text-center  mb-2 eb-garamond" style="font-size: 50px; font-weight: 700; ">AWARD CEREMONY 2026 <br>
                     <span style="font-size: 30px;">REGISTRATION FORM</span>
                 </h3>
                 <hr
@@ -214,35 +212,35 @@ include('./includes/header.php'); // Include your database connection file
                             </div>
 
                             <!-- -------- Confirmation ----------  -->
-                            <!-- <div class="mb-2">
-                                <div class="row">
-                                    <div class="col-md-3">
-                                        <label for="confirmation_yes" class="form-label">Confirmation
-                                            <span style="color:red; font-weight:bolder;">*</span>
-                                        </label>
-                                    </div>
-                                    <div class="col">
-                                        <div class="d-flex justify-content-ends gap-4">
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="confirmation"
-                                                    id="confirmation_yes" value="1" required disabled>
-                                                <label class="form-check-label" for="confirmation_yes">Yes</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="confirmation"
-                                                    id="confirmation_no" value="0" disabled>
-                                                <label class="form-check-label" for="confirmation_no">No</label>
-                                            </div>
-                                        </div>
-                                        <small class="text-muted d-block mt-2">I confirm that the calling name entered
-                                            above is accurate and should be used during the graduation ceremony.</small>
-                                        <div id="confirmation_alert" class="alert alert-danger mt-2"
-                                            style="display: none;">
-                                            <strong>Warning!</strong> You must confirm the calling name to proceed.
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> -->
+                            <!--<div class="mb-2">-->
+                            <!--    <div class="row">-->
+                            <!--        <div class="col-md-3">-->
+                            <!--            <label for="confirmation_yes" class="form-label">Confirmation-->
+                            <!--                <span style="color:red; font-weight:bolder;">*</span>-->
+                            <!--            </label>-->
+                            <!--        </div>-->
+                            <!--        <div class="col">-->
+                            <!--            <div class="d-flex justify-content-ends gap-4">-->
+                            <!--                <div class="form-check">-->
+                            <!--                    <input class="form-check-input" type="radio" name="confirmation"-->
+                            <!--                        id="confirmation_yes" value="1" required disabled>-->
+                            <!--                    <label class="form-check-label" for="confirmation_yes">Yes</label>-->
+                            <!--                </div>-->
+                            <!--                <div class="form-check">-->
+                            <!--                    <input class="form-check-input" type="radio" name="confirmation"-->
+                            <!--                        id="confirmation_no" value="0" disabled>-->
+                            <!--                    <label class="form-check-label" for="confirmation_no">No</label>-->
+                            <!--                </div>-->
+                            <!--            </div>-->
+                            <!--            <small class="text-muted d-block mt-2">I confirm that the calling name entered-->
+                            <!--                above is accurate and should be used during the graduation ceremony.</small>-->
+                            <!--            <div id="confirmation_alert" class="alert alert-danger mt-2"-->
+                            <!--                style="display: none;">-->
+                            <!--                <strong>Warning!</strong> You must confirm the calling name to proceed.-->
+                            <!--            </div>-->
+                            <!--        </div>-->
+                            <!--    </div>-->
+                            <!--</div>-->
                             <!-- ---------------------------------------------  -->
 
                             <!-- -------- Student Meal Preference ----------  -->
@@ -304,18 +302,9 @@ include('./includes/header.php'); // Include your database connection file
                                 </div>
                             </div>
                             <!-- ---------------------------------------------  -->
-
-                            <input type="hidden" id="crsfee_payment_status" name="crsfee_payment_status" class="input"
-                                placeholder="Course Fee Payment Status">
-
-                            <input type="hidden" id="graduation_payment_status" name="graduation_payment_status"
-                                class="input" placeholder="Graduation Payment Status" value="Not-Completed">
-
-                            <!-- -------------------------  -->
-
-
-
-                             <!-- -------- Confirmation ----------  -->
+                            
+                            
+                            <!-- -------- Confirmation ----------  -->
                             <div class="mb-2">
                                 <div class="row">
                                     <div class="col-md-3">
@@ -346,6 +335,14 @@ include('./includes/header.php'); // Include your database connection file
                                 </div>
                             </div>
                             <!-- ---------------------------------------------  -->
+
+                            <input type="hidden" id="crsfee_payment_status" name="crsfee_payment_status" class="input"
+                                placeholder="Course Fee Payment Status">
+
+                            <input type="hidden" id="graduation_payment_status" name="graduation_payment_status"
+                                class="input" placeholder="Graduation Payment Status" value="Not-Completed">
+
+                            <!-- -------------------------  -->
                             <p>
                                 <center>Your invitation will be sent to your email after submiting the registration
                                     form. You will need to present the QR code provided in the email at the registration
@@ -455,8 +452,8 @@ include('./includes/header.php'); // Include your database connection file
                 <p>Please verify the <b>Student ID</b> and <b>Date of Birth</b>, and try again.</p>
                 <p>If you require further assistance, please contact our coordinator.</p>
                 <p class="fw-bolder">Business </p>
-                <p style="margin-top: -15px;">Clancy Veronika - <a
-                        href="mailto:hnd.admin@bms.ac.lk">hnd.admin@bms.ac.lk</a></p>
+                <p style="margin-top: -15px;">Priyanka Srithangarajah - <a
+                        href="mailto:hnd.coordinator@bms.ac.lk">hnd.coordinator@bms.ac.lk</a></p>
                 <p class="fw-bolder">Science </p>
                 <p style="margin-top: -15px;">Erangee Mendis - <a
                         href="mailto:bioadmin@bms.ac.lk">bioadmin@bms.ac.lk</a></p>

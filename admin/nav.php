@@ -184,7 +184,7 @@ $role = $_SESSION['role'] ?? ''; // Current user role
         <li class="nav-item <?= ($current_url == 'invitation-collection') ? 'active' : '' ?> nav-hover">
             <a class="nav-link" href="invitation-collection">
                 <i class="fas fa-fw fa-envelope-open"></i>
-                <span>Invitation Collect</span>
+                <span>Invitation Issue</span>
             </a>
         </li>
     <?php endif; ?>
@@ -193,6 +193,7 @@ $role = $_SESSION['role'] ?? ''; // Current user role
     <!-- CLOTH COLLECTION/RETURN ROLE -->
     <!-- Roles: admin, clothCollectReturn -->
     <!-- ============================================ -->
+    <!--cloakCollectReturn-->
     <?php if (in_array($role, ['admin', 'clothCollectReturn'])): ?>
         <li class="nav-item <?= ($current_url == 'clothCollection') ? 'active' : '' ?> nav-hover">
             <a class="nav-link" href="clothCollection">
@@ -206,7 +207,8 @@ $role = $_SESSION['role'] ?? ''; // Current user role
                 <span>Cloak Collecting</span>
             </a>
         </li>
-        <li class="nav-item <?= ($current_url == 'cloakReport') ? 'active' : '' ?> nav-hover">
+        
+         <li class="nav-item <?= ($current_url == 'cloakReport') ? 'active' : '' ?> nav-hover">
             <a class="nav-link" href="cloakReport">
                 <i class="fas fa-fw fa-chart-bar"></i>
                 <span>Cloak Report</span>
@@ -283,12 +285,14 @@ $role = $_SESSION['role'] ?? ''; // Current user role
                 <span>Report Seat Order</span>
             </a>
         </li>
-        <li class="nav-item <?= ($current_url == 'meals_report') ? 'active' : '' ?> nav-hover">
+         <!--report for meals -->
+          <li class="nav-item <?= ($current_url == 'meals_report') ? 'active' : '' ?> nav-hover">
             <a class="nav-link" href="meals_report">
                 <i class="fas fa-fw fa-utensils"></i>
                 <span>Report Meals</span>
             </a>
         </li>
+        
     <?php endif; ?>
 
 </ul>

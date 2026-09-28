@@ -20,19 +20,19 @@ include("includes/header.php");
 
                 <div class="card w-75 mb-4 container shadow-sm">
                     <div class="card-body">
-                        <h5>Add More Tickets</h5>
+                        <h5>Add More Extra Tickets</h5>
                         <div class="row">
                             <div class="col-md-4">
                                 <label>Number of Tickets</label>
                                 <select id="additionalTickets" class="form-control">
-                                    <?php for ($i = 0; $i <= 7; $i++): ?>
+                                    <?php for ($i = 1; $i <= 3; $i++): ?>
                                         <option value="<?= $i ?>"><?= $i ?></option>
                                     <?php endfor; ?>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label>Price Per Ticket</label>
-                                <input type="number" id="ticketPriceInput" class="form-control" min="0" step="0.01" value="3000">
+                                <input type="number" id="ticketPriceInput" class="form-control" min="0" step="0.01" value="2500">
                             </div>
                             <div class="col-md-4">
                                 <label>Total Additional</label>
@@ -143,7 +143,7 @@ include("includes/header.php");
             $('#totalAdded').text((count * price).toFixed(2));
         }
 
-        $('#ticketPriceInput').val('3000');
+        $('#ticketPriceInput').val('2500');
         $('#additionalTickets').val('0');
         recalc();
 

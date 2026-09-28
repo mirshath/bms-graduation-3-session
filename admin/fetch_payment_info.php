@@ -20,7 +20,6 @@
 
 
 
-
 include("../database/connection.php");
 
 $student_id = $_POST['student_id'];

@@ -318,10 +318,10 @@ include("includes/header.php");
                                         <div class="col-md-3 col-sm-6">
                                             <label for="issue_status" class="form-label small text-muted mb-1">Didn't Get Cloak (Paid Students)</label>
                                             <select name="issue_status" id="issue_status" class="form-control form-control-sm select2-filter w-100">
-                                                <option value="">- Off (show issued records) -</option>
-                                                <!-- <option value="any_missing" <?= $issueFilter === 'any_missing' ? 'selected' : '' ?>>Any Missing (not / partially issued)</option> -->
+                                                <option value="" >- select here -</option>
+                                                <!--<option value="any_missing" <?= $issueFilter === 'any_missing' ? 'selected' : '' ?>>Any Missing (not / partially issued)</option>-->
                                                 <option value="not_issued" <?= $issueFilter === 'not_issued' ? 'selected' : '' ?>>Not Issued (nothing collected)</option>
-                                                <!-- <option value="partial_issued" <?= $issueFilter === 'partial_issued' ? 'selected' : '' ?>>Partially Issued (items missing)</option> -->
+                                                <!--<option value="partial_issued" <?= $issueFilter === 'partial_issued' ? 'selected' : '' ?>>Partially Issued (items missing)</option>-->
                                             </select>
                                         </div>
                                         <div class="col-md-2 col-sm-6">
@@ -358,13 +358,13 @@ include("includes/header.php");
 
                         <?php if ($missingMode) : ?>
 
-                            <!-- <div class="alert alert-info py-2 small">
-                                <i class="fas fa-info-circle"></i>
-                                Showing students who have a <strong>payment record</strong> and whose program-batch requires cloak / slashes / hats
-                                (from <em>data_tables</em>), but have <strong>not collected</strong> the required items
-                                (from <em>clothing_collections</em>).
-                                Programs that don't need any clothing are ignored.
-                            </div> -->
+                            <!--<div class="alert alert-info py-2 small">-->
+                            <!--    <i class="fas fa-info-circle"></i>-->
+                            <!--    Showing students who have a <strong>payment record</strong> and whose program-batch requires cloak / slashes / hats-->
+                            <!--    (from <em>data_tables</em>), but have <strong>not collected</strong> the required items-->
+                            <!--    (from <em>clothing_collections</em>).-->
+                            <!--    Programs that don't need any clothing are ignored.-->
+                            <!--</div>-->
 
                             <!-- Summary cards (missing mode) -->
                             <div class="row mb-3">

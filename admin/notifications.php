@@ -121,13 +121,9 @@ if ($result) {
         const table = $('#notificationsTable').DataTable({
             "pageLength": 300,
             "lengthMenu": [10, 25, 50, 100, 300, 500],
-            "order": [
-                [7, 'desc']
-            ], // Sort by date column (index 7) descending
-            "columnDefs": [{
-                    "orderable": false,
-                    "targets": 0
-                } // Disable sorting for checkbox column
+            "order": [[7, 'desc']], // Sort by date column (index 7) descending
+            "columnDefs": [
+                { "orderable": false, "targets": 0 } // Disable sorting for checkbox column
             ]
         });
 

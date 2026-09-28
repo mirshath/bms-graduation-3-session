@@ -313,7 +313,7 @@ $adminsQuery = $conn->query("SELECT id, admin_name, email, role, created_at FROM
                             <option value="finance">Finance</option>
                             <option value="invitation">Invitation</option>
                             <option value="registrationDesk">Registration Desk</option>
-                            <option value="cloakCollectReturn">Cloak Collection/Return</option>
+                            <option value="ClothCollectReturn">Cloak Collection/Return</option>
                         </select>
                     </div>
                 </div>
@@ -325,8 +325,7 @@ $adminsQuery = $conn->query("SELECT id, admin_name, email, role, created_at FROM
         </div>
     </div>
 </div> -->
-
-
+<!--<option value="cloakCollectReturn">Cloak Collection/Return</option>-->
 
 
 <!-- Edit Admin Modal -->

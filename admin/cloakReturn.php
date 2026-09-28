@@ -239,6 +239,43 @@ include("includes/header.php");
         color: white;
         box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
     }
+
+    /* Stats Card Styles */
+    .border-left-primary {
+        border-left: 4px solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 4px solid #1cc88a !important;
+    }
+
+    .border-left-danger {
+        border-left: 4px solid #e74a3b !important;
+    }
+
+    .stat-card h2 {
+        font-size: 2.5rem;
+        margin-bottom: 0;
+    }
+
+    /* Animation for stat updates */
+    @keyframes pulse {
+        0% {
+            transform: scale(1);
+        }
+
+        50% {
+            transform: scale(1.05);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    .stat-updating {
+        animation: pulse 0.5s ease-in-out;
+    }
 </style>
 
 <div id="wrapper">
@@ -253,6 +290,61 @@ include("includes/header.php");
                     <i class="fas fa-bars"></i>
                     <span class="fw-semibold">Menu</span>
                 </button>
+
+                <!-- Statistics Section -->
+                <div class="row justify-content-center mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2 stat-card">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Total Issued</div>
+                                        <h2 class="h2 mb-0 font-weight-bold text-gray-800" id="statIssued">0</h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-user-graduate fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2 stat-card">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Returned</div>
+                                        <h2 class="h2 mb-0 font-weight-bold text-gray-800" id="statReturned">0</h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-danger shadow h-100 py-2 stat-card">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                            Remaining</div>
+                                        <h2 class="h2 mb-0 font-weight-bold text-gray-800" id="statRemaining">0</h2>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row justify-content-center">
                     <div class="col-md-8">
                         <div class="card">
@@ -319,6 +411,43 @@ include("includes/header.php");
 <script>
     $(document).ready(function() {
         let currentStudentID = '';
+
+        // Function to update cloak statistics
+        function updateCloakStats() {
+            $.ajax({
+                url: 'fetch_cloak_stats.php',
+                type: 'GET',
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        const stats = {
+                            '#statIssued': response.total_issued,
+                            '#statReturned': response.total_returned,
+                            '#statRemaining': response.total_remaining
+                        };
+
+                        $.each(stats, function(id, value) {
+                            const $el = $(id);
+                            if ($el.text() != value) {
+                                $el.text(value).addClass('stat-updating');
+                                setTimeout(function() {
+                                    $el.removeClass('stat-updating');
+                                }, 500);
+                            }
+                        });
+                    }
+                },
+                error: function() {
+                    console.error('Error fetching cloak stats');
+                }
+            });
+        }
+
+        // Initial stats load
+        updateCloakStats();
+
+        // Refresh stats every 5 seconds for "realtime" feel
+        setInterval(updateCloakStats, 5000);
 
         // Function to reset form and focus input
         function resetForm() {
@@ -487,6 +616,8 @@ include("includes/header.php");
                     if (response.status === 'success') {
                         // Refresh student data to show updated status
                         fetchStudentData(studentID);
+                        // Refresh global stats
+                        updateCloakStats();
                     } else {
                         alert('Failed to mark as returned!');
                         btn.prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Mark as Returned');

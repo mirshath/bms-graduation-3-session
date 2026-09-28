@@ -220,7 +220,7 @@ echo '  </div>
     // Keep your existing generateReceiptNumber function as is
     function generateReceiptNumber() {
         const randomNum = Math.floor(1000 + Math.random() * 9000);
-        return `GC2025${randomNum}`;
+        return `GC2026${randomNum}`;
     }
 
     // In your showPaymentSection function, make these changes:
@@ -326,12 +326,6 @@ echo '  </div>
                                                     <select class="form-select" id="extraTickets">
                                                         <option value="0">0</option>
                                                         <option value="1">1</option>
-                                                        <option value="2">2</option>
-                                                        <option value="3">3</option>
-                                                        <option value="4">4</option>
-                                                        <option value="5">5</option>
-                                                        <option value="6">6</option>
-                                                        <option value="7">7</option>
                                                     </select>
                                                 </div>
                                             </div>

@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>Gradution 2025</title>
+    <title>BMS Award Ceremony 2026</title>
 
     <link rel="stylesheet" href="assets/style.css">
 
@@ -123,31 +123,33 @@
 </head>
 
 <body id="page-top">
+    
+    
+    
+    <script>
+        // function checkSession() {
+        //     fetch('check_session.php')
+        //         .then(response => response.json())
+        //         .then(data => {
+        //             if (!data.valid) {
+        //                 // Redirect instantly if session is invalid or Unknown Admin
+        //                 window.location.href = 'login';
+        //             }
+        //         })
+        //         .catch(error => console.error('Session check failed:', error));
+        // }
 
-
-    <!-- <script>
-        function checkSession() {
-            fetch('check_session.php')
-                .then(response => response.json())
-                .then(data => {
-                    if (!data.valid) {
-                        // Redirect instantly if session is invalid or Unknown Admin
-                        window.location.href = 'login';
-                    }
-                })
-                .catch(error => console.error('Session check failed:', error));
-        }
-
-        // Check every 5 seconds (5000 ms)
-        // setInterval(checkSession, 5000);
-        $(document).ready(function() {
-            checkSession(); // immediate check
-            setInterval(checkSession, 3000); // repeat every 3 seconds
-        });
+        // // Check every 5 seconds (5000 ms)
+        // // setInterval(checkSession, 5000);
+        //     $(document).ready(function() {
+        //     checkSession(); // immediate check
+        //     setInterval(checkSession, 3000); // repeat every 3 seconds
+        // });
     </script>
-     -->
-
-
+    
+    
+    
+    
     <script>
         function checkSession() {
             fetch('check_session.php')
@@ -165,4 +167,13 @@
             checkSession(); // Immediate check on load
             setInterval(checkSession, 3000); // Recheck every 3 seconds
         });
+        
     </script>
+    
+    
+    
+    
+    
+    
+    
+    

@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($student_id);
         $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
         // Path to the banner image
-        $bannerImagePath = __DIR__ . '/images/GraduationBanner2026.jpg';
+        $bannerImagePath = __DIR__ . '/images/GradutionBanner2026.jpg';
 
         // --- Build HTML Email ---
         // --- Build Professional HTML Email ---
@@ -349,19 +349,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->Host = 'smtp.office365.com';
             $mail->SMTPAuth = true;
             $mail->Username = 'bmsgraduation@bms.ac.lk';
-            $mail->Password = 'nvjqswbrtcccghph';
+            $mail->Password = 'vspcktnnkhtwhxgr';
+            // $mail->Username = 'noreply@bms.ac.lk';
+            // $mail->Password = 'gqfxxrphvjnlmwrn';
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
 
             $mail->setFrom('bmsgraduation@bms.ac.lk', 'BMS Graduation');
+            // $mail->setFrom('noreply@bms.ac.lk', 'BMS Graduation');
 
             // Add recipients conditionally
             if (!empty($given_email_add) && strtolower($given_email_add) !== strtolower($email_address)) {
                 // If emails are different, send to both
                 $mail->addAddress($email_address);
                 $mail->addAddress($given_email_add);
-            }
-            else {
+            } else {
                 // If same or given_email_add empty, send to main email only
                 $mail->addAddress($email_address);
             }
@@ -374,18 +376,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $mail->send();
             echo 'Registration successful';
-        }
-        catch (Exception $e) {
+        } catch (Exception $e) {
             echo "Registration saved, but email could not be sent. Error: {$mail->ErrorInfo}";
         }
-    }
-    else {
+    } else {
         echo 'Database Error: ' . htmlspecialchars($stmt->error);
     }
 
     $stmt->close();
     $conn->close();
-}
-else {
+} else {
     echo 'Invalid request method.';
 }

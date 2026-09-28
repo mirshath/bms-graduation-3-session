@@ -18,7 +18,7 @@
             </div>
         </div>
     </form> -->
-    <div class="ml-5 text-muted fw-bolder">2025 BMS Graduations</div>
+    <div class="ml-5 text-muted fw-bolder">BMS Award Ceremony - 2026</div>
     <div class="topbar-divider d-none d-sm-block"></div>
     <!-- Topbar Navbar -->
     <ul class="navbar-nav ml-auto">

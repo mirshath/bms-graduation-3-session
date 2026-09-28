@@ -9058,8 +9058,9 @@ a:focus {
 }
 
 .bg-gradient-primary {
+  /*background-color: #4e73df;*/
   background-color: #052c65;
-  /* background-image: linear-gradient(232deg, #051d63 90%, #000000 100%); */
+  /*background-image: linear-gradient(232deg, #051d63 90%, #000000 100%);*/
 
   /* background: rgb(134, 55, 43);
   background: radial-gradient(
@@ -9448,9 +9449,9 @@ a:focus {
 .sidebar .nav-item .collapse .collapse-inner,
 .sidebar .nav-item .collapsing .collapse-inner {
   padding: 0.5rem 0;
-  /* min-width: 10rem; */
+  /*min-width: 10rem;*/
   font-size: 0.85rem;
-  /* margin: 0 0 1rem 0; */
+  /*margin: 0 0 1rem 0;*/
 }
 .sidebar .nav-item .collapse .collapse-inner .collapse-header,
 .sidebar .nav-item .collapsing .collapse-inner .collapse-header {
@@ -9465,7 +9466,7 @@ a:focus {
 .sidebar .nav-item .collapse .collapse-inner .collapse-item,
 .sidebar .nav-item .collapsing .collapse-inner .collapse-item {
   padding: 0.5rem 1rem;
-  /* margin: 0 0.5rem; */
+  margin: 0 0.5rem;
   display: block;
   color: #3a3b45;
   text-decoration: none;
