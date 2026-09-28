@@ -13,12 +13,12 @@ include('./includes/header.php'); // Include your database connection file
     <div class="row justify-content-center">
         <div class="col-lg-8 col-md-8 col-12">
 
-            <img src="./images/AlumniBanner.jpg" alt="Google Form Header Banner" class="img-fluid"
+            <!-- <img src="./images/AlumniBanner.jpg" alt="Google Form Header Banner" class="img-fluid"
+                style="border-radius:10px 10px 0 0"> -->
+            <img src="./images/GradutionBanner2026.jpg" alt="Google Form Header Banner" class="img-fluid"
                 style="border-radius:10px 10px 0 0">
-
             <div class="  rounded shadow-sm" style="background-color:#ddd3d3c2; padding: 12px;">
-                <h3 class="text-center  mb-2 eb-garamond" style="font-size: 50px; font-weight: 700; ">AWARD CEREMONY
-                    2026 <br>
+                <h3 class="text-center  mb-2 eb-garamond" style="font-size: 50px; font-weight: 700; ">AWARD CEREMONY 2026 <br>
                     <span style="font-size: 30px;">REGISTRATION FORM</span>
                 </h3>
                 <hr
@@ -73,10 +73,12 @@ include('./includes/header.php'); // Include your database connection file
                                     <div class="d-flex justify-content-end mt-3">
                                         <a href="#" class="btn btn-sm btn-danger" id="next_btn">Next</a>
                                     </div>
+
                                 </div>
                             </div>
                         </div>
                     </div>
+
 
                     <div class="card mt-2 lft_border" id="data_forms">
                         <div class="card-body shadow">
@@ -127,12 +129,12 @@ include('./includes/header.php'); // Include your database connection file
                                         <small class="text-secondary"
                                             style="font-weight:500; display:block; margin-top:4px;">
                                             Example: If your full name is "Dilmi Navanjana Perera", your calling name
-                                            might be Dilmi Navanjana. (Maximum 2 words)
+                                            might be Dilmi Navanjana.
                                         </small>
                                         <div id="calling_name_alert" class="alert alert-danger mt-2"
                                             style="display: none;">
                                             <strong>Warning!</strong> Please enter a valid calling name (letters and
-                                            spaces only, maximum 2 words).
+                                            spaces only).
                                         </div>
                                     </div>
                                 </div>
@@ -209,6 +211,38 @@ include('./includes/header.php'); // Include your database connection file
                                 </div>
                             </div>
 
+                            <!-- -------- Confirmation ----------  -->
+                            <!--<div class="mb-2">-->
+                            <!--    <div class="row">-->
+                            <!--        <div class="col-md-3">-->
+                            <!--            <label for="confirmation_yes" class="form-label">Confirmation-->
+                            <!--                <span style="color:red; font-weight:bolder;">*</span>-->
+                            <!--            </label>-->
+                            <!--        </div>-->
+                            <!--        <div class="col">-->
+                            <!--            <div class="d-flex justify-content-ends gap-4">-->
+                            <!--                <div class="form-check">-->
+                            <!--                    <input class="form-check-input" type="radio" name="confirmation"-->
+                            <!--                        id="confirmation_yes" value="1" required disabled>-->
+                            <!--                    <label class="form-check-label" for="confirmation_yes">Yes</label>-->
+                            <!--                </div>-->
+                            <!--                <div class="form-check">-->
+                            <!--                    <input class="form-check-input" type="radio" name="confirmation"-->
+                            <!--                        id="confirmation_no" value="0" disabled>-->
+                            <!--                    <label class="form-check-label" for="confirmation_no">No</label>-->
+                            <!--                </div>-->
+                            <!--            </div>-->
+                            <!--            <small class="text-muted d-block mt-2">I confirm that the calling name entered-->
+                            <!--                above is accurate and should be used during the graduation ceremony.</small>-->
+                            <!--            <div id="confirmation_alert" class="alert alert-danger mt-2"-->
+                            <!--                style="display: none;">-->
+                            <!--                <strong>Warning!</strong> You must confirm the calling name to proceed.-->
+                            <!--            </div>-->
+                            <!--        </div>-->
+                            <!--    </div>-->
+                            <!--</div>-->
+                            <!-- ---------------------------------------------  -->
+
                             <!-- -------- Student Meal Preference ----------  -->
                             <div class="mb-2">
                                 <div class="row">
@@ -268,13 +302,8 @@ include('./includes/header.php'); // Include your database connection file
                                 </div>
                             </div>
                             <!-- ---------------------------------------------  -->
-
-                            <input type="hidden" id="crsfee_payment_status" name="crsfee_payment_status" class="input"
-                                placeholder="Course Fee Payment Status">
-
-                            <input type="hidden" id="graduation_payment_status" name="graduation_payment_status"
-                                class="input" placeholder="Graduation Payment Status" value="Not-Completed">
-
+                            
+                            
                             <!-- -------- Confirmation ----------  -->
                             <div class="mb-2">
                                 <div class="row">
@@ -306,6 +335,14 @@ include('./includes/header.php'); // Include your database connection file
                                 </div>
                             </div>
                             <!-- ---------------------------------------------  -->
+
+                            <input type="hidden" id="crsfee_payment_status" name="crsfee_payment_status" class="input"
+                                placeholder="Course Fee Payment Status">
+
+                            <input type="hidden" id="graduation_payment_status" name="graduation_payment_status"
+                                class="input" placeholder="Graduation Payment Status" value="Not-Completed">
+
+                            <!-- -------------------------  -->
                             <p>
                                 <center>Your invitation will be sent to your email after submiting the registration
                                     form. You will need to present the QR code provided in the email at the registration
@@ -324,14 +361,16 @@ include('./includes/header.php'); // Include your database connection file
                             disabled>Submit</button>
                     </div>
                 </form>
+
             </div>
         </div>
     </div>
 </div>
 
+
 <!-- JavaScript to scroll on click -->
 <script>
-    document.getElementById('next_btn').addEventListener('click', function(e) {
+    document.getElementById('next_btn').addEventListener('click', function (e) {
         e.preventDefault(); // Prevent the default link behavior
         document.getElementById('data_forms').scrollIntoView({
             behavior: 'smooth', // Smooth scroll animation
@@ -341,7 +380,7 @@ include('./includes/header.php'); // Include your database connection file
 </script>
 
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
         function toggleEmploymentDetails() {
             if ($('#employment_yes').is(':checked')) {
                 $('#employment_details_wrapper').show();
@@ -362,7 +401,7 @@ include('./includes/header.php'); // Include your database connection file
 </script>
 
 <script>
-    document.getElementById('phone_no').addEventListener('input', function(e) {
+    document.getElementById('phone_no').addEventListener('input', function (e) {
         var phoneInput = this.value;
         var errorElement = document.getElementById('phone-error');
 
@@ -377,32 +416,26 @@ include('./includes/header.php'); // Include your database connection file
         }
     });
 
-    // Calling Name validation - letters, hyphens, apostrophes, dots; maximum 2 words
-    var CALLING_NAME_MAX_WORDS = 2;
-    window.getCallingNameError = function(value) {
-        var name = value.trim().replace(/\s+/g, ' ');
-        if (name.length === 0) return '';
-        if (!/^[\p{L}\-'.]+(\s[\p{L}\-'.]+)*$/u.test(name)) {
-            return 'Please enter a valid calling name (letters and spaces only).';
-        }
-        if (name.split(' ').length > CALLING_NAME_MAX_WORDS) {
-            return 'Calling name can have only ' + CALLING_NAME_MAX_WORDS + ' words (e.g. Dilmi Navanjana).';
-        }
-        return '';
-    };
-
-    function checkCallingName() {
+    // Calling Name validation - letters, spaces, hyphens, and common accents only
+    document.getElementById('calling_name').addEventListener('input', function (e) {
+        var callingName = this.value.trim();
         var alertEl = document.getElementById('calling_name_alert');
-        var err = window.getCallingNameError(document.getElementById('calling_name').value);
-        if (err) {
-            alertEl.innerHTML = '<strong>Warning!</strong> ' + err;
+        // Allow letters (including Unicode), spaces, hyphens, apostrophes
+        if (callingName.length > 0 && !/^[\p{L}\s\-'.]+$/u.test(callingName)) {
             alertEl.style.display = 'block';
         } else {
             alertEl.style.display = 'none';
         }
-    }
-    document.getElementById('calling_name').addEventListener('input', checkCallingName);
-    document.getElementById('calling_name').addEventListener('blur', checkCallingName);
+    });
+    document.getElementById('calling_name').addEventListener('blur', function () {
+        var callingName = this.value.trim();
+        var alertEl = document.getElementById('calling_name_alert');
+        if (callingName.length > 0 && !/^[\p{L}\s\-'.]+$/u.test(callingName)) {
+            alertEl.style.display = 'block';
+        } else {
+            alertEl.style.display = 'none';
+        }
+    });
 </script>
 
 <!-- Modal for Invalid Student ID or DOB -->
@@ -419,8 +452,8 @@ include('./includes/header.php'); // Include your database connection file
                 <p>Please verify the <b>Student ID</b> and <b>Date of Birth</b>, and try again.</p>
                 <p>If you require further assistance, please contact our coordinator.</p>
                 <p class="fw-bolder">Business </p>
-                <p style="margin-top: -15px;">Clancy Veronika - <a
-                        href="mailto:hnd.admin@bms.ac.lk">hnd.admin@bms.ac.lk</a></p>
+                <p style="margin-top: -15px;">Priyanka Srithangarajah - <a
+                        href="mailto:hnd.coordinator@bms.ac.lk">hnd.coordinator@bms.ac.lk</a></p>
                 <p class="fw-bolder">Science </p>
                 <p style="margin-top: -15px;">Erangee Mendis - <a
                         href="mailto:bioadmin@bms.ac.lk">bioadmin@bms.ac.lk</a></p>
@@ -489,7 +522,7 @@ include('./includes/header.php'); // Include your database connection file
 </div>
 
 <script>
-    $(document).ready(function() {
+    $(document).ready(function () {
 
         // Initially hide buttons and forms
         $('#submitBtn, #data_forms, #next_btn').hide();
@@ -500,7 +533,7 @@ include('./includes/header.php'); // Include your database connection file
                 url: 'count_students.php',
                 type: 'GET',
                 dataType: 'json',
-                success: function(data) {
+                success: function (data) {
                     if (data.count > 200) {
                         $('#studentForm').hide();
                         $('#CheckStModal').modal('show');
@@ -508,7 +541,7 @@ include('./includes/header.php'); // Include your database connection file
                         $('#studentForm').show();
                     }
                 },
-                error: function(jqXHR, textStatus, errorThrown) {
+                error: function (jqXHR, textStatus, errorThrown) {
                     console.error("Error fetching student count: ", textStatus, errorThrown);
                 }
             });
@@ -518,7 +551,7 @@ include('./includes/header.php'); // Include your database connection file
         setInterval(checkStudentCount, 5000);
 
         // --- REAL-TIME CHECK STUDENT ID ---
-        $('#student_id').on('input', function() {
+        $('#student_id').on('input', function () {
             var student_id = $(this).val().trim();
             if (student_id.length > 0) {
                 $.ajax({
@@ -527,7 +560,7 @@ include('./includes/header.php'); // Include your database connection file
                     data: {
                         student_id: student_id
                     },
-                    success: function(response) {
+                    success: function (response) {
                         if (response == 'exists') {
                             $('#student_id_alert').show();
                             $('#submitBtn,#dob').prop('disabled', true).hide();
@@ -546,7 +579,7 @@ include('./includes/header.php'); // Include your database connection file
         });
 
         // --- VALIDATE STUDENT ID & DOB ---
-        $('#student_id, #dob').on('blur', function() {
+        $('#student_id, #dob').on('blur', function () {
             var student_id = $('#student_id').val().trim();
             var dob = $('#dob').val().trim();
 
@@ -560,7 +593,7 @@ include('./includes/header.php'); // Include your database connection file
                     },
 
                     // ------------------------------------------------ 
-                    success: function(response) {
+                    success: function (response) {
                         if (response.status === 'valid') {
                             $('#student_id').val(response.student_id);
                             $('#name_in_full').val(response.name);
@@ -588,23 +621,21 @@ include('./includes/header.php'); // Include your database connection file
             }
         });
 
-        $('#errorModal').on('hidden.bs.modal', function() {
+        $('#errorModal').on('hidden.bs.modal', function () {
             window.location.reload();
         });
 
         // Form submission 
-        $(document).ready(function() {
-            $('#studentForm').on('submit', function(e) {
+        $(document).ready(function () {
+            $('#studentForm').on('submit', function (e) {
                 e.preventDefault();
 
-                // Validate calling name format (max 2 words)
-                var callingName = $('#calling_name').val().trim().replace(/\s+/g, ' ');
-                var callingErr = window.getCallingNameError(callingName);
-                if (callingName.length < 2 || callingErr) {
-                    $('#calling_name_alert').html('<strong>Warning!</strong> ' + (callingErr || 'Please enter a valid calling name (at least 2 letters).')).show();
+                // Validate calling name format
+                var callingName = $('#calling_name').val().trim();
+                if (!/^[\p{L}\s\-'.]+$/u.test(callingName) || callingName.length < 2) {
+                    $('#calling_name_alert').html('<strong>Warning!</strong> Please enter a valid calling name (at least 2 letters, letters and spaces only).').show();
                     return;
                 }
-                $('#calling_name').val(callingName);
                 $('#calling_name_alert').hide();
 
                 // Validate confirmation - must select Yes to proceed
@@ -645,11 +676,11 @@ include('./includes/header.php'); // Include your database connection file
                     url: 'insert_student.php',
                     method: 'POST',
                     data: formData,
-                    success: function(response) {
+                    success: function (response) {
                         response = $.trim(response);
 
                         // Hide preloader
-                        $('#preloaderOverlay').fadeOut(200, function() {
+                        $('#preloaderOverlay').fadeOut(200, function () {
                             $(this).removeClass('active');
                         });
 
@@ -664,8 +695,8 @@ include('./includes/header.php'); // Include your database connection file
                             $submitBtn.prop('disabled', false).text(originalText);
                         }
                     },
-                    error: function(xhr, status, error) {
-                        $('#preloaderOverlay').fadeOut(200, function() {
+                    error: function (xhr, status, error) {
+                        $('#preloaderOverlay').fadeOut(200, function () {
                             $(this).removeClass('active');
                         });
                         console.error('AJAX Error:', error);
@@ -699,6 +730,8 @@ include('./includes/header.php'); // Include your database connection file
         /* Hidden by default */
         display: none;
         z-index: 9999;
+
+        /* Use flex for centering when visible */
     }
 
     /* Flex centering only when shown */
@@ -720,8 +753,10 @@ include('./includes/header.php'); // Include your database connection file
         font-weight: 500;
     }
 </style>
+
 <!-- Bootstrap JS and dependencies (Optional) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 
 </html>
