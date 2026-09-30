@@ -69,7 +69,7 @@ if ($result->num_rows === 0) {
 $row = $result->fetch_assoc();
 
 if (strtolower($row['crsfee_payment_status']) === 'unpaid' || strtolower($row['crsfee_payment_status']) === 'refund') {
-?>
+    ?>
     <div class='alert alert-warning text-center'>
         <i class='fas fa-info-circle fa-8x mb-2' style='color:orange;'></i>
         <h5 class='alert-heading'>Notice!</h5>
@@ -92,7 +92,7 @@ if (strtolower($row['crsfee_payment_status']) === 'unpaid' || strtolower($row['c
                     student_id: studentId
                 },
                 dataType: 'json',
-                success: function(res) {
+                success: function (res) {
                     if (res.success) {
                         alert('status updated successfully! rescan the QR to pay teh graduation fee ');
                         location.reload();
@@ -100,14 +100,14 @@ if (strtolower($row['crsfee_payment_status']) === 'unpaid' || strtolower($row['c
                         alert('Failed to update: ' + res.message);
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error(error);
                     alert('AJAX Error: ' + error);
                 }
             });
         }
     </script>
-<?php
+    <?php
     exit;
 }
 ?>
@@ -191,6 +191,32 @@ echo '  </div>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
+    // function markAsPaid(studentId) {
+    //     console.log("Marking student as paid:", studentId); // consoe student id also
+    //     if (!confirm("Are you sure you want to mark this student as Paid?")) return;
+
+    //     $.ajax({
+    //         url: 'mark_as_paid.php',
+    //         type: 'POST',
+    //         data: {
+    //             student_id: studentId
+    //         },
+    //         dataType: 'json',
+    //         success: function(res) {
+    //             if (res.success) {
+    //                 alert('Payment status updated successfully!');
+    //                 location.reload(); // reload to reflect changes
+    //             } else {
+    //                 alert('Failed to update: ' + res.message);
+    //             }
+    //         },
+    //         error: function(xhr, status, error) {
+    //             console.error(error);
+    //             alert('AJAX Error: ' + error);
+    //         }
+    //     });
+    // }
+
     // Keep your existing generateReceiptNumber function as is
     function generateReceiptNumber() {
         const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -206,7 +232,7 @@ echo '  </div>
                 program_name: programName
             },
             dataType: "json",
-            success: function(data) {
+            success: function (data) {
                 if (data.success) {
                     const programData = data.data;
 
@@ -508,7 +534,8 @@ echo '  </div>
 
     // ✅ Optimized Email + PDF Generation Handler
 
-    $(document).on('click', '#emailOfferLetter', function() {
+
+    $(document).on('click', '#emailOfferLetter', function () {
         const button = $(this);
         button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
 
@@ -542,6 +569,7 @@ echo '  </div>
         // Generate PDF
         // ------------------------------
 
+
         // ---------- old 23.02.2026 b1 ----------
         html2canvas(offerLetterElement, {
             scale: window.devicePixelRatio || 3, // higher scale for crispness
@@ -549,7 +577,7 @@ echo '  </div>
             allowTaint: false, // false for security, avoid tainted images
             backgroundColor: '#ffffff',
             logging: false // optional, set true for debugging
-        }).then(function(canvas) {
+        }).then(function (canvas) {
             const {
                 jsPDF
             } = window.jspdf;
@@ -596,7 +624,7 @@ echo '  </div>
                     pdf_name: pdfFilename
                 },
                 dataType: 'json',
-                success: function(res) {
+                success: function (res) {
                     if (res.success) {
                         alert('✅ Payment successful! Receipt has been sent to ' + studentData.university_email);
                         location.reload();
@@ -606,21 +634,113 @@ echo '  </div>
                         location.reload();
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error("AJAX Error:", error, xhr.responseText);
                     alert('❌ Failed to send email. Please try again or contact support.');
                     // include the after error refresh to avoid the error refresh
                     location.reload();
                 },
-                complete: function() {
+                complete: function () {
                     button.prop('disabled', false).html('<i class="fas fa-envelope"></i> Payment Process');
                 }
             });
-        }).catch(function(error) {
+        }).catch(function (error) {
             console.error('PDF Generation Error:', error);
             alert('❌ Failed to generate PDF: ' + error.message);
             button.prop('disabled', false).html('<i class="fas fa-envelope"></i> Payment Process');
         });
+
+
+
+        // Improved: Higher quality PDF output by increasing scale and using PNG for best clarity, plus antialias enhancements where possible.
+        // Improved: High-quality PDF generation for both local and hosting environments
+        // We use a high scale and force fixed width to ensure consistency across different screen resolutions
+
+        // Ensure the page is at the top to avoid offset bugs in html2canvas
+        // window.scrollTo(0, 0);
+
+        // html2canvas(offerLetterElement, {
+        //     scale: 3, // Balanced scale for good quality without exceeding server POST limits
+        //     useCORS: true,
+        //     allowTaint: false,
+        //     backgroundColor: '#ffffff',
+        //     logging: false,
+        //     letterRendering: true,
+        //     imageTimeout: 0,
+        //     onclone: (clonedDoc) => {
+        //         const el = clonedDoc.getElementById('offerLetterPreview');
+        //         el.style.width = '794px';
+        //         el.style.margin = '0 auto';
+        //         el.style.padding = '20px';
+        //     }
+        // }).then(function (canvas) {
+        //     const { jsPDF } = window.jspdf;
+
+        //     // Reduced quality slightly (0.8) to significantly shrink character count for AJAX
+        //     const imgData = canvas.toDataURL('image/jpeg', 1.0);
+
+        //     const pdf = new jsPDF('p', 'mm', 'a4');
+        //     const pageWidth = pdf.internal.pageSize.getWidth();
+        //     const pageHeight = pdf.internal.pageSize.getHeight();
+        //     const margin = 5;
+        //     const imgWidth = pageWidth - (margin * 2);
+        //     const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        //     let position = margin;
+        //     let heightLeft = imgHeight;
+
+        //     // Use 'FAST' compression for jsPDF to keep processing light
+        //     pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+        //     heightLeft -= (pageHeight - margin * 2);
+
+        //     while (heightLeft > 0) {
+        //         pdf.addPage();
+        //         position = -(imgHeight - heightLeft + margin);
+        //         pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight, undefined, 'FAST');
+        //         heightLeft -= (pageHeight - margin * 2);
+        //     }
+
+        //     // Output PDF as base64
+        //     const pdfBase64 = pdf.output('datauristring').split(',')[1];
+        //     const cleanName = studentData.full_name.replace(/[^a-zA-Z0-9]/g, '_');
+        //     const pdfFilename = `BMS_Receipt_${cleanName}_${studentData.receipt_number}.pdf`;
+
+        //     // Send to server
+        //     $.ajax({
+        //         url: 'send_offer_letter_email.php',
+        //         type: 'POST',
+        //         data: {
+        //             ...studentData,
+        //             pdf_data: pdfBase64,
+        //             pdf_name: pdfFilename
+        //         },
+        //         dataType: 'json',
+        //         success: function (res) {
+        //             if (res.success) {
+        //                 alert('✅ Payment successful! Receipt has been sent to ' + studentData.university_email);
+        //                 location.reload();
+        //             } else {
+        //                 alert('❌ Failed: ' + (res.message || 'Unknown error'));
+        //             }
+        //         },
+        //         error: function (xhr, status, error) {
+        //             console.error("AJAX Error:", error, xhr.responseText);
+        //             alert('❌ Failed to send email. Please check server POST limits.');
+        //         },
+        //         complete: function () {
+        //             button.prop('disabled', false).html('<i class="fas fa-envelope"></i> Payment Process');
+        //         }
+        //     });
+        // }).catch(function (error) {
+        //     console.error('PDF Generation Error:', error);
+        //     alert('❌ Failed to generate PDF: ' + error.message);
+        //     button.prop('disabled', false).html('<i class="fas fa-envelope"></i> Payment Process');
+        // });
+
+
+
+
+
 
     });
 </script>
@@ -751,5 +871,6 @@ echo '  </div>
     }
 </style>
 
+<!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script> -->
 
 <script src="./js/qr-genarated.js"></script>

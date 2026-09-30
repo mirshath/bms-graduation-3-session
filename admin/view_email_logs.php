@@ -18,7 +18,7 @@ include("includes/header.php");
 
             <div class="container-fluid mt-4">
 
-                <h2 class="mb-4"><i class="fas fa-envelope-open-text text-primary"></i> Email Logs</h2>
+                <h2 class="mb-4"><i class="fas fa-envelope-open-text text-primary"></i> Email Logs for Seat No </h2>
                 <p class="text-muted">View all sent and failed graduation emails</p>
 
                 <!-- Statistics Cards -->
@@ -232,27 +232,32 @@ include("includes/header.php");
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
 <script>
-$(document).ready(function() {
-    var table = $('#emailLogsTable').DataTable({
-        pageLength: 50,
-        order: [[0, 'desc']],
-        lengthMenu: [[25, 50, 100, 200], [25, 50, 100, 200]]
-    });
+    $(document).ready(function() {
+        var table = $('#emailLogsTable').DataTable({
+            pageLength: 50,
+            order: [
+                [0, 'desc']
+            ],
+            lengthMenu: [
+                [25, 50, 100, 200],
+                [25, 50, 100, 200]
+            ]
+        });
 
-    $('#filterProgram, #filterStatus, #filterType').on('change', function() {
-        table.columns(4).search($('#filterProgram').val()).draw();
-        table.columns(7).search($('#filterStatus').val()).draw();
-        table.columns(6).search($('#filterType').val()).draw();
-    });
+        $('#filterProgram, #filterStatus, #filterType').on('change', function() {
+            table.columns(4).search($('#filterProgram').val()).draw();
+            table.columns(7).search($('#filterStatus').val()).draw();
+            table.columns(6).search($('#filterType').val()).draw();
+        });
 
-    $('#resetFilters').on('click', function() {
-        $('#filterProgram, #filterStatus, #filterType').val('');
-        table.search('').columns().search('').draw();
-    });
+        $('#resetFilters').on('click', function() {
+            $('#filterProgram, #filterStatus, #filterType').val('');
+            table.search('').columns().search('').draw();
+        });
 
-    $(document).on('click', '.viewDetails', function() {
-        var data = $(this).data();
-        var html = `
+        $(document).on('click', '.viewDetails', function() {
+            var data = $(this).data();
+            var html = `
             <table class="table table-bordered">
                 <tr><th>Student ID</th><td>${data.student}</td></tr>
                 <tr><th>Name</th><td>${data.name}</td></tr>
@@ -263,14 +268,14 @@ $(document).ready(function() {
                 <tr><th>Sent By</th><td>${data.sentBy}</td></tr>
             </table>
         `;
-        $('#detailsContent').html(html);
-        $('#detailsModal').modal('show');
-    });
+            $('#detailsContent').html(html);
+            $('#detailsModal').modal('show');
+        });
 
-    $(document).on('click', '.viewError', function() {
-        var error = $(this).data('error');
-        $('#errorContent').text(error || 'No error details available');
-        $('#errorModal').modal('show');
+        $(document).on('click', '.viewError', function() {
+            var error = $(this).data('error');
+            $('#errorContent').text(error || 'No error details available');
+            $('#errorModal').modal('show');
+        });
     });
-});
 </script>

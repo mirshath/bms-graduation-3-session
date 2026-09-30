@@ -18,7 +18,7 @@ include("includes/header.php");
 
             <div class="container-fluid mt-4">
 
-                <h4 class="mb-4 text-danger text-center">Bulk Data Email Sending</h4>
+                <h4 class="mb-4 text-danger text-center">Bulk Data Email Sending For Seat No</h4>
 
                 <div class="card w-75 mb-4 container shadow-sm">
                     <div class="card-body">

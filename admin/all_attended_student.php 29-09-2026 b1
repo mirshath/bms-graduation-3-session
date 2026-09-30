@@ -46,18 +46,19 @@ include("includes/header.php");
                                 <select id="sessionFilter" class="form-control form-control-sm select2">
                                     <option value="">All Sessions</option>
                                     <?php
-                                    // Sessions = unique values of data_tables.session (SESSION_01, SESSION_02, SESSION_03 ...)
+                                    // Get unique sessions for filter
                                     try {
-                                        $session_query = "SELECT DISTINCT dt.session
-                                                          FROM data_tables dt
-                                                          WHERE dt.session IS NOT NULL AND dt.session != ''
+                                        $session_query = "SELECT DISTINCT dt.session 
+                                                          FROM data_tables dt 
+                                                          WHERE dt.session IS NOT NULL AND dt.session != '' 
                                                           ORDER BY dt.session ASC";
                                         $session_result = mysqli_query($conn, $session_query);
 
                                         if ($session_result && mysqli_num_rows($session_result) > 0) {
                                             while ($session_row = mysqli_fetch_assoc($session_result)) {
                                                 $session = htmlspecialchars($session_row['session'], ENT_QUOTES, 'UTF-8');
-                                                echo "<option value='" . $session . "'>" . $session . "</option>";
+                                                $session_display = ucfirst(strtolower($session));
+                                                echo "<option value='" . $session . "'>" . $session_display . "</option>";
                                             }
                                         }
                                     } catch (Exception $e) {
@@ -74,21 +75,18 @@ include("includes/header.php");
                                 <select id="programFilter" class="form-control form-control-sm select2">
                                     <option value="">All Programs</option>
                                     <?php
-                                    // Programs actually attended (registered_students), each tagged with its
-                                    // session (data_tables), so the Program list can be narrowed by Session in JS.
+                                    // Get unique programs for filter (include full name, with batch, as before)
                                     try {
-                                        $program_query = "SELECT DISTINCT rs.program_name, dt.session
-                                                          FROM registered_students rs
-                                                          LEFT JOIN data_tables dt ON rs.program_name = dt.programName
-                                                          WHERE rs.program_name IS NOT NULL AND rs.program_name != ''
+                                        $program_query = "SELECT DISTINCT rs.program_name 
+                                                          FROM registered_students rs 
+                                                          WHERE rs.program_name IS NOT NULL AND rs.program_name != '' 
                                                           ORDER BY rs.program_name ASC";
                                         $program_result = mysqli_query($conn, $program_query);
 
                                         if ($program_result && mysqli_num_rows($program_result) > 0) {
                                             while ($program_row = mysqli_fetch_assoc($program_result)) {
                                                 $program = htmlspecialchars($program_row['program_name'], ENT_QUOTES, 'UTF-8');
-                                                $prog_session = htmlspecialchars($program_row['session'] ?? '', ENT_QUOTES, 'UTF-8');
-                                                echo "<option value='" . $program . "' data-session='" . $prog_session . "'>" . $program . "</option>";
+                                                echo "<option value='" . $program . "'>" . $program . "</option>";
                                             }
                                         }
                                     } catch (Exception $e) {
@@ -191,7 +189,7 @@ include("includes/header.php");
                                             echo "<td>" . (!empty($row['seat_no']) ? htmlspecialchars($row['seat_no'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
                                             echo "<td>" . (!empty($row['phone_no']) ? htmlspecialchars($row['phone_no'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
                                             echo "<td>" . (!empty($row['program_name']) ? htmlspecialchars($row['program_name'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
-                                            $session_display = !empty($row['session_name']) ? $row['session_name'] : 'N/A';
+                                            $session_display = !empty($row['session_name']) && $row['session_name'] != 'N/A' ? ucfirst(strtolower($row['session_name'])) : 'N/A';
                                             echo "<td>" . htmlspecialchars($session_display, ENT_QUOTES, 'UTF-8') . "</td>";
                                             $attendance_status = $row['attendance_status'];
                                             $badge_class = ($attendance_status == 'attended' || $attendance_status == 'Registered') ? 'bg-success' : 'bg-secondary';
@@ -272,16 +270,6 @@ include("includes/header.php");
                 placeholder: 'All Sessions',
                 allowClear: true,
                 width: '100%'
-            });
-
-            // Full Program list (value + session), captured once, so the Session filter can rebuild
-            // #programFilter's options without a page reload or extra query.
-            var allProgramOptions = [];
-            $('#programFilter option[value!=""]').each(function() {
-                allProgramOptions.push({
-                    value: $(this).val(),
-                    session: $(this).data('session') || ''
-                });
             });
 
             $('#programFilter').select2({
@@ -368,9 +356,9 @@ include("includes/header.php");
 
             // Helper to extract program name before first "-"
             function getBeforeHyphen(program) {
-                if (typeof program !== 'string') return program;
+                if(typeof program !== 'string') return program;
                 var idx = program.indexOf('-');
-                if (idx === -1) return program.trim();
+                if(idx === -1) return program.trim();
                 return program.slice(0, idx).trim();
             }
 
@@ -384,7 +372,8 @@ include("includes/header.php");
                 var filterText = [];
 
                 if (selectedSession !== '') {
-                    filterText.push('Session: <strong>' + selectedSession + '</strong>');
+                    var sessionDisplay = selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1).toLowerCase();
+                    filterText.push('Session: <strong>' + sessionDisplay + '</strong>');
                 }
                 if (selectedAttendance !== '') {
                     var attendanceText = selectedAttendance === 'attended' ? 'Attended' : 'N/A';
@@ -408,37 +397,11 @@ include("includes/header.php");
             $('#sessionFilter').on('change', function() {
                 var selectedSession = $(this).val();
 
-                // Narrow the Program dropdown to this session's programs (data-session, set from data_tables)
-                var $programFilter = $('#programFilter');
-                var currentProgram = $programFilter.val();
-                var stillValid = false;
-
-                $programFilter.empty().append('<option value="">All Programs</option>');
-                allProgramOptions.forEach(function(opt) {
-                    if (selectedSession === '' || opt.session === selectedSession) {
-                        $programFilter.append(
-                            $('<option>', {
-                                value: opt.value,
-                                text: opt.value,
-                                'data-session': opt.session
-                            })
-                        );
-                        if (opt.value === currentProgram) stillValid = true;
-                    }
-                });
-
-                if (stillValid) {
-                    $programFilter.val(currentProgram);
-                } else if (currentProgram !== '') {
-                    // The program that was selected doesn't belong to the new session
-                    table.column(6).search('').draw();
-                }
-                $programFilter.trigger('change.select2');
-
                 if (selectedSession === '') {
                     table.column(7).search('').draw();
                 } else {
-                    table.column(7).search('^' + $.fn.dataTable.util.escapeRegex(selectedSession) + '$', true, false).draw();
+                    var sessionDisplay = selectedSession.charAt(0).toUpperCase() + selectedSession.slice(1).toLowerCase();
+                    table.column(7).search('^' + $.fn.dataTable.util.escapeRegex(sessionDisplay) + '$', true, false).draw();
                 }
 
                 updateFilterInfo();
@@ -483,7 +446,7 @@ include("includes/header.php");
                 $('#programFilter').val('').trigger('change.select2');
 
                 // Remove any previous filter
-                $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(f) {
+                $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function (f) {
                     return !f._isMainProgFilter;
                 });
 
@@ -491,7 +454,7 @@ include("includes/header.php");
                     table.column(6).search('').draw();
                 } else {
                     // Custom search by program name before hyphen
-                    var mainProgFilter = function(settings, data, dataIndex) {
+                    var mainProgFilter = function(settings, data, dataIndex){
                         var program = data[6] || '';
                         // If no filter, show all
                         if (selectedMainProgram === '') return true;
@@ -512,7 +475,7 @@ include("includes/header.php");
                 $('#programFilter').val('').trigger('change');
                 $('#programMainFilter').val('').trigger('change');
                 // Remove ext.search
-                $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(f) {
+                $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function (f) {
                     return !f._isMainProgFilter;
                 });
                 table.columns().search('').draw();
@@ -547,5 +510,4 @@ include("includes/header.php");
 </script>
 
 </body>
-
 </html>

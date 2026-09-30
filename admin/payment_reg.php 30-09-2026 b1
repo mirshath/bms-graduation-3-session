@@ -7,8 +7,11 @@ if (!isset($_SESSION['admin_id']) || $_SESSION['admin_name'] === 'Unknown Admin'
     exit();
 }
 
+
 include("../database/connection.php");
 include("includes/header.php");
+
+
 
 $summaryQuery = $conn->query("
     SELECT 

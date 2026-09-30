@@ -186,6 +186,20 @@ try {
         );
     }
 
+    /*
+     * Variables:
+     *
+     * s = student_id
+     * s = program_name
+     * d = graduation_fee
+     * i = free_ticket_count
+     * i = extra_ticket_count
+     * d = extra_ticket_total
+     * d = total_amount
+     * s = receipt_number
+     * s = admin_name
+     */
+
     $stmt2->bind_param(
         "ssdiiddss",
         $student_id,
@@ -291,6 +305,9 @@ try {
         $mail->SMTPAuth   = true;
         $mail->Username   = 'bmsgraduation@bms.ac.lk';
 
+        // IMPORTANT:
+        // Put your actual password here.
+        // Better: load it from .env/config instead.
         $mail->Password   = 'vspcktnnkhtwhxgr';
 
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
@@ -569,7 +586,7 @@ try {
         $email_sent ? null : $email_error;
 
     $logStmt = $conn->prepare("
-        INSERT INTO payment_email_log
+        INSERT INTO email_log
         (
             student_id,
             name_in_full,

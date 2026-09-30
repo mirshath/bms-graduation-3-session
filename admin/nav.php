@@ -195,24 +195,35 @@ $role = $_SESSION['role'] ?? ''; // Current user role
     <!-- ============================================ -->
     <!--cloakCollectReturn-->
     <?php if (in_array($role, ['admin', 'clothCollectReturn'])): ?>
-        <li class="nav-item <?= ($current_url == 'clothCollection') ? 'active' : '' ?> nav-hover">
-            <a class="nav-link" href="clothCollection">
+        <!-- Cloak Dropdown -->
+        <li class="nav-item dropdown <?= in_array($current_url, ['clothCollection', 'cloakReturn', 'cloakReport']) ? 'active show' : '' ?> nav-hover">
+            <a class="nav-link dropdown-toggle <?= in_array($current_url, ['clothCollection', 'cloakReturn', 'cloakReport']) ? '' : 'collapsed' ?>"
+                href="#"
+                id="cloakDropdown"
+                role="button"
+                data-toggle="collapse"
+                data-target="#collapseCloak"
+                aria-expanded="<?= in_array($current_url, ['clothCollection', 'cloakReturn', 'cloakReport']) ? 'true' : 'false' ?>"
+                aria-controls="collapseCloak">
                 <i class="fas fa-fw fa-tshirt"></i>
-                <span>Cloak Issuing</span>
+                <span>Cloak</span>
             </a>
-        </li>
-        <li class="nav-item <?= ($current_url == 'cloakReturn') ? 'active' : '' ?> nav-hover">
-            <a class="nav-link" href="cloakReturn">
-                <i class="fas fa-fw fa-undo"></i>
-                <span>Cloak Collecting</span>
-            </a>
-        </li>
-        
-         <li class="nav-item <?= ($current_url == 'cloakReport') ? 'active' : '' ?> nav-hover">
-            <a class="nav-link" href="cloakReport">
-                <i class="fas fa-fw fa-chart-bar"></i>
-                <span>Cloak Report</span>
-            </a>
+            <div id="collapseCloak"
+                class="collapse <?= in_array($current_url, ['clothCollection', 'cloakReturn', 'cloakReport']) ? 'show' : '' ?>"
+                aria-labelledby="cloakDropdown"
+                data-parent="#accordionSidebar">
+                <div class="bg-dark py-2 collapse-inner rounded">
+                    <a class="collapse-item text-white <?= ($current_url == 'clothCollection') ? 'active' : '' ?>" href="clothCollection">
+                        <i class="fas fa-fw fa-tshirt mr-2"></i> Cloak Issuing
+                    </a>
+                    <a class="collapse-item text-white <?= ($current_url == 'cloakReturn') ? 'active' : '' ?>" href="cloakReturn">
+                        <i class="fas fa-fw fa-undo mr-2"></i> Cloak Collecting
+                    </a>
+                    <a class="collapse-item text-white <?= ($current_url == 'cloakReport') ? 'active' : '' ?>" href="cloakReport">
+                        <i class="fas fa-fw fa-chart-bar mr-2"></i> Cloak Report
+                    </a>
+                </div>
+            </div>
         </li>
     <?php endif; ?>
 
@@ -266,7 +277,7 @@ $role = $_SESSION['role'] ?? ''; // Current user role
                         <i class="fas fa-fw fa-envelope mr-2"></i> Bulk Email
                     </a>
                     <a class="collapse-item text-white <?= ($current_url == 'view_email_logs') ? 'active' : '' ?>" href="view_email_logs">
-                        <i class="fas fa-fw fa-list-alt mr-2"></i> View Email Logs
+                        <i class="fas fa-fw fa-list-alt mr-2"></i> Logs For Seat No
                     </a>
                 </div>
             </div>
@@ -279,20 +290,34 @@ $role = $_SESSION['role'] ?? ''; // Current user role
             </a>
         </li>
 
-        <li class="nav-item <?= ($current_url == 'allocatedSeatOrder') ? 'active' : '' ?> nav-hover">
-            <a class="nav-link" href="allocatedSeatOrder">
-                <i class="fas fa-fw fa-chair"></i>
-                <span>Report Seat Order</span>
+        <!-- Report Dropdown -->
+        <li class="nav-item dropdown <?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? 'active show' : '' ?> nav-hover">
+            <a class="nav-link dropdown-toggle <?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? '' : 'collapsed' ?>"
+                href="#"
+                id="reportDropdown"
+                role="button"
+                data-toggle="collapse"
+                data-target="#collapseReport"
+                aria-expanded="<?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? 'true' : 'false' ?>"
+                aria-controls="collapseReport">
+                <i class="fas fa-fw fa-file-alt"></i>
+                <span>Report</span>
             </a>
+            <div id="collapseReport"
+                class="collapse <?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? 'show' : '' ?>"
+                aria-labelledby="reportDropdown"
+                data-parent="#accordionSidebar">
+                <div class="bg-dark py-2 collapse-inner rounded">
+                    <a class="collapse-item text-white <?= ($current_url == 'allocatedSeatOrder') ? 'active' : '' ?>" href="allocatedSeatOrder">
+                        <i class="fas fa-fw fa-chair mr-2"></i> Report Seat Order
+                    </a>
+                    <a class="collapse-item text-white <?= ($current_url == 'meals_report') ? 'active' : '' ?>" href="meals_report">
+                        <i class="fas fa-fw fa-utensils mr-2"></i> Report Meals
+                    </a>
+                </div>
+            </div>
         </li>
-         <!--report for meals -->
-          <li class="nav-item <?= ($current_url == 'meals_report') ? 'active' : '' ?> nav-hover">
-            <a class="nav-link" href="meals_report">
-                <i class="fas fa-fw fa-utensils"></i>
-                <span>Report Meals</span>
-            </a>
-        </li>
-        
+
     <?php endif; ?>
 
 </ul>

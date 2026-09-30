@@ -163,58 +163,6 @@ $emails_sent = 0;
 $emails_failed = 0;
 $students_without_email = 0;
 
-// while ($row = $dbResult->fetch_assoc()) {
-//     $total_students++;
-
-//     $email = trim($row['email_address'] ?? '');
-//     $given_email_add = trim($row['given_email_add'] ?? '');
-
-//     $email_valid = !empty($email) && filter_var($email, FILTER_VALIDATE_EMAIL);
-//     $given_email_valid = !empty($given_email_add) && filter_var($given_email_add, FILTER_VALIDATE_EMAIL);
-
-//     if (!$email_valid && !$given_email_valid) {
-//         $students_without_email++;
-//         continue;
-//     }
-
-//     $studentId = $row['student_id'];
-//     $nameInFull = $row['name_in_full'];
-//     $seatNo = $row['seat_no'];
-//     $programName = $row['program_name'];
-//     $sessionTime = $row['session_time'];
-
-//     // Emails to send
-//     $emails_to_send = [];
-
-//     if ($email_valid && $given_email_valid) {
-//         if (strtolower($email) === strtolower($given_email_add)) {
-//             $emails_to_send[] = $email;
-//         } else {
-//             $emails_to_send = [$email, $given_email_add];
-//         }
-//     } elseif ($email_valid) {
-//         $emails_to_send[] = $email;
-//     } elseif ($given_email_valid) {
-//         $emails_to_send[] = $given_email_add;
-//     }
-
-//     // Send each email
-//     foreach ($emails_to_send as $email_address) {
-//         $emailResult = sendGraduationEmail($email_address, $studentId, $nameInFull, $seatNo, $programName, $sessionTime);
-
-//         if ($emailResult['success']) {
-//             $emails_sent++;
-//             logEmail($conn, $studentId, $nameInFull, $email_address, $programName, $seatNo, $sessionTime, 'sent', null, $admin_id);
-//         } else {
-//             $emails_failed++;
-//             logEmail($conn, $studentId, $nameInFull, $email_address, $programName, $seatNo, $sessionTime, 'failed', $emailResult['error'], $admin_id);
-//         }
-
-//         // Delay between emails (prevent SMTP flood)
-//         usleep(150000); // 0.15 seconds
-//     }
-// }
-
 
 
 // Prevent PHP timeout for large batches
@@ -239,13 +187,37 @@ while ($row = $dbResult->fetch_assoc()) {
     $seatNo      = $row['seat_no'];
     $programName = $row['program_name'];
     // $sessionTime = $row['session_time'];
+
+    // $sessionTimeRaw = $row['session_time'] ?? '';
+    // $sessionTime = $sessionTimeRaw;
+    // if (strcasecmp(trim($sessionTimeRaw), 'morning') === 0) {
+    //     $sessionTime = "Session 1 ( 10.00am - 12.00pm )";
+    // } elseif (strcasecmp(trim($sessionTimeRaw), 'evening') === 0) {
+    //     $sessionTime = "Session 2 ( 4.00pm - 7.00pm )";
+    // }
+
+
     $sessionTimeRaw = $row['session_time'] ?? '';
+
     $sessionTime = $sessionTimeRaw;
+
     if (strcasecmp(trim($sessionTimeRaw), 'morning') === 0) {
+
         $sessionTime = "Session 1 ( 10.00am - 12.00pm )";
     } elseif (strcasecmp(trim($sessionTimeRaw), 'evening') === 0) {
+
         $sessionTime = "Session 2 ( 4.00pm - 7.00pm )";
+    } elseif (strcasecmp(trim($sessionTimeRaw), 'SESSION_01') === 0) {
+
+        $sessionTime = "Session 1 ( 9.00am - 12.00pm )";
+    } elseif (strcasecmp(trim($sessionTimeRaw), 'SESSION_02') === 0) {
+
+        $sessionTime = "Session 2 ( 2.00pm - 4.00pm )";
+    } elseif (strcasecmp(trim($sessionTimeRaw), 'SESSION_03') === 0) {
+
+        $sessionTime = "Session 3 ( 5.30pm - 7.30pm )";
     }
+
     $callingName = $row['calling_name'] ?? '';
 
 

@@ -266,9 +266,11 @@ include("includes/header.php");
     .select2-container .select2-selection--single {
         height: 31px;
     }
+
     .select2-container--default .select2-selection--single .select2-selection__rendered {
         line-height: 31px;
     }
+
     .select2-container--default .select2-selection--single .select2-selection__arrow {
         height: 31px;
     }

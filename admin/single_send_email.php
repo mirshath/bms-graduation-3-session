@@ -32,10 +32,28 @@ $programName  = $_POST['program_name'] ?? '';
 // $sessionTime  = $_POST['session_time'] ?? '';
 $sessionTimeRaw = $_POST['session_time'] ?? '';
 $sessionTime = $sessionTimeRaw;
+// if (strcasecmp(trim($sessionTimeRaw), 'morning') === 0) {
+//     $sessionTime = "Session 1 ( 10.00am - 12.00pm )";
+// } elseif (strcasecmp(trim($sessionTimeRaw), 'evening') === 0) {
+//     $sessionTime = "Session 2 ( 4.00pm - 7.00pm )";
+// }
+
+
 if (strcasecmp(trim($sessionTimeRaw), 'morning') === 0) {
+
     $sessionTime = "Session 1 ( 10.00am - 12.00pm )";
 } elseif (strcasecmp(trim($sessionTimeRaw), 'evening') === 0) {
+
     $sessionTime = "Session 2 ( 4.00pm - 7.00pm )";
+} elseif (strcasecmp(trim($sessionTimeRaw), 'SESSION_01') === 0) {
+
+    $sessionTime = "Session 1 ( 9.00am - 12.00pm )";
+} elseif (strcasecmp(trim($sessionTimeRaw), 'SESSION_02') === 0) {
+
+    $sessionTime = "Session 2 ( 2.00pm - 4.00pm )";
+} elseif (strcasecmp(trim($sessionTimeRaw), 'SESSION_03') === 0) {
+
+    $sessionTime = "Session 3 ( 5.30pm - 7.30pm )";
 }
 
 

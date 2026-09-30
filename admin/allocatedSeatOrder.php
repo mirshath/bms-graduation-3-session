@@ -7,6 +7,14 @@ if (!isset($_SESSION['admin_id'])) {
 
 include("../database/connection.php");
 include("includes/header.php");
+
+// Load sessions dynamically from data_tables.session
+$sessions = $conn->query(
+    "SELECT DISTINCT session
+     FROM data_tables
+     WHERE session IS NOT NULL AND session <> '' AND active = 1
+     ORDER BY session ASC"
+);
 ?>
 
 <div id="wrapper">
@@ -24,8 +32,13 @@ include("includes/header.php");
                             <label><b>Select Session</b></label>
                             <select id="sessionSelect" class="form-control select2">
                                 <option value="">-- Select Session --</option>
-                                <option value="MORNING">Morning</option>
-                                <option value="EVENING">Evening</option>
+                                <?php if ($sessions): ?>
+                                    <?php while ($s = $sessions->fetch_assoc()): ?>
+                                        <option value="<?= htmlspecialchars($s['session']) ?>">
+                                            <?= htmlspecialchars(ucwords(strtolower(str_replace('_', ' ', $s['session'])))) ?>
+                                        </option>
+                                    <?php endwhile; ?>
+                                <?php endif; ?>
                             </select>
                         </div>
                     </div>
@@ -65,85 +78,16 @@ include("includes/header.php");
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 
-
-
-
 <script>
-    // $(document).ready(function() {
-    //     $('.select2').select2({
-    //         placeholder: "-- Select Session --",
-    //         width: '100%'
-    //     });
+    // Custom seat sorting: "A 12" -> letter first, then number (A 1, A 2, A 10, B 1 ...)
+    $.fn.dataTable.ext.type.order['seat-sort-pre'] = function(data) {
+        let m = String(data).trim().match(/^([A-Za-z]*)\s*(\d+)$/);
+        if (!m) return 0;
+        let prefix = m[1] ? m[1].toUpperCase().charCodeAt(0) : 0;
+        return prefix * 100000 + parseInt(m[2], 10);
+    };
 
-    //     $('#sessionSelect').on('change', function() {
-    //         let session = $(this).val();
-
-    //         if (session === "") {
-    //             $('#sessionData').html("");
-    //             return;
-    //         }
-
-    //         $.ajax({
-    //             url: "load_session_data.php",
-    //             type: "POST",
-    //             data: {
-    //                 session: session
-    //             },
-    //             beforeSend: function() {
-    //                 $('#sessionData').html("<p class='text-info'>Loading...</p>");
-    //             },
-    //             success: function(response) {
-    //                 $('#sessionData').html(response);
-
-    //                 $('#sessionTable').DataTable({
-    //                     dom: 'Bfrtip',
-    //                     buttons: [
-    //                         {
-    //                             extend: 'copy',
-    //                             className: 'btn btn-sm btn-primary me-1'
-    //                         },
-    //                         {
-    //                             extend: 'csv',
-    //                             className: 'btn btn-sm btn-success me-1'
-    //                         },
-    //                         {
-    //                             extend: 'excel',
-    //                             className: 'btn btn-sm btn-success me-1'
-    //                         },
-    //                         {
-    //                             extend: 'pdf',
-    //                             className: 'btn btn-sm btn-danger me-1'
-    //                         },
-    //                         {
-    //                             extend: 'print',
-    //                             className: 'btn btn-sm btn-info'
-    //                         }
-    //                     ],
-    //                     // ordering: true,
-    //                     // order: [
-    //                     //     [4, 'asc']
-    //                     // ], 
-    //                     // pageLength: 500, 
-    //                     // lengthMenu: [[500, -1, 10, 25, 50, 100], [500, "All", 10, 25, 50, 100]]
-                        
-    //                      pageLength: 500, // Show 500 rows by default
-    //                     lengthMenu: [
-    //                         [500, -1, 10, 25, 50, 100],
-    //                         [500, "All", 10, 25, 50, 100]
-    //                     ],
-    //                     columnDefs: [{
-    //                         targets: 4, // Seat No column index
-    //                         type: 'seat-sort'
-    //                     }]
-                        
-    //                 });
-    //             }
-    //         });
-    //     });
-    // });
-
-
-  $(document).ready(function() {
+    $(document).ready(function() {
         $('.select2').select2({
             placeholder: "-- Select Session --",
             width: '100%'
@@ -152,7 +96,7 @@ include("includes/header.php");
         $('#sessionSelect').on('change', function() {
             let session = $(this).val();
 
-            if (session === "") {
+            if (session === "" || session === null) {
                 $('#sessionData').html("");
                 return;
             }
@@ -167,59 +111,54 @@ include("includes/header.php");
                     $('#sessionData').html("<p class='text-info'>Loading...</p>");
                 },
                 success: function(response) {
+                    // Destroy any previous table before replacing the HTML
+                    if ($.fn.DataTable.isDataTable('#sessionTable')) {
+                        $('#sessionTable').DataTable().destroy();
+                    }
+
                     $('#sessionData').html(response);
 
-                    // 🔥 Custom Seat Sorting Function
-                    $.fn.dataTable.ext.type.order['seat-sort-pre'] = function(data) {
-                        let parts = data.trim().split(" ");
-
-                        if (parts.length === 2) {
-                            let prefix = parts[0];
-                            let number = parseInt(parts[1], 10);
-                            return prefix.charCodeAt(0) * 100000 + number;
-                        }
-                        return data;
-                    };
-
-                    // Datatable Init
-                    $('#sessionTable').DataTable({
-                        dom: 'Bfrtip',
-                        buttons: [{
-                                extend: 'copy',
-                                className: 'btn btn-sm btn-primary me-1'
-                            },
-                            {
-                                extend: 'csv',
-                                className: 'btn btn-sm btn-success me-1'
-                            },
-                            {
-                                extend: 'excel',
-                                className: 'btn btn-sm btn-success me-1'
-                            },
-                            {
-                                extend: 'pdf',
-                                className: 'btn btn-sm btn-danger me-1'
-                            },
-                            {
-                                extend: 'print',
-                                className: 'btn btn-sm btn-info'
-                            }
-                        ],
-                        pageLength: 500,
-                        lengthMenu: [
-                            [500, -1, 10, 25, 50, 100],
-                            [500, "All", 10, 25, 50, 100]
-                        ],
-                        columnDefs: [{
-                            targets: 3, // Seat No column index
-                            // type: 'seat-sort'
-                             type: 'num-sort' // Sort as integer
-                        }]
-                    });
+                    // Only initialise DataTable if a table was returned
+                    if ($('#sessionTable').length) {
+                        $('#sessionTable').DataTable({
+                            dom: 'Bfrtip',
+                            buttons: [{
+                                    extend: 'copy',
+                                    className: 'btn btn-sm btn-primary me-1'
+                                },
+                                {
+                                    extend: 'csv',
+                                    className: 'btn btn-sm btn-success me-1'
+                                },
+                                {
+                                    extend: 'excel',
+                                    className: 'btn btn-sm btn-success me-1'
+                                },
+                                {
+                                    extend: 'pdf',
+                                    className: 'btn btn-sm btn-danger me-1'
+                                },
+                                {
+                                    extend: 'print',
+                                    className: 'btn btn-sm btn-info'
+                                }
+                            ],
+                            pageLength: 500,
+                            lengthMenu: [
+                                [500, -1, 10, 25, 50, 100],
+                                [500, "All", 10, 25, 50, 100]
+                            ],
+                            columnDefs: [{
+                                targets: 3, // Seat No column index
+                                type: 'seat-sort'
+                            }]
+                        });
+                    }
+                },
+                error: function() {
+                    $('#sessionData').html("<p class='text-danger'>Failed to load data. Please try again.</p>");
                 }
             });
         });
     });
-
-
 </script>

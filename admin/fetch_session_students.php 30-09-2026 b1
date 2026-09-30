@@ -7,6 +7,22 @@ if (empty($session_time)) {
     echo json_encode(['status' => 'error', 'message' => 'No session selected']);
     exit;
 }
+// $sql = "SELECT student_id, program_name, session_time, seat_no, graduated_status 
+//         FROM bulk_data_table 
+//         WHERE session_time=? 
+//         ORDER BY seat_no ASC";
+// $sql = "SELECT 
+//             bdt.student_id, 
+//             rs.name_in_full, 
+//             bdt.program_name, 
+//             bdt.session_time, 
+//             bdt.seat_no, 
+//             bdt.graduated_status
+//         FROM bulk_data_table bdt
+//         LEFT JOIN registered_students rs 
+//             ON rs.student_id = bdt.student_id
+//         WHERE bdt.session_time = ?
+//         ORDER BY bdt.seat_no ASC";
 
 
 $sql = "SELECT 
