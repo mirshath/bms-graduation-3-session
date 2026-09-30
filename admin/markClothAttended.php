@@ -2,54 +2,75 @@
 session_start();
 include("../database/connection.php");
 
-if (!isset($_POST['studentID'])) {
-    echo json_encode(['status' => 'error', 'message' => 'No student ID provided']);
+header('Content-Type: application/json');
+
+if (!isset($_POST['studentID']) || !isset($_POST['item'])) {
+    echo json_encode(['status' => 'error', 'message' => 'Student ID and item are required']);
     exit;
 }
 
-$studentID = $_POST['studentID'];
+$studentID = trim($_POST['studentID']);
+$item = strtolower(trim($_POST['item']));
 
-// Get student info from bulk_data_table
-// $stmt = $conn->prepare("SELECT calling_name, program_name FROM bulk_data_table WHERE student_id = ?");
-// $stmt->bind_param("s", $studentID);
-// $stmt->execute();
-// $result = $stmt->get_result();
+$columnMap = [
+    'cloak'   => 'collect_cloak',
+    'slashes' => 'collect_slashes',
+    'hats'    => 'collect_hats',
+];
+
+if ($studentID === '' || !isset($columnMap[$item])) {
+    echo json_encode(['status' => 'error', 'message' => 'Invalid student ID or item']);
+    exit;
+}
+
+$column = $columnMap[$item];
+
 $stmt = $conn->prepare("SELECT calling_name, program_name FROM registered_students WHERE student_id = ?");
 $stmt->bind_param("s", $studentID);
 $stmt->execute();
 $result = $stmt->get_result();
 
-if ($result->num_rows > 0) {
-    $student = $result->fetch_assoc();
-    $programName = $student['program_name'];
+if ($result->num_rows === 0) {
+    echo json_encode(['status' => 'not_found', 'message' => 'Student not found.']);
+    exit;
+}
 
-    // Get items info from data_tables (use empty string when no row or not assigned)
-    $collect_cloak = $collect_slashes = $collect_hats = '';
-    $itemStmt = $conn->prepare("SELECT cloak, slashes, hats FROM data_tables WHERE programName = ?");
-    $itemStmt->bind_param("s", $programName);
-    $itemStmt->execute();
-    $itemResult = $itemStmt->get_result();
-    if ($itemResult->num_rows > 0) {
-        $items = $itemResult->fetch_assoc();
-        $collect_cloak   = (!empty($items['cloak']) && $items['cloak'] == 1) ? "collected" : '';
-        $collect_slashes = (!empty($items['slashes']) && $items['slashes'] == 1) ? "collected" : '';
-        $collect_hats    = (!empty($items['hats']) && $items['hats'] == 1) ? "collected" : '';
-    }
+$student = $result->fetch_assoc();
+$programName = $student['program_name'];
 
-    // Insert or update record (use empty string for optional collect_* to avoid bind_param null issues)
+$itemStmt = $conn->prepare("SELECT cloak, slashes, hats FROM data_tables WHERE programName = ?");
+$itemStmt->bind_param("s", $programName);
+$itemStmt->execute();
+$itemResult = $itemStmt->get_result();
+
+if ($itemResult->num_rows === 0) {
+    echo json_encode(['status' => 'error', 'message' => 'No clothing items assigned to this program.']);
+    exit;
+}
+
+$assigned = $itemResult->fetch_assoc();
+$isAssigned = !empty($assigned[$item]) && (int)$assigned[$item] === 1;
+
+if (!$isAssigned) {
+    echo json_encode(['status' => 'error', 'message' => 'This item is not assigned to the student program.']);
+    exit;
+}
+
+$check = $conn->prepare("SELECT id FROM clothing_collections WHERE student_id = ?");
+$check->bind_param("s", $studentID);
+$check->execute();
+$existing = $check->get_result();
+
+if ($existing->num_rows === 0) {
+    $collect_cloak = $item === 'cloak' ? 'collected' : '';
+    $collect_slashes = $item === 'slashes' ? 'collected' : '';
+    $collect_hats = $item === 'hats' ? 'collected' : '';
+
     $insert = $conn->prepare("
-        INSERT INTO clothing_collections 
+        INSERT INTO clothing_collections
         (student_id, student_name, program_name, collect_cloak, collect_slashes, collect_hats, collected_at)
         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        ON DUPLICATE KEY UPDATE 
-            student_name = VALUES(student_name),
-            program_name = VALUES(program_name),
-            collect_cloak = VALUES(collect_cloak),
-            collect_slashes = VALUES(collect_slashes),
-            collect_hats = VALUES(collect_hats),
-            collected_at = CURRENT_TIMESTAMP
     ");
-
     $insert->bind_param(
         "ssssss",
         $studentID,
@@ -66,8 +87,17 @@ if ($result->num_rows > 0) {
         $err = $conn->error ? $conn->error : 'Unknown database error';
         echo json_encode(['status' => 'error', 'message' => 'Failed to mark as collected.', 'debug' => $err]);
     }
+    exit;
+}
+
+$update = $conn->prepare("UPDATE clothing_collections SET `$column` = 'collected' WHERE student_id = ?");
+$update->bind_param("s", $studentID);
+
+if ($update->execute()) {
+    echo json_encode(['status' => 'success']);
 } else {
-    echo json_encode(['status' => 'not_found']);
+    $err = $conn->error ? $conn->error : 'Unknown database error';
+    echo json_encode(['status' => 'error', 'message' => 'Failed to mark as collected.', 'debug' => $err]);
 }
 
 exit;

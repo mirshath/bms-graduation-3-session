@@ -24,6 +24,7 @@ try {
     // =========================================================
 
     $student_id         = trim($_POST['student_id'] ?? '');
+    $invitation_number  = trim($_POST['invitation_number'] ?? '');
     $program_name       = trim($_POST['program_name'] ?? '');
     $graduation_fee     = floatval($_POST['graduation_fee'] ?? 0);
     $free_ticket_count  = intval($_POST['free_ticket'] ?? 0);
@@ -87,6 +88,30 @@ try {
 
     if (empty($university_email)) {
         throw new Exception('Student email address not found.');
+    }
+
+    // Invitation Number from Student Payment Details, else old_student_db / existing row
+    if ($invitation_number === '') {
+        $stmtInv = $conn->prepare("
+            SELECT in_no
+            FROM old_student_db
+            WHERE student_id = ?
+            LIMIT 1
+        ");
+        if ($stmtInv) {
+            $stmtInv->bind_param("s", $student_id);
+            if ($stmtInv->execute()) {
+                $invRes = $stmtInv->get_result();
+                if ($invRes && $invRow = $invRes->fetch_assoc()) {
+                    $invitation_number = trim((string)($invRow['in_no'] ?? ''));
+                }
+            }
+            $stmtInv->close();
+        }
+    }
+
+    if ($invitation_number === '') {
+        $invitation_number = trim((string)($student['in_no'] ?? ''));
     }
 
     // =========================================================
@@ -213,20 +238,46 @@ try {
     // 8. UPDATE STUDENT PAYMENT STATUS
     // =========================================================
 
-    $stmt3 = $conn->prepare("
-        UPDATE registered_students
-        SET graduation_payment_status = 'paid'
-        WHERE student_id = ?
-    ");
+    $in_no_for_db = ($invitation_number === '')
+        ? null
+        : intval($invitation_number);
 
-    if (!$stmt3) {
-        throw new Exception(
-            'Payment status query preparation failed: ' .
-                $conn->error
-        );
+    if ($in_no_for_db === null) {
+        $stmt3 = $conn->prepare("
+            UPDATE registered_students
+            SET graduation_payment_status = 'paid',
+                invitation_collected = 'collected',
+                updated_at_invitation = NOW()
+            WHERE student_id = ?
+        ");
+
+        if (!$stmt3) {
+            throw new Exception(
+                'Payment status query preparation failed: ' .
+                    $conn->error
+            );
+        }
+
+        $stmt3->bind_param("s", $student_id);
+    } else {
+        $stmt3 = $conn->prepare("
+            UPDATE registered_students
+            SET graduation_payment_status = 'paid',
+                invitation_collected = 'collected',
+                updated_at_invitation = NOW(),
+                in_no = ?
+            WHERE student_id = ?
+        ");
+
+        if (!$stmt3) {
+            throw new Exception(
+                'Payment status query preparation failed: ' .
+                    $conn->error
+            );
+        }
+
+        $stmt3->bind_param("is", $in_no_for_db, $student_id);
     }
-
-    $stmt3->bind_param("s", $student_id);
 
     if (!$stmt3->execute()) {
         throw new Exception(

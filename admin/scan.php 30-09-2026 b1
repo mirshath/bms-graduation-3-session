@@ -11,35 +11,34 @@ include("includes/header.php");
 
 
 
-// Program cards under each session: use data_tables.session (SESSION_01 / 02 / 03),
-// not bulk_data_table.session_time — that table is empty until seats are uploaded.
+// Fetch program-wise and session-wise summary data for all sessions
 $query = "
-SELECT dt.programName AS program_name,
-       dt.session AS session_code,
-       COUNT(rs.student_id) AS total_registered,
-       COALESCE(SUM(CASE WHEN rs.attend = 'attended' THEN 1 ELSE 0 END), 0) AS total_attended
-FROM data_tables dt
-LEFT JOIN registered_students rs ON rs.program_name = dt.programName
-WHERE dt.session IN ('SESSION_01', 'SESSION_02', 'SESSION_03')
-GROUP BY dt.programName, dt.session
-ORDER BY dt.session, dt.programName
+SELECT rs.program_name, bd.session_time,
+       COUNT(*) AS total_registered,
+       SUM(CASE WHEN rs.attend='attended' THEN 1 ELSE 0 END) AS total_attended
+FROM registered_students rs
+LEFT JOIN bulk_data_table bd ON rs.student_id = bd.student_id
+GROUP BY rs.program_name, bd.session_time
+ORDER BY rs.program_name, bd.session_time
 ";
 
 $result = $conn->query($query);
-$summariesBySession = [
-    'SESSION_01' => [],
-    'SESSION_02' => [],
-    'SESSION_03' => [],
-];
+$summaries = [];
 if ($result) {
     while ($row = $result->fetch_assoc()) {
-        $sessionCode = strtoupper(trim((string)($row['session_code'] ?? '')));
-        if (isset($summariesBySession[$sessionCode])) {
-            $summariesBySession[$sessionCode][] = $row;
-        }
+        $summaries[] = $row;
     }
 }
 
+// Session stats (SESSION_01 / SESSION_02 / SESSION_03) - shared helper
+/**
+ * Returns paid / attended / remaining counts (unique students) for each session.
+ *   paid      = students with a payment record
+ *   attended  = students marked attended
+ *   remaining = students who paid but have not attended
+ * Used by BOTH scan.php (first page load) and fetch_session_stats.php (auto-refresh),
+ * so the numbers always match.
+ */
 function getSessionStats(mysqli $conn): array
 {
     $sessions = ['SESSION_01', 'SESSION_02', 'SESSION_03'];
@@ -313,38 +312,75 @@ $sessionStats = getSessionStats($conn);
                             </div>
                         </div>
                     </div>
+
+
                 </div>
             </div>
 
             <div class="container shadow mb-4">
 
-                <div class="row mt-4 mb-4">
-                    <?php
-                    $sessionColumns = [
-                        'SESSION_01' => 'Session 01',
-                        'SESSION_02' => 'Session 02',
-                        'SESSION_03' => 'Session 03',
-                    ];
-                    foreach ($sessionColumns as $sessionCode => $sessionTitle):
-                    ?>
-                        <div class="col-md-4">
-                            <div class="text-center mb-2">
-                                <h4 class="fw-bold archivo"><?php echo $sessionTitle; ?></h4>
-                            </div>
-                            <?php foreach ($summariesBySession[$sessionCode] as $sum): ?>
+                <div class="row mt-4 mb-4 justify-content-center">
+                    <div class="col-md-6">
+                        <div class="text-center mb-2">
+                            <h4 class="fw-bold archivo">Session 01</h4>
+                        </div>
+                        <?php foreach ($summaries as $sum): ?>
+                            <?php if (stripos((string)($sum['session_time'] ?? ''), 'session_01') !== false): ?>
                                 <div class="mb-3">
                                     <div class="card border-primary shadow-sm">
                                         <div class="card-body text-center">
-                                            <h5 class="card-title fw-bold archivo"><?php echo htmlspecialchars($sum['program_name']); ?></h5>
-                                            <h6 class="card-subtitle mb-2 text-muted"><?php echo $sessionTitle; ?></h6>
-                                            <p class="mb-1"><strong>Registered:</strong> <?php echo (int)$sum['total_registered']; ?></p>
-                                            <p class="mb-0"><strong>Attended:</strong> <?php echo (int)$sum['total_attended']; ?></p>
+                                            <h5 class="card-title fw-bold archivo"><?php echo $sum['program_name']; ?></h5>
+                                            <h6 class="card-subtitle mb-2 text-muted"><?php echo $sum['session_time']; ?> Session</h6>
+                                            <p class="mb-1"><strong>Registered:</strong> <?php echo $sum['total_registered']; ?></p>
+                                            <p class="mb-0"><strong>Attended:</strong> <?php echo $sum['total_attended']; ?></p>
                                         </div>
                                     </div>
                                 </div>
-                            <?php endforeach; ?>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-center mb-2">
+                            <h4 class="fw-bold archivo">Session 02</h4>
                         </div>
-                    <?php endforeach; ?>
+                        <?php foreach ($summaries as $sum): ?>
+                            <?php if (stripos((string)($sum['session_time'] ?? ''), 'session_02') !== false): ?>
+                                <div class="mb-3">
+                                    <div class="card border-primary shadow-sm">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title fw-bold archivo"><?php echo $sum['program_name']; ?></h5>
+                                            <h6 class="card-subtitle mb-2 text-muted"><?php echo $sum['session_time']; ?> Session</h6>
+                                            <p class="mb-1"><strong>Registered:</strong> <?php echo $sum['total_registered']; ?></p>
+                                            <p class="mb-0"><strong>Attended:</strong> <?php echo $sum['total_attended']; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+
+
+
+                    </div>
+                    <div class="col-md-6 mx-auto">
+                        <div class="text-center mb-2">
+                            <h4 class="fw-bold archivo">Session 03</h4>
+                        </div>
+                        <?php foreach ($summaries as $sum): ?>
+                            <?php if (stripos((string)($sum['session_time'] ?? ''), 'session_03') !== false): ?>
+                                <div class="mb-3">
+                                    <div class="card border-primary shadow-sm">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title fw-bold archivo"><?php echo $sum['program_name']; ?></h5>
+                                            <h6 class="card-subtitle mb-2 text-muted"><?php echo $sum['session_time']; ?> Session</h6>
+                                            <p class="mb-1"><strong>Registered:</strong> <?php echo $sum['total_registered']; ?></p>
+                                            <p class="mb-0"><strong>Attended:</strong> <?php echo $sum['total_attended']; ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </div>
+
                 </div>
             </div>
         </div> <!-- content -->

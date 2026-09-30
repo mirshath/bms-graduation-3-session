@@ -122,7 +122,7 @@ echo '<div class="card p-4 shadow mt-3">
         <div class="row">
             <div class="col-md-4 mb-3">
                 <label>Invitation Number</label>
-                <input type="text" id="invitationNumber" class="form-control fw-bolder" value="' . htmlspecialchars($invitation_no_to_show, ENT_QUOTES, 'UTF-8') . '" readonly>
+                <input type="text" class="form-control fw-bolder" value="' . htmlspecialchars($invitation_no_to_show, ENT_QUOTES, 'UTF-8') . '" readonly>
                 </div>
             <div class="col-md-4 mb-3">
                 <label>Student ID</label>
@@ -516,7 +516,6 @@ echo '  </div>
 
         const studentData = {
             student_id: $('#studentId').val().trim(),
-            invitation_number: $('#invitationNumber').val().trim(),
             dob: $('#studentPaymentForm input:eq(1)').val().trim(),
             full_name: $('#fullName').val().trim(),
             program_name: $('#programName').val().trim(),
