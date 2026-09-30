@@ -8,7 +8,7 @@ if (!isset($_SESSION['admin_id'])) {
 
 include("../database/connection.php");
 include("includes/header.php");
-
+// ssss 
 
 
 // Program cards under each session: use data_tables.session (SESSION_01 / 02 / 03),
@@ -371,13 +371,6 @@ $sessionStats = getSessionStats($conn);
     </div>
 </div>
 
-
-<!-- --------------------- success modal new --------------------- -->
-
-
-<!-- --------------------- success modal new --------------------- -->
-
-
 <!-- ❌ Error Modal -->
 <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -435,51 +428,6 @@ $sessionStats = getSessionStats($conn);
             return $('<div>').text(v ?? '').html();
         }
 
-        // Load clothing status (required in data_tables vs collected in clothing_collections)
-        function loadClothing(studentID, $target) {
-            $target.html('<p class="text-muted"><em>Checking clothing...</em></p>');
-
-            $.ajax({
-                url: 'check_clothing.php',
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    studentID
-                },
-                success: function(c) {
-                    if (c.status !== 'success') {
-                        $target.html('<p class="text-danger">Could not check clothing.</p>');
-                        return;
-                    }
-
-                    if (c.required.length === 0) {
-                        $target.html('<p class="text-muted"><strong>Clothing:</strong> None required</p>');
-                        return;
-                    }
-
-                    let html = '';
-
-                    if (c.collected.length > 0) {
-                        html += `<p class="text-success mb-1"><strong>Collected:</strong> ✔ ${esc(c.collected.join(', '))}</p>`;
-                    }
-
-                    if (c.missing.length > 0) {
-                        html += `
-                            <div class="alert alert-danger py-2 mt-2 mb-0">
-                                <strong>Pending to Collect:</strong> ${esc(c.missing.join(', '))}
-                            </div>`;
-                    } else {
-                        html += '<p class="text-success fw-bold mb-0">All required clothing collected ✔</p>';
-                    }
-
-                    $target.html(html);
-                },
-                error: function() {
-                    $target.html('<p class="text-danger">Clothing check failed.</p>');
-                }
-            });
-        }
-
         const $studentID = $('#studentID');
         const $studentForm = $('#studentIDForm');
 
@@ -520,10 +468,7 @@ $sessionStats = getSessionStats($conn);
                         <h2 class="text-primary my-3" style="font-weight: bold;">SEAT NO: ${esc(res.data.seat_no)}</h2>
                         <h5 class="text-primary"><strong>SESSION:</strong> ${esc(res.data.session)}</h5>
                         <p><strong>Graduation Payment:</strong> ${esc(res.data.graduation_payment_status)}</p>
-                        <hr>
-                        <div id="clothingInfoSuccess"></div>
                     `);
-                        loadClothing(res.data.student_id, $('#clothingInfoSuccess'));
                         $('#successModal').modal('show');
 
                     } else if (res.status === 'attended') {
@@ -534,10 +479,7 @@ $sessionStats = getSessionStats($conn);
                         <h2 class="text-primary my-3" style="font-weight: bold;">SEAT NO: ${esc(res.data.seat_no)}</h2>
                         <h5 class="text-primary"><strong>SESSION:</strong> ${esc(res.data.session)}</h5>
                         <p><strong>Graduation Payment:</strong> ${esc(res.data.graduation_payment_status)}</p>
-                        <hr>
-                        <div id="clothingInfoAttended"></div>
                     `);
-                        loadClothing(res.data.student_id, $('#clothingInfoAttended'));
                         $('#attendedModal').modal('show');
 
                     } else {
