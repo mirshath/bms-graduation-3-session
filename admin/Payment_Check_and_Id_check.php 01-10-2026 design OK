@@ -692,13 +692,6 @@ $session_missing = ($program_session === '');
         box-sizing: border-box;
     }
 
-    /* QR is generated at 240px and displayed at 80px so it stays crisp in the PDF */
-    #qrCodeContainer img,
-    #qrCodeContainer canvas {
-        width: 80px !important;
-        height: 80px !important;
-    }
-
     .spd-pay [style*="--i"] {
         opacity: 0;
         transform: translateY(14px);
@@ -1114,10 +1107,6 @@ $session_missing = ($program_session === '');
                                         <select class="spd-select" id="extraTickets">
                                             <option value="0">0</option>
                                             <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="3">3</option>
-                                            <option value="4">4</option>
-                                            <option value="5">5</option>
                                         </select>
                                     </div>
 
@@ -1311,8 +1300,8 @@ $session_missing = ($program_session === '');
 
                     new QRCode(qrContainer, {
                         text: qrCodeValue,
-                        width: 240, // rendered large so the QR stays sharp in the PDF
-                        height: 240, // (shown at 80px via CSS below)
+                        width: 80, // width in px
+                        height: 80, // height in px
                         colorDark: "#000000",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.H
@@ -1388,7 +1377,7 @@ $session_missing = ($program_session === '');
 
         // ---------- old 23.02.2026 b1 ----------
         html2canvas(offerLetterElement, {
-            scale: 2.5, // fixed render scale: sharp on every screen (was devicePixelRatio, which is 1 on most PCs = blurry)
+            scale: window.devicePixelRatio || 3, // higher scale for crispness
             useCORS: true, // allow cross-origin images
             allowTaint: false, // false for security, avoid tainted images
             backgroundColor: '#ffffff',
@@ -1409,18 +1398,17 @@ $session_missing = ($program_session === '');
             let heightLeft = imgHeight;
             let position = margin;
 
-            // PNG keeps text/lines razor sharp (no JPEG blur); 'SLOW' deflate keeps the PDF the same size
-            const imgData = canvas.toDataURL('image/png');
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
 
             // First page
-            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'SLOW');
+            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
             heightLeft -= pageHeight - margin * 2;
 
             // Additional pages if content exceeds one page
             while (heightLeft > 0) {
                 pdf.addPage();
                 position = -(imgHeight - heightLeft + margin);
-                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'SLOW');
+                pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight - margin * 2;
             }
 

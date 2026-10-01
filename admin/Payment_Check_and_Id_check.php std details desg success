@@ -149,7 +149,7 @@ $session_missing = ($program_session === '');
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
 <section class="spd mt-3" aria-labelledby="spdTitle">
 
@@ -259,39 +259,33 @@ $session_missing = ($program_session === '');
 </section>
 
 <!-- Hidden payment section -->
-<div id="paymentSection" class="spd-pay mt-4" style="display:none;">
-    <div class="spd-pay-head" id="spdPayHead" tabindex="-1">
-        <span class="spd-step">Next step</span>
-        <h3 class="spd-pay-title">Graduation payment summary</h3>
-        <p class="spd-sub">Choose any extra tickets, then confirm the payment. The receipt is generated as a PDF and emailed to the student.</p>
-    </div>
-    <div id="paymentDetails" class="spd-pay-body"></div>
+<div id="paymentSection" class="mt-4" style="display:none;">
+    <h4 class="text-center text-info mb-3">Graduation Payment Summary</h4>
+    <div id="paymentDetails" class="p-3 border rounded bg-light"></div>
 </div>
 
 <style>
     .spd {
-        --spd-ink: #17233d;
-        --spd-brand: #1f4bb6;
-        --spd-brand-d: #173a91;
-        --spd-ink-2: #17233d;
-        --spd-mute: #5f6b7e;
-        --spd-line: #e2e6ee;
-        --spd-bone: #f4f6fb;
+        --spd-ink: #111111;
+        --spd-ink-2: #2f3437;
+        --spd-mute: #787774;
+        --spd-line: #eaeaea;
+        --spd-bone: #f7f6f3;
         --spd-surface: #ffffff;
-        --spd-ok-bg: #e6f4ec;
-        --spd-ok-ink: #17663f;
-        --spd-warn-bg: #e8eefb;
-        --spd-warn-ink: #1f4bb6;
-        --spd-info-bg: #e8eefb;
-        --spd-info-ink: #1f4bb6;
-        --spd-bad-bg: #fdecea;
-        --spd-bad-ink: #9c2a22;
+        --spd-ok-bg: #edf3ec;
+        --spd-ok-ink: #346538;
+        --spd-warn-bg: #fbf3db;
+        --spd-warn-ink: #956400;
+        --spd-info-bg: #e1f3fe;
+        --spd-info-ink: #1f6c9f;
+        --spd-bad-bg: #fdebec;
+        --spd-bad-ink: #9f2f2d;
         --spd-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
-        font-family: 'Public Sans', system-ui, sans-serif;
+        font-family: 'Geist', 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
         color: var(--spd-ink-2);
         background:
-            radial-gradient(60rem 18rem at 100% -10%, rgba(31, 75, 182, .06), transparent 60%),
+            radial-gradient(60rem 18rem at 100% -10%, rgba(31, 108, 159, .05), transparent 60%),
             var(--spd-surface);
         border: 1px solid var(--spd-line);
         border-radius: 14px;
@@ -349,7 +343,7 @@ $session_missing = ($program_session === '');
         width: 44px;
         height: 44px;
         border-radius: 12px;
-        background: var(--spd-brand);
+        background: var(--spd-ink);
         color: #fff;
         font-size: 17px;
     }
@@ -421,8 +415,8 @@ $session_missing = ($program_session === '');
 
     .spd-tile:hover,
     .spd-panel:hover {
-        border-color: #c9d0de;
-        box-shadow: 0 2px 10px rgba(23, 35, 61, 0.06);
+        border-color: #d6d5d1;
+        box-shadow: 0 2px 10px rgba(17, 17, 17, 0.04);
     }
 
     .spd-tile--invite {
@@ -571,7 +565,7 @@ $session_missing = ($program_session === '');
         padding: 11px 20px;
         border: 0;
         border-radius: 8px;
-        background: var(--spd-brand);
+        background: var(--spd-ink);
         color: #fff;
         font: inherit;
         font-size: 14px;
@@ -586,7 +580,7 @@ $session_missing = ($program_session === '');
     }
 
     .spd-cta:hover {
-        background: var(--spd-brand-d);
+        background: #333333;
     }
 
     .spd-cta:hover i {
@@ -655,356 +649,6 @@ $session_missing = ($program_session === '');
             transition: none;
         }
     }
-
-    /* =====================================================
-       Graduation Payment Summary (opens after "Proceed")
-       ===================================================== */
-    .spd-pay {
-        --spd-ink: #17233d;
-        --spd-brand: #1f4bb6;
-        --spd-brand-d: #173a91;
-        --spd-ink-2: #17233d;
-        --spd-mute: #5f6b7e;
-        --spd-line: #e2e6ee;
-        --spd-bone: #f4f6fb;
-        --spd-surface: #ffffff;
-        --spd-ok-bg: #e6f4ec;
-        --spd-ok-ink: #17663f;
-        --spd-warn-bg: #e8eefb;
-        --spd-warn-ink: #1f4bb6;
-        --spd-info-bg: #e8eefb;
-        --spd-info-ink: #1f4bb6;
-        --spd-bad-bg: #fdecea;
-        --spd-bad-ink: #9c2a22;
-        --spd-ease: cubic-bezier(0.16, 1, 0.3, 1);
-
-        font-family: 'Public Sans', system-ui, sans-serif;
-        color: var(--spd-ink-2);
-        max-width: 1100px;
-        margin-inline: auto;
-        scroll-margin-top: 16px;
-        -webkit-font-smoothing: antialiased;
-    }
-
-    .spd-pay *,
-    .spd-pay *::before,
-    .spd-pay *::after {
-        box-sizing: border-box;
-    }
-
-    /* QR is generated at 240px and displayed at 80px so it stays crisp in the PDF */
-    #qrCodeContainer img,
-    #qrCodeContainer canvas {
-        width: 80px !important;
-        height: 80px !important;
-    }
-
-    .spd-pay [style*="--i"] {
-        opacity: 0;
-        transform: translateY(14px);
-        animation: spd-rise .6s var(--spd-ease) forwards;
-        animation-delay: calc(var(--i) * 90ms);
-    }
-
-    .spd-pay-head {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 0 4px 18px;
-        outline: 0;
-    }
-
-    .spd-step {
-        align-self: flex-start;
-        padding: 4px 10px;
-        border-radius: 999px;
-        background: var(--spd-ink);
-        color: #fff;
-        font-size: 12px;
-        font-weight: 500;
-        letter-spacing: 0.02em;
-    }
-
-    .spd-pay-title {
-        margin: 4px 0 0;
-        font-size: clamp(22px, 2.8vw, 30px);
-        font-weight: 600;
-        letter-spacing: -0.03em;
-        line-height: 1.1;
-        color: var(--spd-ink);
-    }
-
-    .spd-pay-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
-        gap: 16px;
-        align-items: start;
-    }
-
-    .spd-pay-card,
-    .spd-rcpt {
-        border: 1px solid var(--spd-line);
-        border-radius: 14px;
-        background: var(--spd-surface);
-        overflow: hidden;
-    }
-
-    .spd-pay-card {
-        padding: clamp(18px, 2.4vw, 26px);
-    }
-
-    .spd-pay.is-focus .spd-pay-card {
-        animation: spd-rise .6s var(--spd-ease) forwards, spd-ring 1.4s ease-out .4s 1;
-    }
-
-    @keyframes spd-ring {
-        0% {
-            box-shadow: 0 0 0 0 rgba(31, 75, 182, .35);
-        }
-
-        100% {
-            box-shadow: 0 0 0 14px rgba(31, 75, 182, 0);
-        }
-    }
-
-    .spd-card-head {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 18px;
-    }
-
-    .spd-card-head--rcpt {
-        margin: 0;
-        padding: 16px 20px;
-        border-bottom: 1px solid var(--spd-line);
-    }
-
-    .spd-grow {
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-
-    .spd-mark--sm {
-        width: 38px;
-        height: 38px;
-        border-radius: 10px;
-        font-size: 15px;
-    }
-
-    .spd-card-title {
-        margin: 0;
-        font-size: 16px;
-        font-weight: 600;
-        letter-spacing: -0.015em;
-        color: var(--spd-ink);
-    }
-
-    .spd-badge.is-info {
-        background: var(--spd-info-bg);
-        color: var(--spd-info-ink);
-    }
-
-    .spd-cells {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0 18px;
-    }
-
-    .spd-cell {
-        padding: 11px 0;
-        border-top: 1px solid var(--spd-line);
-        min-width: 0;
-    }
-
-    .spd-cell--full {
-        grid-column: 1 / -1;
-    }
-
-    .spd-value--wrap {
-        resize: none;
-        overflow: hidden;
-        white-space: normal;
-        overflow-wrap: anywhere;
-        line-height: 1.4;
-        height: auto;
-        field-sizing: content;
-    }
-
-    .spd-fees {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 10px;
-        margin: 8px 0 14px;
-    }
-
-    .spd-fee {
-        padding: 12px 14px;
-        border-radius: 10px;
-        background: var(--spd-bone);
-        min-width: 0;
-    }
-
-    .spd-fee .spd-value {
-        font-size: 16px;
-        font-weight: 600;
-    }
-
-    .spd-extra {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        padding: 14px 0;
-        border-top: 1px solid var(--spd-line);
-    }
-
-    .spd-hint {
-        display: block;
-        margin: 0;
-        font-size: 12px;
-        color: var(--spd-mute);
-    }
-
-    .spd-select {
-        flex: 0 0 auto;
-        min-width: 92px;
-        padding: 9px 36px 9px 14px;
-        border: 1px solid #c9d0de;
-        border-radius: 8px;
-        background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5l5 5 5-5' fill='none' stroke='%2317233d' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 13px center;
-        -webkit-appearance: none;
-        appearance: none;
-        font: inherit;
-        font-family: 'Geist Mono', ui-monospace, monospace;
-        font-size: 15px;
-        font-weight: 600;
-        color: var(--spd-ink);
-        cursor: pointer;
-        transition: border-color .2s ease, box-shadow .2s ease;
-    }
-
-    .spd-select:hover {
-        border-color: var(--spd-brand);
-    }
-
-    .spd-select:focus-visible {
-        outline: 2px solid var(--spd-info-ink);
-        outline-offset: 2px;
-    }
-
-    .spd-total {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 16px;
-        margin: 6px 0 16px;
-        padding: 18px 20px;
-        border-radius: 12px;
-        background: var(--spd-ink);
-        color: #fff;
-    }
-
-    .spd-total .spd-label,
-    .spd-total .spd-hint {
-        color: rgba(255, 255, 255, .62);
-    }
-
-    .spd-total .spd-label {
-        margin-bottom: 2px;
-    }
-
-    .spd-total-figure {
-        display: flex;
-        align-items: baseline;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .spd-cur {
-        font-size: 13px;
-        font-weight: 500;
-        letter-spacing: 0.04em;
-        color: rgba(255, 255, 255, .62);
-    }
-
-    .spd-total-input {
-        width: 9ch;
-        min-width: 0;
-        padding: 0;
-        border: 0;
-        outline: 0;
-        background: transparent;
-        color: #fff;
-        text-align: right;
-        font-family: 'Geist Mono', ui-monospace, monospace;
-        font-size: clamp(26px, 3.2vw, 34px);
-        font-weight: 600;
-        letter-spacing: -0.03em;
-        font-variant-numeric: tabular-nums;
-        cursor: default;
-    }
-
-    .spd-cta--block {
-        width: 100%;
-        justify-content: center;
-        padding: 14px 20px;
-        font-size: 15px;
-    }
-
-    .spd-cta:disabled {
-        opacity: .65;
-        cursor: not-allowed;
-    }
-
-    .spd-note {
-        margin: 12px 0 0;
-        font-size: 12px;
-        color: var(--spd-mute);
-        text-align: center;
-        overflow-wrap: anywhere;
-    }
-
-    .spd-note i {
-        margin-right: 4px;
-    }
-
-    .spd-rcpt-body {
-        padding: 18px;
-        background: var(--spd-bone);
-    }
-
-    @media (max-width: 991px) {
-        .spd-pay-grid {
-            grid-template-columns: minmax(0, 1fr);
-        }
-    }
-
-    @media (max-width: 575px) {
-
-        .spd-cells,
-        .spd-fees {
-            grid-template-columns: minmax(0, 1fr);
-        }
-
-        .spd-extra {
-            flex-wrap: wrap;
-        }
-
-        .spd-rcpt-body {
-            padding: 10px;
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-
-        .spd-pay [style*="--i"],
-        .spd-pay.is-focus .spd-pay-card {
-            animation: none;
-            opacity: 1;
-            transform: none;
-        }
-    }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -1061,95 +705,98 @@ $session_missing = ($program_session === '');
                     // ✅ BUILD HTML WITH ACTUAL VALUES (not PHP variables)
                     let html = `
                     <form id="paymentForm">
-                        <div class="spd-pay-grid">
-                            <div class="spd-pay-col">
-                                <div class="spd-pay-card" style="--i:0">
-                                    <div class="spd-card-head">
-                                        <span class="spd-mark spd-mark--sm" aria-hidden="true"><i class="fas fa-receipt"></i></span>
-                                        <div>
-                                            <h5 class="spd-card-title">Payment details</h5>
-                                            <p class="spd-sub">Review the fees and choose the number of extra tickets.</p>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card shadow-sm mb-3">
+                                    <div class="card-body">
+                                        <h5 class="card-title text-primary mb-3">Payment Details</h5>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="studentId" class="form-label">Student ID</label>
+                                                    <input type="text" id="studentId" class="form-control" value="${studentId}" readonly>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="fullName" class="form-label">Full Name</label>
+                                                    <input type="text" id="fullName" class="form-control" value="${studentName}" readonly>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="givenEmail" class="form-label">Email</label>
+                                                    <input type="text" id="givenEmail" class="form-control" value="${studentEmail}" readonly>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="phoneNo" class="form-label">Phone No</label>
+                                                    <input type="text" id="phoneNo" class="form-control" value="${$('#studentPhone').val()}" readonly>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="graduationFeeInput" class="form-label">Graduation Fee</label>
+                                                    <input type="text" id="graduationFeeInput" class="form-control" value="${programData.graduationFee}" readonly>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="extraTicketFeeInput" class="form-label">Extra Ticket Fee</label>
+                                                    <input type="text" id="extraTicketFeeInput" class="form-control" value="${programData.extraTicketFee}" readonly>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="freeTick" class="form-label">Free Ticket</label>
+                                                    <input type="text" id="freeTick" class="form-control" value="${programData.freeTicket}" readonly>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="extraTickets" class="form-label">Extra Tickets</label>
+                                                    <select class="form-select" id="extraTickets">
+                                                        <option value="0">0</option>
+                                                        <option value="1">1</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="mb-3">
+                                                    <label for="totalAmount" class="form-label">Total Amount (LKR)</label>
+                                                    <input type="text" id="totalAmount" class="form-control" value="" readonly>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="text-end">
+                                            <button id="emailOfferLetter" type="button" class="btn  btn-success me-2">
+                                                <i class="fas fa-envelope"></i> Payment Process
+                                            </button>
                                         </div>
                                     </div>
-
-                                    <div class="spd-cells">
-                                        <div class="spd-cell spd-cell--full">
-                                            <label for="fullName" class="spd-label">Full name</label>
-                                            <textarea id="fullName" class="spd-value spd-value--wrap" rows="1" readonly>${studentName}</textarea>
-                                        </div>
-                                        <div class="spd-cell">
-                                            <label for="studentId" class="spd-label">Student ID</label>
-                                            <input type="text" id="studentId" class="spd-value spd-mono" value="${studentId}" readonly>
-                                        </div>
-                                        <div class="spd-cell">
-                                            <label for="phoneNo" class="spd-label">Phone number</label>
-                                            <input type="text" id="phoneNo" class="spd-value spd-mono" value="${$('#studentPhone').val()}" readonly>
-                                        </div>
-                                        <div class="spd-cell spd-cell--full">
-                                            <label for="givenEmail" class="spd-label">Email</label>
-                                            <input type="text" id="givenEmail" class="spd-value" title="${studentEmail}" value="${studentEmail}" readonly>
-                                        </div>
-                                    </div>
-
-                                    <div class="spd-fees">
-                                        <div class="spd-fee">
-                                            <label for="graduationFeeInput" class="spd-label">Graduation fee</label>
-                                            <input type="text" id="graduationFeeInput" class="spd-value spd-mono" value="${programData.graduationFee}" readonly>
-                                        </div>
-                                        <div class="spd-fee">
-                                            <label for="extraTicketFeeInput" class="spd-label">Extra ticket fee</label>
-                                            <input type="text" id="extraTicketFeeInput" class="spd-value spd-mono" value="${programData.extraTicketFee}" readonly>
-                                        </div>
-                                        <div class="spd-fee">
-                                            <label for="freeTick" class="spd-label">Free tickets</label>
-                                            <input type="text" id="freeTick" class="spd-value spd-mono" value="${programData.freeTicket}" readonly>
-                                        </div>
-                                    </div>
-
-                                    <div class="spd-extra">
-                                        <div>
-                                            <label for="extraTickets" class="spd-label">Extra tickets</label>
-                                            <p class="spd-hint">Each extra ticket is charged at the extra ticket fee.</p>
-                                        </div>
-                                        <select class="spd-select" id="extraTickets">
-                                            <option value="0">0</option>
-                                            <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="3">3</option>
-                                            <option value="4">4</option>
-                                            <option value="5">5</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="spd-total">
-                                        <div>
-                                            <span class="spd-label">Total amount</span>
-                                            <span class="spd-hint">Graduation fee plus extra tickets</span>
-                                        </div>
-                                        <div class="spd-total-figure">
-                                            <span class="spd-cur">LKR</span>
-                                            <input type="text" id="totalAmount" class="spd-total-input" value="" readonly>
-                                        </div>
-                                    </div>
-
-                                    <button id="emailOfferLetter" type="button" class="spd-cta spd-cta--block">
-                                        <i class="fas fa-envelope"></i> Payment Process
-                                    </button>
-                                    <p class="spd-note"><i class="fas fa-paper-plane" aria-hidden="true"></i> The receipt PDF is emailed to ${studentEmail}</p>
                                 </div>
                             </div>
-
-                            <div class="spd-pay-col">
-                                <div class="spd-rcpt" style="--i:1">
-                                    <div class="spd-card-head spd-card-head--rcpt">
-                                        <span class="spd-mark spd-mark--sm" aria-hidden="true"><i class="fas fa-eye"></i></span>
-                                        <div class="spd-grow">
-                                            <h5 class="spd-card-title">Receipt preview</h5>
-                                            <p class="spd-sub">This is the receipt the student receives.</p>
+                            
+                            <div class="col-md-6">
+                                <div class="card">
+                                    <div class="card-header d-flex align-items-center justify-content-between" style="height: 60px;">
+                                        <div class="d-flex align-items-center">
+                                            <span class="bg-dark text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                                <i class="fas fa-eye"></i>
+                                            </span> &nbsp;&nbsp;&nbsp;&nbsp;
+                                            <h6 class="mb-0 me-2">Receipt Preview</h6>
                                         </div>
-                                        <span class="spd-badge is-info"><i class="fas fa-circle"></i> Live preview</span>
                                     </div>
-                                    <div class="spd-rcpt-body">
+                                    <div class="card-body">
                                         <div id="offerLetterPreview" class="a4-preview">
                                             <div class="preview-content">
                                                 <div class="letterhead">
@@ -1277,31 +924,7 @@ $session_missing = ($program_session === '');
                     </form>`;
 
                     $("#paymentDetails").html(html);
-                    $("#paymentSection").slideDown(300, function() {
-                        // bring the summary into focus once it has opened
-                        const sec = document.getElementById('paymentSection');
-                        const head = document.getElementById('spdPayHead');
-                        sec.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                        sec.classList.remove('is-focus');
-                        void sec.offsetWidth;
-                        sec.classList.add('is-focus');
-                        if (head) head.focus({
-                            preventScroll: true
-                        });
-                        fitFullName();
-                    });
-
-                    // show the full name on every line it needs (no cut-off)
-                    function fitFullName() {
-                        const el = document.getElementById('fullName');
-                        if (!el) return;
-                        el.style.height = 'auto';
-                        el.style.height = el.scrollHeight + 'px';
-                    }
-                    $(window).off('resize.spdname').on('resize.spdname', fitFullName);
+                    $("#paymentSection").slideDown();
                     // Prepare QR code data for the student
                     var qrCodeValue = studentId; // Only student ID is used for the QR code
                     var qrContainer = document.getElementById('qrCodeContainer');
@@ -1311,8 +934,8 @@ $session_missing = ($program_session === '');
 
                     new QRCode(qrContainer, {
                         text: qrCodeValue,
-                        width: 240, // rendered large so the QR stays sharp in the PDF
-                        height: 240, // (shown at 80px via CSS below)
+                        width: 80, // width in px
+                        height: 80, // height in px
                         colorDark: "#000000",
                         colorLight: "#ffffff",
                         correctLevel: QRCode.CorrectLevel.H
@@ -1388,7 +1011,7 @@ $session_missing = ($program_session === '');
 
         // ---------- old 23.02.2026 b1 ----------
         html2canvas(offerLetterElement, {
-            scale: 2.5, // fixed render scale: sharp on every screen (was devicePixelRatio, which is 1 on most PCs = blurry)
+            scale: window.devicePixelRatio || 3, // higher scale for crispness
             useCORS: true, // allow cross-origin images
             allowTaint: false, // false for security, avoid tainted images
             backgroundColor: '#ffffff',
@@ -1409,18 +1032,17 @@ $session_missing = ($program_session === '');
             let heightLeft = imgHeight;
             let position = margin;
 
-            // PNG keeps text/lines razor sharp (no JPEG blur); 'SLOW' deflate keeps the PDF the same size
-            const imgData = canvas.toDataURL('image/png');
+            const imgData = canvas.toDataURL('image/jpeg', 1.0);
 
             // First page
-            pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'SLOW');
+            pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
             heightLeft -= pageHeight - margin * 2;
 
             // Additional pages if content exceeds one page
             while (heightLeft > 0) {
                 pdf.addPage();
                 position = -(imgHeight - heightLeft + margin);
-                pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight, undefined, 'SLOW');
+                pdf.addImage(imgData, 'JPEG', margin, position, imgWidth, imgHeight);
                 heightLeft -= pageHeight - margin * 2;
             }
 

@@ -291,31 +291,28 @@ $role = $_SESSION['role'] ?? ''; // Current user role
         </li>
 
         <!-- Report Dropdown -->
-        <li class="nav-item dropdown <?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? 'active show' : '' ?> nav-hover">
-            <a class="nav-link dropdown-toggle <?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? '' : 'collapsed' ?>"
-                href="#"
-                id="reportDropdown"
-                role="button"
-                data-toggle="collapse"
-                data-target="#collapseReport"
-                aria-expanded="<?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? 'true' : 'false' ?>"
-                aria-controls="collapseReport">
-                <i class="fas fa-fw fa-file-alt"></i>
-                <span>Report</span>
+
+
+
+
+        <!-- Report Seat Order -->
+        <li class="nav-item nav-hover <?= ($current_url == 'allocatedSeatOrder') ? 'active' : '' ?>">
+            <a class="nav-link <?= ($current_url == 'allocatedSeatOrder') ? '' : 'collapsed' ?>"
+                href="allocatedSeatOrder">
+
+                <i class="fas fa-fw fa-chair"></i>
+                <span>Report Seat Order</span>
             </a>
-            <div id="collapseReport"
-                class="collapse <?= in_array($current_url, ['allocatedSeatOrder', 'meals_report']) ? 'show' : '' ?>"
-                aria-labelledby="reportDropdown"
-                data-parent="#accordionSidebar">
-                <div class="bg-dark py-2 collapse-inner rounded">
-                    <a class="collapse-item text-white <?= ($current_url == 'allocatedSeatOrder') ? 'active' : '' ?>" href="allocatedSeatOrder">
-                        <i class="fas fa-fw fa-chair mr-2"></i> Report Seat Order
-                    </a>
-                    <a class="collapse-item text-white <?= ($current_url == 'meals_report') ? 'active' : '' ?>" href="meals_report">
-                        <i class="fas fa-fw fa-utensils mr-2"></i> Report Meals
-                    </a>
-                </div>
-            </div>
+        </li>
+
+        <!-- Report Meals -->
+        <li class="nav-item nav-hover <?= ($current_url == 'meals_report') ? 'active' : '' ?>">
+            <a class="nav-link <?= ($current_url == 'meals_report') ? '' : 'collapsed' ?>"
+                href="meals_report">
+
+                <i class="fas fa-fw fa-utensils"></i>
+                <span>Report Meals</span>
+            </a>
         </li>
 
     <?php endif; ?>

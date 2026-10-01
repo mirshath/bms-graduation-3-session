@@ -19,23 +19,11 @@ if (isset($_POST['student_id']) && isset($_POST['dob'])) {
 
     if ($result->num_rows > 0) {
         $student = $result->fetch_assoc();
-
-        // Look up this program's session in data_tables
-        $session = null;
-        $sess = $conn->prepare("SELECT `session` FROM data_tables WHERE TRIM(programName) = TRIM(?) ORDER BY active DESC, id ASC LIMIT 1");
-        $sess->bind_param("s", $student['program']);
-        $sess->execute();
-        $sess->bind_result($sessionValue);
-        if ($sess->fetch()) {
-            $session = $sessionValue;
-        }
-        $sess->close();
         echo json_encode([
             'status' => 'valid',
             'student_id' => $student['student_id'],
             'name' => $student['name'],
             'program_name' => $student['program'],
-            'session' => $session,
             'mobile_number' => $student['mobile_no'],
             'payment_status' => $student['payment_status'],
             'given_email' => $student['given_email'],

@@ -473,50 +473,6 @@ include('./includes/header.php'); // Include your database connection file
         }
     }
 
-    /* mobile: meal + confirmation rows keep label (left) and choices (right) on one line */
-    @media (max-width: 575px) {
-        .reg .meal-row>.row {
-            flex-wrap: nowrap;
-            align-items: flex-start;
-        }
-
-        .reg .meal-row>.row>*:nth-child(1) {
-            flex: 0 0 auto;
-            width: 40%;
-            display: flex;
-            align-items: center;
-            min-height: 44px;
-            padding-right: 8px;
-        }
-
-        .reg .meal-row>.row>*:nth-child(2) {
-            flex: 1 1 0;
-            width: auto;
-            min-width: 0;
-        }
-
-        .reg .meal-row .form-label {
-            margin: 0;
-            font-size: 15px !important;
-            line-height: 1.3;
-        }
-
-        .reg .meal-row .d-flex.gap-4 {
-            flex-direction: column;
-            gap: 8px !important;
-        }
-
-        .reg .meal-row .form-check {
-            flex: 0 0 auto;
-            width: 100%;
-        }
-
-        .reg .meal-row .form-check-label {
-            padding: 10px 8px;
-            font-size: 14px;
-        }
-    }
-
     /* validation states */
     .reg .input.is-invalid,
     .reg .form-select.is-invalid {
@@ -547,6 +503,7 @@ include('./includes/header.php'); // Include your database connection file
             <span style="font-size: 25px;">REGISTRATION FORM</span>
 
         </h1>
+
 
     </header>
 
@@ -745,7 +702,7 @@ include('./includes/header.php'); // Include your database connection file
                 </div>
 
                 <!-- -------- Student Meal Preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29); border-radius: 10px;">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Student meal preference</b>
@@ -775,7 +732,7 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 01 meal preference ----------  -->
-                <div class="mb-2 meal-row">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Guest 01 meal preference</b>
@@ -805,7 +762,7 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 02 meal preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29);border-radius: 10px;">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Guest 02 meal preference</b>
@@ -841,7 +798,7 @@ include('./includes/header.php'); // Include your database connection file
                     class="input" placeholder="Graduation Payment Status" value="Not-Completed">
 
                 <!-- -------- Confirmation ----------  -->
-                <div class="mb-2 meal-row">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label for="confirmation_yes" class="form-label"> <b>Confirmation</b>
@@ -870,7 +827,7 @@ include('./includes/header.php'); // Include your database connection file
                         </div>
                     </div>
                 </div>
-
+                <!-- ---------------------------------------------  -->
                 <p>
                     <center>Your invitation will be sent to your email after submiting the registration
                         form. You will need to present the QR code provided in the email at the registration

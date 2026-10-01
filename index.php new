@@ -21,18 +21,9 @@ include('./includes/header.php'); // Include your database connection file
     }
 
     body {
-        /* background: var(--paper) !important; */
+        background: var(--paper) !important;
         font-family: 'Public Sans', system-ui, sans-serif;
         color: var(--ink);
-    }
-
-    .body_bg {
-        background-image: url('./images/back.jpg');
-        background-size: cover;
-        background-attachment: fixed;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-color: #f3f3f3;
     }
 
     .reg {
@@ -123,46 +114,15 @@ include('./includes/header.php'); // Include your database connection file
         color: var(--muted);
     }
 
+    /* rows: label above field */
     .reg .mb-2 {
         margin-bottom: 20px !important;
-    }
-
-    /* rows: label on the left, field on the right (stacks on mobile) */
-    .reg .mb-2>.row {
-        align-items: flex-start;
     }
 
     .reg .mb-2>.row>* {
         flex: 0 0 100%;
         max-width: 100%;
         width: 100%;
-    }
-
-    @media (min-width: 576px) {
-        .reg .mb-2>.row>*:nth-child(1) {
-            flex: 0 0 auto;
-            width: 34%;
-            display: flex;
-            align-items: center;
-            min-height: 46px;
-            padding-top: 0;
-            padding-right: 16px;
-        }
-
-        .reg .mb-2>.row>*:nth-child(2) {
-            flex: 0 0 auto;
-            width: 66%;
-            min-width: 0;
-        }
-
-        .reg .mb-2>.row>*:nth-child(n+3) {
-            flex: 0 0 100%;
-            width: 100%;
-        }
-
-        .reg .mb-2 .form-label {
-            margin-bottom: 0;
-        }
     }
 
     .reg .form-label {
@@ -398,159 +358,20 @@ include('./includes/header.php'); // Include your database connection file
             transition: none !important;
         }
     }
-
-    .reg .form-label {
-        font-size: 18px !important;
-    }
-
-    /* sizing fixes */
-    .reg .form-label {
-        line-height: 1.3;
-        margin: 0;
-    }
-
-    .reg .mb-2 .wrap-input-1 .input,
-    .reg .mb-2 .form-select {
-        min-width: 0;
-        max-width: 100%;
-    }
-
-    .reg input[type="date"] {
-        -webkit-appearance: none;
-        appearance: none;
-        display: block;
-    }
-
-    .reg .phone-cc {
-        flex: 0 0 auto;
-        width: 130px;
-    }
-
-    .reg .phone-num {
-        flex: 1 1 0;
-        min-width: 0;
-        margin-left: 12px !important;
-    }
-
-    @media (max-width: 575px) {
-        .reg .form-label {
-            font-size: 16px !important;
-            margin-bottom: 6px;
-        }
-
-        .reg .mb-2>.row>*:nth-child(1) {
-            display: block;
-            min-height: 0;
-            padding-right: calc(var(--bs-gutter-x, 1.5rem) * .5);
-        }
-
-        .reg .phone-cc {
-            width: 112px;
-        }
-
-        .reg .phone-num {
-            margin-left: 8px !important;
-        }
-
-        .reg .form-check {
-            flex: 1 1 100%;
-        }
-
-        .reg-head h1 {
-            font-size: 30px !important;
-        }
-
-        .reg-head h1 span {
-            font-size: 20px !important;
-        }
-
-        .reg #next_btn {
-            width: 100%;
-        }
-
-        .reg .d-flex.justify-content-end {
-            justify-content: stretch !important;
-        }
-    }
-
-    /* mobile: meal + confirmation rows keep label (left) and choices (right) on one line */
-    @media (max-width: 575px) {
-        .reg .meal-row>.row {
-            flex-wrap: nowrap;
-            align-items: flex-start;
-        }
-
-        .reg .meal-row>.row>*:nth-child(1) {
-            flex: 0 0 auto;
-            width: 40%;
-            display: flex;
-            align-items: center;
-            min-height: 44px;
-            padding-right: 8px;
-        }
-
-        .reg .meal-row>.row>*:nth-child(2) {
-            flex: 1 1 0;
-            width: auto;
-            min-width: 0;
-        }
-
-        .reg .meal-row .form-label {
-            margin: 0;
-            font-size: 15px !important;
-            line-height: 1.3;
-        }
-
-        .reg .meal-row .d-flex.gap-4 {
-            flex-direction: column;
-            gap: 8px !important;
-        }
-
-        .reg .meal-row .form-check {
-            flex: 0 0 auto;
-            width: 100%;
-        }
-
-        .reg .meal-row .form-check-label {
-            padding: 10px 8px;
-            font-size: 14px;
-        }
-    }
-
-    /* validation states */
-    .reg .input.is-invalid,
-    .reg .form-select.is-invalid {
-        border-color: var(--bad);
-        box-shadow: 0 0 0 3px rgba(179, 38, 30, .14);
-    }
-
-    .reg .group-invalid .form-check-label {
-        border-color: var(--bad);
-    }
-
-    .reg .field-error {
-        margin-top: 6px;
-        padding: 8px 12px;
-        font-size: .86rem;
-        border-left: 3px solid var(--bad);
-        border-radius: 6px;
-        background: var(--bad-bg);
-        color: #7a1b15;
-    }
 </style>
 
-
-<main class="reg mt-4 body_bg">
-    <img src="./images/graduation_nov_2026.jpg" alt="BMS Award Ceremony 2026 banner" class="reg-banner">
+<main class="reg mt-4">
+    <img src="./images/AlumniBanner.jpg" alt="BMS Award Ceremony 2026 banner" class="reg-banner">
     <header class="reg-head">
-        <h1 style="font-size: 35px; font-weight: 700; text-align: center;">BMS DEGREE CONVOCATION 2026 <br>
+        <h1 style="font-size: 40px; font-weight: 700; text-align: center;">AWARD CEREMONY 2026 <br>
             <span style="font-size: 25px;">REGISTRATION FORM</span>
 
         </h1>
 
+       
     </header>
 
-    <form id="studentForm" novalidate>
+    <form id="studentForm">
         <div class="card">
             <div class="card-body">
                 <h2 class="step"><b>1</b> Verify your identity</h2>
@@ -558,8 +379,8 @@ include('./includes/header.php'); // Include your database connection file
                     <!-- -----------------------------------  -->
                     <div class="row">
                         <div class="col-12 col-sm-3">
-                            <label style="font-size: 18px;" for="student_id" class="form-label"> <b>Student ID</b> <span style="color:red; font-weight: 
-                                        bolder; ">*</span></label>
+                            <label for="student_id" class="form-label">Student ID <span style="color:red; font-weight: 
+                                        bolder;">*</span></label>
                         </div>
                         <div class="col-12 col-sm-9">
                             <div class="wrap-input-1">
@@ -578,7 +399,7 @@ include('./includes/header.php'); // Include your database connection file
                 <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="dob" class="form-label"> <b>Date of Birth</b>
+                            <label for="dob" class="form-label">Date of Birth
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -604,7 +425,7 @@ include('./includes/header.php'); // Include your database connection file
                 <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="name_in_full" class="form-label"> <b>Name in full</b>
+                            <label for="name_in_full" class="form-label">Name in full
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -623,7 +444,7 @@ include('./includes/header.php'); // Include your database connection file
                 <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="calling_name" class="form-label"> <b>Calling Name</b>
+                            <label for="calling_name" class="form-label">Calling Name
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -664,7 +485,7 @@ include('./includes/header.php'); // Include your database connection file
                 <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="program" class="form-label"> <b>Program</b>
+                            <label for="program" class="form-label">Program
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -678,28 +499,13 @@ include('./includes/header.php'); // Include your database connection file
                     </div>
                 </div>
 
-                <div class="mb-2" style="display: none;">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label for="session_display" class="form-label">Session</label>
-                        </div>
-                        <div class="col">
-                            <div class="wrap-input-1">
-                                <input type="text" id="session_display" class="input" placeholder="Session" readonly>
-                                <input type="hidden" id="session" name="session">
-                                <span class="focus-border"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <input type="hidden" id="email_address_given" name="email_address_given"
                     placeholder="Email">
 
                 <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="email_address" class="form-label"> <b>Email ID</b>
+                            <label for="email_address" class="form-label">
                                 Email ID <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -720,19 +526,20 @@ include('./includes/header.php'); // Include your database connection file
                 <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="phone_no" class="form-label"> <b>Mobile</b> <span
+                            <label for="phone_no" class="form-label">Mobile <span
                                     style="color:red; font-weight:bolder;">*</span></label>
                         </div>
                         <div class="col">
                             <div class="d-flex">
                                 <div class="d-flex align-items-center">
-                                    <select class="form-select phone-cc" aria-label="Country Code">
+                                    <select class="form-select" aria-label="Country Code"
+                                        style="width: 150px;">
                                         <option value="+94" selected>+94 (SL)</option>
 
                                     </select>
                                 </div>
 
-                                <div class="wrap-input-1 phone-num">
+                                <div class="wrap-input-1" style="margin-left: 25px;">
                                     <input class="input" type="text" placeholder="7X XXX XXXX" id="phone_no"
                                         name="phone_no">
                                     <span class="focus-border"></span>
@@ -745,10 +552,10 @@ include('./includes/header.php'); // Include your database connection file
                 </div>
 
                 <!-- -------- Student Meal Preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29); border-radius: 10px;">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="form-label"> <b>Student meal preference</b>
+                            <label class="form-label">Your meal preference
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -775,10 +582,10 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 01 meal preference ----------  -->
-                <div class="mb-2 meal-row">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="form-label"> <b>Guest 01 meal preference</b>
+                            <label class="form-label">Guest 01 meal preference
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -805,10 +612,10 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 02 meal preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29);border-radius: 10px;">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label class="form-label"> <b>Guest 02 meal preference</b>
+                            <label class="form-label">Guest 02 meal preference
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -841,10 +648,10 @@ include('./includes/header.php'); // Include your database connection file
                     class="input" placeholder="Graduation Payment Status" value="Not-Completed">
 
                 <!-- -------- Confirmation ----------  -->
-                <div class="mb-2 meal-row">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
-                            <label for="confirmation_yes" class="form-label"> <b>Confirmation</b>
+                            <label for="confirmation_yes" class="form-label">Confirmation
                                 <span style="color:red; font-weight:bolder;">*</span>
                             </label>
                         </div>
@@ -870,7 +677,7 @@ include('./includes/header.php'); // Include your database connection file
                         </div>
                     </div>
                 </div>
-
+                <!-- ---------------------------------------------  -->
                 <p>
                     <center>Your invitation will be sent to your email after submiting the registration
                         form. You will need to present the QR code provided in the email at the registration
@@ -1128,15 +935,6 @@ include('./includes/header.php'); // Include your database connection file
                             $('#name_in_full').val(response.name);
                             $('#dob').val(response.dob);
                             $('#program').val(response.program_name);
-                            // session of this program (from data_tables)
-                            var sessionRaw = response.session || '';
-                            var sessionLabel = sessionRaw ?
-                                sessionRaw.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, function(ch) {
-                                    return ch.toUpperCase();
-                                }) :
-                                'Not assigned yet';
-                            $('#session').val(sessionRaw);
-                            $('#session_display').val(sessionLabel);
                             $('#payment_status').val(response.payment_status);
                             $('#phone_no').val(response.mobile_number);
                             $('#email_address_given').val(response.given_email);
@@ -1165,152 +963,50 @@ include('./includes/header.php'); // Include your database connection file
 
         // Form submission 
         $(document).ready(function() {
-
-            // clear a field's error as soon as the user edits it
-            $('#studentForm').on('input change', 'input, select', function() {
-                var $row = $(this).closest('.mb-2');
-                $(this).removeClass('is-invalid').removeAttr('aria-invalid');
-                $row.find('.field-error').remove();
-                $row.find('.group-invalid').removeClass('group-invalid');
-                $row.find('.alert').not('#student_id_alert, #calling_name_alert').hide();
-                if (this.id === 'title' && !window.getCallingNameError($('#calling_name').val())) {
-                    $('#calling_name_alert').hide();
-                }
-            });
             $('#studentForm').on('submit', function(e) {
                 e.preventDefault();
 
-                var $form = $(this);
-                var errors = [];
-                var val = function(id) {
-                    return $.trim($('#' + id).val() || '');
-                };
-
-                // reset previous messages
-                $form.find('.field-error').remove();
-                $form.find('.is-invalid').removeClass('is-invalid').removeAttr('aria-invalid');
-                $form.find('.group-invalid').removeClass('group-invalid');
-                $form.find('.alert').not('#student_id_alert').hide();
-
-                // flag(focusEl, message, {mark, anchor, alert, group})
-                function flag($focus, msg, o) {
-                    o = o || {};
-                    if (o.mark) o.mark.addClass('is-invalid').attr('aria-invalid', 'true');
-                    if (o.group) o.group.addClass('group-invalid');
-                    if (o.alert) {
-                        $(o.alert).html('<strong>Warning!</strong> ' + msg).show();
-                    } else if (o.anchor && msg) {
-                        $('<div class="field-error" role="alert"></div>').text(msg).insertAfter(o.anchor);
-                    }
-                    errors.push($focus);
-                }
-
-                // Step 1: student ID + date of birth
-                var $sid = $('#student_id'),
-                    $dob = $('#dob');
-                if (!val('student_id')) {
-                    flag($sid, 'Enter your Student ID.', {
-                        mark: $sid,
-                        anchor: $sid.closest('.wrap-input-1')
-                    });
-                } else if ($('#student_id_alert').is(':visible')) {
-                    flag($sid, '', {
-                        mark: $sid
-                    });
-                }
-                if (!val('dob')) {
-                    flag($dob, 'Select your date of birth.', {
-                        mark: $dob,
-                        anchor: $dob.closest('.wrap-input-1')
-                    });
-                } else if (!errors.length && $('#name_in_full').prop('disabled')) {
-                    flag($dob, 'Verify your Student ID and date of birth first.', {
-                        mark: $dob,
-                        anchor: $dob.closest('.wrap-input-1')
-                    });
-                }
-
-                // Step 2: details (only when the form is unlocked)
-                if (!errors.length) {
-                    // title + calling name
-                    var callingName = val('calling_name').replace(/\s+/g, ' ');
-                    var callingErr = window.getCallingNameError(callingName);
-                    var titleBad = !$('#title').val();
-                    var nameBad = callingName.length < 2 || !!callingErr;
-                    if (titleBad || nameBad) {
-                        var m = (titleBad && nameBad) ? 'Select a title and enter your calling name.' :
-                            titleBad ? 'Select a title.' :
-                            (callingErr || 'Enter a calling name (at least 2 letters).');
-                        flag(titleBad ? $('#title') : $('#calling_name'), m, {
-                            mark: (titleBad ? $('#title') : $()).add(nameBad ? $('#calling_name') : $()),
-                            alert: '#calling_name_alert'
-                        });
-                    } else {
-                        $('#calling_name').val(callingName);
-                    }
-
-                    // email
-                    var $em = $('#email_address'),
-                        email = val('email_address');
-                    if (!email) {
-                        flag($em, 'Enter your email address.', {
-                            mark: $em,
-                            anchor: $em.closest('.wrap-input-1')
-                        });
-                    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-                        flag($em, 'Enter a valid email address, for example name@example.com.', {
-                            mark: $em,
-                            anchor: $em.closest('.wrap-input-1')
-                        });
-                    }
-
-                    // mobile
-                    var $ph = $('#phone_no');
-                    if (val('phone_no').replace(/\D/g, '').length < 9) {
-                        flag($ph, 'Enter a valid mobile number (9 digits, for example 7X XXX XXXX).', {
-                            mark: $ph,
-                            anchor: $ph.closest('.wrap-input-1').parent()
-                        });
-                    }
-
-                    // meal choices
-                    [
-                        ['student_meals', '#student_meal_alert', 'You must select your meal preference to proceed.'],
-                        ['guest_meals', '#guest_meal_alert', 'You must select the guest meal preference to proceed.'],
-                        ['guest_meals_02', '#guest_meal_02_alert', 'You must select the Guest 02 meal preference to proceed.']
-                    ].forEach(function(g) {
-                        var $r = $('input[name="' + g[0] + '"]');
-                        if (!$r.filter(':checked').length) {
-                            flag($r.first(), g[2], {
-                                alert: g[1],
-                                group: $r.first().closest('.d-flex')
-                            });
-                        }
-                    });
-
-                    // calling-name confirmation (must be Yes)
-                    var $c = $('input[name="confirmation"]');
-                    if ($c.filter(':checked').val() !== '1') {
-                        flag($c.first(), 'You must confirm (select Yes) that the calling name is accurate to proceed.', {
-                            alert: '#confirmation_alert',
-                            group: $c.first().closest('.d-flex')
-                        });
-                    }
-                }
-
-                // focus the first missing / invalid field
-                if (errors.length) {
-                    var $first = errors[0];
-                    var row = $first.closest('.mb-2')[0] || $first[0];
-                    $first[0].focus({
-                        preventScroll: true
-                    });
-                    row.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                    });
+                // Validate calling name format (max 2 words)
+                var callingName = $('#calling_name').val().trim().replace(/\s+/g, ' ');
+                var callingErr = window.getCallingNameError(callingName);
+                if (callingName.length < 2 || callingErr) {
+                    $('#calling_name_alert').html('<strong>Warning!</strong> ' + (callingErr || 'Please enter a valid calling name (at least 2 letters).')).show();
                     return;
                 }
+                $('#calling_name').val(callingName);
+                $('#calling_name_alert').hide();
+
+                // Validate confirmation - must select Yes to proceed
+                var confirmation = $('input[name="confirmation"]:checked').val();
+                if (confirmation === undefined || confirmation === '0') {
+                    $('#confirmation_alert').html('<strong>Warning!</strong> You must confirm (select Yes) that the calling name is accurate to proceed.').show();
+                    return;
+                }
+                $('#confirmation_alert').hide();
+
+                // Validate student meal
+                var studentMeal = $('input[name="student_meals"]:checked').val();
+                if (studentMeal === undefined) {
+                    $('#student_meal_alert').show();
+                    return;
+                }
+                $('#student_meal_alert').hide();
+
+                // Validate guest meal
+                var guestMeal = $('input[name="guest_meals"]:checked').val();
+                if (guestMeal === undefined) {
+                    $('#guest_meal_alert').show();
+                    return;
+                }
+                $('#guest_meal_alert').hide();
+
+                // Validate guest 02 meal
+                var guestMeal02 = $('input[name="guest_meals_02"]:checked').val();
+                if (guestMeal02 === undefined) {
+                    $('#guest_meal_02_alert').show();
+                    return;
+                }
+                $('#guest_meal_02_alert').hide();
 
                 var formData = $(this).serialize();
 

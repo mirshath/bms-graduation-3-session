@@ -131,14 +131,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // --- Prepare QR Code Image with only student_id ---
         // $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($student_id);
         $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
-        // Session text for the email (e.g. SESSION_01 -> Session 01)
-        $sessionHtml = '';
-        if (!empty($session)) {
-            $sessionLabel = ucwords(strtolower(str_replace('_', ' ', $session)));
-            $sessionHtml = "<p style='font-size:30px; font-weight: 900; color:#1e3a8a; margin:0 0 20px;'>" . htmlspecialchars($sessionLabel) . "</p>";
-        }
         // Path to the banner image
-        $bannerImagePath = __DIR__ . '/images/graduation_nov_2026.jpg';
+        $bannerImagePath = __DIR__ . '/images/GradutionBanner2026.jpg';
 
         // --- Build HTML Email ---
         // --- Build Professional HTML Email ---
@@ -332,10 +326,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         
                         <!-- QR Code Section -->
-                        <div class='qr-section' style='background-color: #ffffff;'>
+                        <div class='qr-section' style=background-color: white;>
                             <p><strong>Your Payment QR Code</strong></p>
                             <p>Please present this QR code to the cashier when making your graduation fee payment:</p>
-                            $sessionHtml
+                        
                             <img src='$qrCodeImage' alt='Payment QR Code'>
                         </div>
 

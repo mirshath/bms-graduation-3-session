@@ -473,50 +473,6 @@ include('./includes/header.php'); // Include your database connection file
         }
     }
 
-    /* mobile: meal + confirmation rows keep label (left) and choices (right) on one line */
-    @media (max-width: 575px) {
-        .reg .meal-row>.row {
-            flex-wrap: nowrap;
-            align-items: flex-start;
-        }
-
-        .reg .meal-row>.row>*:nth-child(1) {
-            flex: 0 0 auto;
-            width: 40%;
-            display: flex;
-            align-items: center;
-            min-height: 44px;
-            padding-right: 8px;
-        }
-
-        .reg .meal-row>.row>*:nth-child(2) {
-            flex: 1 1 0;
-            width: auto;
-            min-width: 0;
-        }
-
-        .reg .meal-row .form-label {
-            margin: 0;
-            font-size: 15px !important;
-            line-height: 1.3;
-        }
-
-        .reg .meal-row .d-flex.gap-4 {
-            flex-direction: column;
-            gap: 8px !important;
-        }
-
-        .reg .meal-row .form-check {
-            flex: 0 0 auto;
-            width: 100%;
-        }
-
-        .reg .meal-row .form-check-label {
-            padding: 10px 8px;
-            font-size: 14px;
-        }
-    }
-
     /* validation states */
     .reg .input.is-invalid,
     .reg .form-select.is-invalid {
@@ -543,10 +499,11 @@ include('./includes/header.php'); // Include your database connection file
 <main class="reg mt-4 body_bg">
     <img src="./images/graduation_nov_2026.jpg" alt="BMS Award Ceremony 2026 banner" class="reg-banner">
     <header class="reg-head">
-        <h1 style="font-size: 35px; font-weight: 700; text-align: center;">BMS DEGREE CONVOCATION 2026 <br>
+        <h1 style="font-size: 40px; font-weight: 700; text-align: center;">AWARD CEREMONY 2026 <br>
             <span style="font-size: 25px;">REGISTRATION FORM</span>
 
         </h1>
+
 
     </header>
 
@@ -678,21 +635,6 @@ include('./includes/header.php'); // Include your database connection file
                     </div>
                 </div>
 
-                <div class="mb-2" style="display: none;">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <label for="session_display" class="form-label">Session</label>
-                        </div>
-                        <div class="col">
-                            <div class="wrap-input-1">
-                                <input type="text" id="session_display" class="input" placeholder="Session" readonly>
-                                <input type="hidden" id="session" name="session">
-                                <span class="focus-border"></span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <input type="hidden" id="email_address_given" name="email_address_given"
                     placeholder="Email">
 
@@ -745,7 +687,7 @@ include('./includes/header.php'); // Include your database connection file
                 </div>
 
                 <!-- -------- Student Meal Preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29); border-radius: 10px;">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Student meal preference</b>
@@ -775,7 +717,7 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 01 meal preference ----------  -->
-                <div class="mb-2 meal-row">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Guest 01 meal preference</b>
@@ -805,7 +747,7 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 02 meal preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29);border-radius: 10px;">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Guest 02 meal preference</b>
@@ -841,7 +783,7 @@ include('./includes/header.php'); // Include your database connection file
                     class="input" placeholder="Graduation Payment Status" value="Not-Completed">
 
                 <!-- -------- Confirmation ----------  -->
-                <div class="mb-2 meal-row">
+                <div class="mb-2">
                     <div class="row">
                         <div class="col-md-3">
                             <label for="confirmation_yes" class="form-label"> <b>Confirmation</b>
@@ -870,7 +812,7 @@ include('./includes/header.php'); // Include your database connection file
                         </div>
                     </div>
                 </div>
-
+                <!-- ---------------------------------------------  -->
                 <p>
                     <center>Your invitation will be sent to your email after submiting the registration
                         form. You will need to present the QR code provided in the email at the registration
@@ -1128,15 +1070,6 @@ include('./includes/header.php'); // Include your database connection file
                             $('#name_in_full').val(response.name);
                             $('#dob').val(response.dob);
                             $('#program').val(response.program_name);
-                            // session of this program (from data_tables)
-                            var sessionRaw = response.session || '';
-                            var sessionLabel = sessionRaw ?
-                                sessionRaw.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, function(ch) {
-                                    return ch.toUpperCase();
-                                }) :
-                                'Not assigned yet';
-                            $('#session').val(sessionRaw);
-                            $('#session_display').val(sessionLabel);
                             $('#payment_status').val(response.payment_status);
                             $('#phone_no').val(response.mobile_number);
                             $('#email_address_given').val(response.given_email);
