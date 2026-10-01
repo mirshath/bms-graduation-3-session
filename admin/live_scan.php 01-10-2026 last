@@ -615,20 +615,20 @@ include("includes/header.php");
                 });
         }
 
-        // after a lookup / scan: bring the Student card to the top and pulse it
+        // after a lookup / scan: bring the Programme section to the top and pulse it
         // (keyboard focus stays in the ID box so the next scanner read goes straight in)
         var pendingScroll = false;
 
         function goToProgramme() {
             pendingScroll = false;
-            var el = out.querySelector('.lv-who') || out; // the Student card (name, ID, course fee)
-            el.style.scrollMarginTop = '16px';
+            // the "make the payment first" alert sits right above Programme, so scrolling to it keeps both in view
+            var el = out.querySelector('.lv-alert') || out.querySelector('[data-k="program"]') || out;
             var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
             el.scrollIntoView({
                 behavior: reduce ? 'auto' : 'smooth',
                 block: 'start'
             });
-            if (el !== out) {
+            if (el.dataset && el.dataset.k) {
                 el.classList.remove('lv-flash');
                 void el.offsetWidth;
                 el.classList.add('lv-flash');

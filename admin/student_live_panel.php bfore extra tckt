@@ -31,17 +31,6 @@ if (!function_exists('lv_load')) {
         return $cache[$col];
     }
 
-    /** True when the given extra_ticket_log column exists (cached). */
-    function lv_has_log_col($conn, $col)
-    {
-        static $cache = [];
-        if (!isset($cache[$col])) {
-            $r = $conn->query("SHOW COLUMNS FROM `extra_ticket_log` LIKE '" . $conn->real_escape_string($col) . "'");
-            $cache[$col] = ($r && $r->num_rows > 0);
-        }
-        return $cache[$col];
-    }
-
     /** payment_records.issued_ex_ticket exists (add_issued_ex_ticket.sql). */
     function lv_has_issued_col($conn)
     {
@@ -157,57 +146,6 @@ if (!function_exists('lv_load')) {
         }
         $free_total = count($payments) ? $payments[0]['free'] : $free_ent;
 
-        // ---- extra tickets added later at the desk (extra_ticket_log) ----
-        $log_issue_ok = lv_has_log_col($conn, 'issued_adExtra_ticket') && lv_has_log_col($conn, 'issued_adExtra_ticket_by');
-        $logSel = $log_issue_ok
-            ? 'e.`issued_adExtra_ticket`, e.`issued_adExtra_ticket_by`'
-            : 'NULL AS `issued_adExtra_ticket`, NULL AS `issued_adExtra_ticket_by`';
-        $log_rows = 0;
-        $log_added = 0;
-        $log_pending = 0;
-        $log_issued = 0;
-        $log_amount = 0.0;
-        $log_by = [];
-        $log_list = [];
-        $st = $conn->prepare(
-            "SELECT e.added_tickets, e.ticket_price, e.total_added, e.added_on,
-                    COALESCE(a.admin_name, e.added_by) AS added_by_name, " . $logSel . "
-             FROM extra_ticket_log e
-             LEFT JOIN admin a ON e.added_by REGEXP '^[0-9]+$' AND a.id = CAST(e.added_by AS UNSIGNED)
-             WHERE e.student_id = ?
-             ORDER BY e.added_on DESC, e.id DESC"
-        );
-        $st->bind_param("s", $student_id);
-        $st->execute();
-        $res = $st->get_result();
-        while ($l = $res->fetch_assoc()) {
-            $n = (int)$l['added_tickets'];
-            $log_rows++;
-            $log_added  += $n;
-            $log_amount += (float)$l['total_added'];
-            // issued = the column is filled; NULL or empty = still to issue
-            $is_issued = trim((string)$l['issued_adExtra_ticket']) !== '';
-            $by = trim((string)$l['issued_adExtra_ticket_by']);
-            if ($is_issued) {
-                $log_issued += $n;
-                if ($by !== '') {
-                    $log_by[$by] = true;
-                }
-            } else {
-                $log_pending += $n;
-            }
-            $log_list[] = [
-                'on'        => (string)$l['added_on'],
-                'n'         => $n,
-                'price'     => (float)$l['ticket_price'],
-                'total'     => (float)$l['total_added'],
-                'by'        => trim((string)$l['added_by_name']),
-                'issued'    => $is_issued,
-                'issued_by' => $by,
-            ];
-        }
-        $st->close();
-
         $d = [
             'student_id' => (string)$reg['student_id'],
             'name'       => (string)$reg['name_in_full'],
@@ -228,16 +166,6 @@ if (!function_exists('lv_load')) {
             'pending_extra' => $pending_extra,
             'issued_all' => ($extra_total > 0 && $pending_extra === 0),
             'issued_by'  => implode(', ', array_keys($by_names)),
-            // extra_ticket_log
-            'log_rows'        => $log_rows,
-            'log_list'        => $log_list,
-            'log_added'       => $log_added,
-            'log_amount'      => $log_amount,
-            'log_pending'     => $log_pending,
-            'log_issued'      => $log_issued,
-            'log_issued_all'  => ($log_added > 0 && $log_pending === 0),
-            'log_issued_by'   => implode(', ', array_keys($log_by)),
-            'can_issue_log'   => $log_issue_ok,
         ];
         // the page re-renders only when this changes
         $d['version'] = md5(json_encode($d));
@@ -995,105 +923,6 @@ if (!function_exists('lv_load')) {
                 }
             }
 
-            /* extra tickets added later (extra_ticket_log): two equal tiles side by side */
-            .lv-grid.has-log .lv-prog {
-                grid-column: span 8;
-            }
-
-            .lv-grid.has-log .lv-session {
-                grid-column: span 4;
-            }
-
-            .lv-grid.has-log .lv-extra {
-                grid-column: span 6;
-            }
-
-            /* session extra ticket picture: full width, shown under the info row */
-            .lv-ticketimg {
-                grid-column: 1 / -1;
-                order: 10;
-                text-align: center;
-            }
-
-            .lv-ticketimg .lv-k {
-                text-align: left;
-            }
-
-            .lv-ticketimg img {
-                display: block;
-                max-width: 100%;
-                max-height: 340px;
-                margin: 0 auto;
-                object-fit: contain;
-                border-radius: 10px;
-            }
-
-            .lv-imgmiss {
-                display: none;
-                font-size: 13px;
-                color: var(--non-ink);
-            }
-
-            .lv-ticketimg.is-broken img {
-                display: none;
-            }
-
-            .lv-ticketimg.is-broken .lv-imgmiss {
-                display: block;
-            }
-
-            .lv-rec-head.is-sub {
-                border-top: 1px solid var(--line);
-            }
-
-            .lv-table.is-log {
-                min-width: 720px;
-            }
-
-            .lv-xsub {
-                position: relative;
-                z-index: 1;
-                margin-top: -6px;
-                font-size: 13px;
-                font-weight: 600;
-                color: rgba(255, 255, 255, .92);
-            }
-
-            .lv-xdone {
-                position: relative;
-                z-index: 1;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 9px 12px;
-                border-radius: 10px;
-                background: #fff;
-                color: var(--veg-ink);
-                font-size: 13px;
-                font-weight: 600;
-            }
-
-            .lv-foot-hint {
-                position: relative;
-                z-index: 1;
-                font-size: 11px;
-                color: rgba(255, 255, 255, .8);
-            }
-
-            @media (max-width: 991px) {
-
-                .lv-grid.has-log .lv-prog,
-                .lv-grid.has-log .lv-session {
-                    grid-column: span 12;
-                }
-            }
-
-            @media (max-width: 575px) {
-                .lv-grid.has-log .lv-extra {
-                    grid-column: span 12;
-                }
-            }
-
             @media (prefers-reduced-motion: reduce) {
 
                 .lv-card,
@@ -1131,19 +960,6 @@ if (!function_exists('lv_load')) {
         $extra_cls = !$has_rec ? 'is-none' : ($extra > 0 ? ($d['issued_all'] ? 'is-issued' : 'has-extra') : 'is-zero');
         $sess_miss = ($d['session'] === '');
         $grad_paid = $d['grad_paid'];
-        // extra ticket picture for the session: SESSION_01 -> admin/img/extra_tickets/session1_extra_ticket.png
-        $sess_img = '';
-        if (preg_match('/^SESSION[\s_\-]*0*(\d+)$/i', trim($d['session']), $sm)) {
-            $sess_img = 'img/extra_tickets/session' . (int)$sm[1] . '_extra_ticket.png';
-        }
-
-        $sess_img_prnt = '';
-        if (preg_match('/^SESSION[\s_\-]*0*(\d+)$/i', trim($d['session']), $sm)) {
-            $sess_img_prnt = 'img/extra_tickets/session' . (int)$sm[1] . '_freepass.png';
-        }
-        $has_log   = ((int)$d['log_rows'] > 0);
-        $log_cls   = $d['log_issued_all'] ? 'is-issued' : 'has-extra';
-        $log_guests = (int)$d['free'] + (int)$d['extra'] + (int)$d['log_added'];
 
         ob_start(); ?>
         <section class="lv" id="lvRoot" aria-label="Scanned student"
@@ -1160,7 +976,7 @@ if (!function_exists('lv_load')) {
                 <span>Synced <b class="lv-mono" data-live-synced><?= date('h:i:s A') ?></b></span>
             </div>
 
-            <div class="lv-grid<?= $has_log ? ' has-log' : '' ?>" aria-live="polite">
+            <div class="lv-grid" aria-live="polite">
 
                 <!-- student -->
                 <div class="lv-card lv-who" style="--i:0">
@@ -1213,27 +1029,6 @@ if (!function_exists('lv_load')) {
                     <div class="lv-big"><?= $e($sess_miss ? 'Not assigned' : $d['session']) ?></div>
                 </div>
 
-                <?php if ($sess_img_prnt !== ''): ?>
-                    <!-- extra ticket picture for this session -->
-                    <div class="lv-card lv-ticketimg" style="--i:3">
-                        <span class="lv-k">Free ticket for <?= $e($d['session']) ?></span>
-                        <img src="<?= $e($sess_img_prnt) ?>" alt="Extra ticket for <?= $e($d['session']) ?>"
-                            onerror="this.closest('.lv-ticketimg').classList.add('is-broken')">
-                        <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($sess_img_prnt) ?></b></span>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($sess_img !== ''): ?>
-                    <!-- extra ticket picture for this session -->
-                    <div class="lv-card lv-ticketimg" style="--i:3">
-                        <span class="lv-k">Extra ticket for <?= $e($d['session']) ?></span>
-                        <img src="<?= $e($sess_img) ?>" alt="Extra ticket for <?= $e($d['session']) ?>"
-                            onerror="this.closest('.lv-ticketimg').classList.add('is-broken')">
-                        <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($sess_img) ?></b></span>
-                    </div>
-                <?php endif; ?>
-
-
                 <!-- extra tickets (payment_records.extra_ticket_count) = highlighted -->
                 <div class="lv-card lv-extra <?= $extra_cls ?>" style="--i:4" data-k="extra" data-v="<?= (int)$extra ?>|<?= $d['issued_all'] ? 'i' : 'p' ?>">
                     <span class="lv-k">Extra tickets purchased</span>
@@ -1259,39 +1054,6 @@ if (!function_exists('lv_load')) {
                         <?php endif; ?>
                     <?php endif; ?>
                 </div>
-                <?php if ($has_log): ?>
-                    <!-- extra tickets added later (extra_ticket_log): not issued yet and already issued are kept apart -->
-                    <div class="lv-card lv-extra lv-xlog <?= $log_cls ?>" style="--i:5" data-k="xlog" data-v="<?= (int)$d['log_pending'] ?>|<?= (int)$d['log_issued'] ?>">
-                        <span class="lv-k">Extra tickets added later</span>
-                        <div class="lv-num">+<?= (int)($d['log_pending'] > 0 ? $d['log_pending'] : $d['log_issued']) ?></div>
-                        <?php if ($d['log_pending'] > 0): ?><div class="lv-xsub">Not issued yet</div><?php endif; ?>
-                        <div class="lv-foot">
-                            <?= (int)$d['log_rows'] ?> purchase<?= $d['log_rows'] == 1 ? '' : 's' ?>, Rs. <b class="lv-mono"><?= lv_money($d['log_amount']) ?></b><br>
-                            Free <b class="lv-mono"><?= (int)$d['free'] ?></b>
-                            &nbsp;+&nbsp; paid extra <b class="lv-mono"><?= (int)$d['extra'] ?></b>
-                            &nbsp;+&nbsp; added <b class="lv-mono"><?= (int)$d['log_added'] ?></b>
-                            &nbsp;=&nbsp; <b class="lv-mono"><?= $log_guests ?> guest ticket<?= $log_guests == 1 ? '' : 's' ?></b>
-                        </div>
-                        <?php if ($d['log_pending'] > 0 && $d['log_issued'] > 0): ?>
-                            <div class="lv-xdone"><i class="fas fa-circle-check" aria-hidden="true"></i>
-                                <span><b class="lv-mono"><?= (int)$d['log_issued'] ?></b> already issued<?= $d['log_issued_by'] !== '' ? ' by ' . $e($d['log_issued_by']) : '' ?></span>
-                            </div>
-                        <?php endif; ?>
-                        <?php if (!$d['can_issue_log']): ?>
-                            <div class="lv-foot-hint">Run add_issued_adextra_ticket.sql to turn on issuing.</div>
-                        <?php elseif (!$has_rec): ?>
-                            <div class="lv-foot-hint">Payment required first.</div>
-                        <?php elseif ($d['log_pending'] > 0): ?>
-                            <button type="button" class="lv-issue-btn" data-kind="log" data-student="<?= $e($d['student_id']) ?>">
-                                <i class="fas fa-ticket" aria-hidden="true"></i>
-                                <span>Issue <?= (int)$d['log_pending'] ?> extra ticket<?= $d['log_pending'] == 1 ? '' : 's' ?></span>
-                            </button>
-                        <?php else: ?>
-                            <div class="lv-issued"><i class="fas fa-circle-check" aria-hidden="true"></i> Extra tickets issued</div>
-                            <?php if ($d['log_issued_by'] !== ''): ?><div class="lv-issued-by">Issued by <b><?= $e($d['log_issued_by']) ?></b></div><?php endif; ?>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
             </div>
 
             <!-- payment record (payment_records) -->
@@ -1349,51 +1111,6 @@ if (!function_exists('lv_load')) {
                     <div class="lv-empty">
                         <i class="fas fa-file-invoice" aria-hidden="true"></i>
                         <span>No graduation payment has been recorded for this student yet.</span>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($has_log): ?>
-                    <!-- extra tickets added later (extra_ticket_log) -->
-                    <div class="lv-rec-head is-sub">
-                        <h3 class="lv-rec-title"><i class="fas fa-ticket" aria-hidden="true"></i> Extra tickets added later
-                            <span class="lv-count"><?= (int)$d['log_rows'] ?> purchase<?= $d['log_rows'] == 1 ? '' : 's' ?></span>
-                        </h3>
-                    </div>
-                    <div class="lv-tablewrap">
-                        <table class="lv-table is-log">
-                            <thead>
-                                <tr>
-                                    <th>Added on</th>
-                                    <th class="c">Tickets</th>
-                                    <th class="r">Price per ticket</th>
-                                    <th class="r">Total (LKR)</th>
-                                    <th>Added by</th>
-                                    <th class="c">Issued</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($d['log_list'] as $l): ?>
-                                    <tr>
-                                        <td><?= $e(date('d M Y, h:i A', strtotime($l['on']))) ?></td>
-                                        <td class="c"><span class="lv-xchip">+<?= (int)$l['n'] ?></span></td>
-                                        <td class="r lv-mono"><?= lv_money($l['price']) ?></td>
-                                        <td class="r lv-mono"><b><?= lv_money($l['total']) ?></b></td>
-                                        <td><?= $e($l['by'] !== '' ? $l['by'] : '-') ?></td>
-                                        <td class="c"><?php if (!$d['can_issue_log']): ?><span class="lv-mono">-</span><?php elseif ($l['issued']): ?><span class="lv-iss is-done">Issued</span><?php if ($l['issued_by'] !== ''): ?><div class="lv-by">by <?= $e($l['issued_by']) ?></div><?php endif; ?><?php else: ?><span class="lv-iss is-pending">Pending</span><?php endif; ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                            <tfoot>
-                                <tr>
-                                    <td>Total added</td>
-                                    <td class="c lv-mono"><?= (int)$d['log_added'] ?></td>
-                                    <td></td>
-                                    <td class="r lv-mono"><?= lv_money($d['log_amount']) ?></td>
-                                    <td></td>
-                                    <td></td>
-                                </tr>
-                            </tfoot>
-                        </table>
                     </div>
                 <?php endif; ?>
             </div>

@@ -346,12 +346,12 @@ include("includes/header.php");
 
                 <div class="ls">
                     <header class="ls-head">
-                        <!-- <h1 style="text-align: center;">ISSUE THE EXTRA TICKET</h1> <br> -->
-                        <!-- <p>Scan a student's QR code with the scanner to see their programme, session, graduation payment and extra tickets. The panel keeps updating by itself while it is on screen.</p> -->
+                        <h1>Live scan</h1>
+                        <p>Scan a student's QR code with the scanner to see their programme, session, graduation payment and extra tickets. The panel keeps updating by itself while it is on screen.</p>
                     </header>
 
-                    <!-- <section class="ls-scan">
-                        <form id="idForm" class="ls-manual" autocomplete="off" style="width: 75%; text-align: center;">
+                    <section class="ls-scan">
+                        <form id="idForm" class="ls-manual" autocomplete="off">
                             <label for="sid">Student ID</label>
                             <div class="ls-row">
                                 <input type="text" id="sid" name="sid" placeholder="Scan the QR code or type the Student ID" autofocus>
@@ -359,49 +359,6 @@ include("includes/header.php");
                             </div>
                             <p class="ls-hint" id="hint">Click the box, then scan the student's QR code with the scanner.</p>
                             <button type="button" id="clearBtn" class="ls-link" hidden>Clear and scan next student</button>
-                        </form>
-                    </section> -->
-
-
-                    <section class="ls-scan" style="width: 100%; display: flex; justify-content: center;">
-                        <form id="idForm" class="ls-manual" autocomplete="off"
-                            style="width: 75%; margin: 0 auto; text-align: center;">
-
-                            <label for="sid" class="ls-head"
-                                style="display: block; font-size: 25px; text-align: center; margin-bottom: 10px;">
-                                <h1> SCAN QR FOR ISSUE THE EXTRA TICKET </h1>
-                            </label>
-
-                            <div class="ls-row"
-                                style="display: flex; justify-content: center; align-items: center; gap: 10px; width: 100%;">
-
-                                <input type="text"
-                                    id="sid"
-                                    name="sid"
-                                    placeholder="Scan the QR code or type the Student ID"
-                                    autofocus
-                                    style="width: 70%; text-align: center; font-weight: bolder; font-size: 20px;">
-
-                                <button type="submit"
-                                    class="ls-btn solid">
-                                    Look up
-                                </button>
-                            </div>
-
-                            <p class="ls-hint"
-                                id="hint"
-                                style="text-align: center; margin: 10px 0;">
-                                Click the box, then scan the student's QR code with the scanner.
-                            </p>
-
-                            <button type="button"
-                                id="clearBtn"
-                                class="ls-link"
-                                hidden
-                                style="display: block; margin: 10px auto 0;">
-                                Clear and scan next student
-                            </button>
-
                         </form>
                     </section>
 
@@ -615,20 +572,20 @@ include("includes/header.php");
                 });
         }
 
-        // after a lookup / scan: bring the Student card to the top and pulse it
+        // after a lookup / scan: bring the Programme section to the top and pulse it
         // (keyboard focus stays in the ID box so the next scanner read goes straight in)
         var pendingScroll = false;
 
         function goToProgramme() {
             pendingScroll = false;
-            var el = out.querySelector('.lv-who') || out; // the Student card (name, ID, course fee)
-            el.style.scrollMarginTop = '16px';
+            // the "make the payment first" alert sits right above Programme, so scrolling to it keeps both in view
+            var el = out.querySelector('.lv-alert') || out.querySelector('[data-k="program"]') || out;
             var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
             el.scrollIntoView({
                 behavior: reduce ? 'auto' : 'smooth',
                 block: 'start'
             });
-            if (el !== out) {
+            if (el.dataset && el.dataset.k) {
                 el.classList.remove('lv-flash');
                 void el.offsetWidth;
                 el.classList.add('lv-flash');
@@ -678,7 +635,7 @@ include("includes/header.php");
             btn.dataset.text = label.textContent;
             btn.disabled = true;
             label.textContent = 'Saving…';
-            fetch(btn.dataset.kind === 'log' ? 'issue_log_tickets.php' : 'issue_extra_tickets.php', {
+            fetch('issue_extra_tickets.php', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
