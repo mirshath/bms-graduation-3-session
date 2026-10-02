@@ -1008,85 +1008,38 @@ if (!function_exists('lv_load')) {
                 grid-column: span 6;
             }
 
-            /* invitation number: same big style as the Paid / Not completed text, right under it */
-            .lv-inv {
-                margin-top: 12px;
-                padding-top: 12px;
-                border-top: 1px dashed rgba(0, 0, 0, .14);
-            }
-
-            .lv-inv .lv-k {
-                margin-bottom: 8px;
-            }
-
-            .lv-inv .lv-status-val {
-                overflow-wrap: anywhere;
-            }
-
-            /* session ticket pictures: small thumbnails, side by side, next to the extra tickets tile */
-            .lv-tickets {
-                grid-column: span 8;
-                display: flex;
-                flex-wrap: wrap;
-                align-items: flex-start;
-                gap: 14px 22px;
-                padding: 16px 20px;
-            }
-
-            .lv-grid.has-log .lv-tickets {
+            /* session extra ticket picture: full width, shown under the info row */
+            .lv-ticketimg {
                 grid-column: 1 / -1;
+                order: 10;
+                text-align: center;
             }
 
-            .lv-tk {
-                margin: 0;
-                min-width: 0;
-                max-width: 100%;
+            .lv-ticketimg .lv-k {
+                text-align: left;
             }
 
-            .lv-tk .lv-k {
-                margin-bottom: 6px;
-            }
-
-            .lv-tk a {
-                display: inline-block;
-                line-height: 0;
-            }
-
-            .lv-tk img {
+            .lv-ticketimg img {
                 display: block;
                 max-width: 100%;
-                height: auto;
-                max-height: 180px;
+                max-height: 340px;
+                margin: 0 auto;
                 object-fit: contain;
-                border: 1px solid var(--line);
-                border-radius: 8px;
-                background: #fff;
-                transition: transform .2s var(--ease);
-            }
-
-            .lv-tk a:hover img {
-                transform: scale(1.03);
+                border-radius: 10px;
             }
 
             .lv-imgmiss {
                 display: none;
-                font-size: 12px;
+                font-size: 13px;
                 color: var(--non-ink);
             }
 
-            .lv-tk.is-broken a {
+            .lv-ticketimg.is-broken img {
                 display: none;
             }
 
-            .lv-tk.is-broken .lv-imgmiss {
+            .lv-ticketimg.is-broken .lv-imgmiss {
                 display: block;
-            }
-
-            @media (max-width: 991px) {
-
-                .lv-tickets {
-                    grid-column: span 12;
-                }
             }
 
             .lv-rec-head.is-sub {
@@ -1217,6 +1170,9 @@ if (!function_exists('lv_load')) {
                         <h2 class="lv-name"><?= $e($d['name']) ?></h2>
                         <div class="lv-chips">
                             <span class="lv-chip lv-mono"><i class="fas fa-id-badge" aria-hidden="true"></i> <?= $e($d['student_id']) ?></span>
+                            <?php if ($d['in_no'] !== ''): ?>
+                                <span class="lv-chip"><i class="fas fa-envelope-open-text" aria-hidden="true"></i> Invitation <b class="lv-mono"><?= $e($d['in_no']) ?></b></span>
+                            <?php endif; ?>
                             <span class="lv-chip <?= $d['crs_paid'] ? 'is-ok' : 'is-warn' ?>" data-k="crs" data-v="<?= $e($d['crs_raw']) ?>">
                                 <i class="fas fa-circle" aria-hidden="true" style="font-size:6px"></i>
                                 Course fee: <?= $e($d['crs_paid'] ? 'Paid' : ($d['crs_raw'] !== '' ? $d['crs_raw'] : 'Not set')) ?>
@@ -1232,15 +1188,6 @@ if (!function_exists('lv_load')) {
                         <span class="lv-status-ico" aria-hidden="true"><i class="fas <?= $grad_paid ? 'fa-check' : 'fa-hourglass-half' ?>"></i></span>
                         <span class="lv-status-val"><?= $grad_paid ? 'Paid' : 'Not completed' ?></span>
                     </div>
-                    <?php if ($d['in_no'] !== ''): ?>
-                        <div class="lv-inv" data-k="inv" data-v="<?= $e($d['in_no']) ?>">
-                            <span class="lv-k" style="font-size: 20px;">Invitation Number</span>
-                            <div class="lv-status-row">
-                                <span class="lv-status-ico" aria-hidden="true"><i class="fas fa-envelope-open-text"></i></span>
-                                <span class="lv-status-val lv-mono"><?= $e($d['in_no']) ?></span>
-                            </div>
-                        </div>
-                    <?php endif; ?>
                 </div>
 
                 <?php if (!$has_rec): ?>
@@ -1265,6 +1212,27 @@ if (!function_exists('lv_load')) {
                     <span class="lv-k">Session</span>
                     <div class="lv-big"><?= $e($sess_miss ? 'Not assigned' : $d['session']) ?></div>
                 </div>
+
+                <?php if ($sess_img_prnt !== ''): ?>
+                    <!-- extra ticket picture for this session -->
+                    <div class="lv-card lv-ticketimg" style="--i:3">
+                        <span class="lv-k">Free ticket for <?= $e($d['session']) ?></span>
+                        <img src="<?= $e($sess_img_prnt) ?>" alt="Extra ticket for <?= $e($d['session']) ?>"
+                            onerror="this.closest('.lv-ticketimg').classList.add('is-broken')">
+                        <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($sess_img_prnt) ?></b></span>
+                    </div>
+                <?php endif; ?>
+
+                <?php if ($sess_img !== ''): ?>
+                    <!-- extra ticket picture for this session -->
+                    <div class="lv-card lv-ticketimg" style="--i:3">
+                        <span class="lv-k">Extra ticket for <?= $e($d['session']) ?></span>
+                        <img src="<?= $e($sess_img) ?>" alt="Extra ticket for <?= $e($d['session']) ?>"
+                            onerror="this.closest('.lv-ticketimg').classList.add('is-broken')">
+                        <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($sess_img) ?></b></span>
+                    </div>
+                <?php endif; ?>
+
 
                 <!-- extra tickets (payment_records.extra_ticket_count) = highlighted -->
                 <div class="lv-card lv-extra <?= $extra_cls ?>" style="--i:4" data-k="extra" data-v="<?= (int)$extra ?>|<?= $d['issued_all'] ? 'i' : 'p' ?>">
@@ -1322,23 +1290,6 @@ if (!function_exists('lv_load')) {
                             <div class="lv-issued"><i class="fas fa-circle-check" aria-hidden="true"></i> Extra tickets issued</div>
                             <?php if ($d['log_issued_by'] !== ''): ?><div class="lv-issued-by">Issued by <b><?= $e($d['log_issued_by']) ?></b></div><?php endif; ?>
                         <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($sess_img_prnt !== '' || $sess_img !== ''): ?>
-                    <!-- ticket pictures for this session: small thumbnails side by side (click = full size) -->
-                    <div class="lv-card lv-tickets" style="--i:5">
-                        <?php foreach ([['Free ticket', $sess_img_prnt], ['Extra ticket', $sess_img]] as $tk): ?>
-                            <?php if ($tk[1] === '') continue; ?>
-                            <figure class="lv-tk">
-                                <span class="lv-k"><?= $tk[0] ?> for <?= $e($d['session']) ?></span>
-                                <a href="<?= $e($tk[1]) ?>" target="_blank" rel="noopener" title="Click to view full size">
-                                    <img src="<?= $e($tk[1]) ?>" alt="<?= $tk[0] ?> for <?= $e($d['session']) ?>" loading="lazy"
-                                        onerror="this.closest('.lv-tk').classList.add('is-broken')">
-                                </a>
-                                <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($tk[1]) ?></b></span>
-                            </figure>
-                        <?php endforeach; ?>
                     </div>
                 <?php endif; ?>
             </div>

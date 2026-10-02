@@ -112,8 +112,8 @@ include("includes/header.php");
 <!-- jQuery -->
 <script src="vendor/jquery/jquery.min.js"></script>
 
-<!-- Bootstrap Bundle -->
-<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<!-- Bootstrap Bundle  <<<<<<<<<<<<<<<<< HIDE FOR NOT WORKING THE LINK >>>>>>>>>>>>>>>>>>>>>>>>>-->   
+<!-- <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script> -->
 
 <!-- DataTables -->
 <script src="vendor/datatables/jquery.dataTables.min.js"></script>

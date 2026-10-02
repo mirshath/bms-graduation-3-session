@@ -507,6 +507,10 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
             ['extra-ticket-buying', 'fa-cart-plus', 'Buy Extra Ticket'],
             ['extra-ticket-data',   'fa-list',      'Ticket Log / Data'],
         ]); ?>
+
+        <!-- Ticket isses & Invitaion Showing  -->
+        <?php $nav_link('live_scan.php', 'fa-ticket-alt', 'Ticket & Invitation Issues'); ?>
+
     <?php endif; ?>
 
     <!-- ============================================ -->

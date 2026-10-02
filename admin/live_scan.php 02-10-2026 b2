@@ -356,7 +356,7 @@ include("includes/header.php");
 
                             <label for="sid" class="ls-head"
                                 style="display: block; font-size: 25px; text-align: center; margin-bottom: 10px;">
-                                <h1> SCAN QR FOR <br> TICKET & INVITATION ISSUANCE </h1>
+                                <h1> SCAN QR FOR TICKET & INVITATION ISSUE </h1>
                             </label>
 
                             <div class="ls-row"
