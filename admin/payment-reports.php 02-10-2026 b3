@@ -54,12 +54,6 @@ $ledger = "
 /* Every filter is applied to every ledger row, so the totals, tables and CSV always agree. */
 $w = ["DATE(ts) BETWEEN ? AND ?"];
 $P = [$f['date_from'], $f['date_to']];
-if ($f['session']) {
-    $programs = rows($conn, "SELECT DISTINCT programName FROM data_tables WHERE session IN (" . implode(',', array_fill(0, count($f['session']), '?')) . ") ORDER BY programName", $f['session']);
-} else {
-    $programs = rows($conn, "SELECT DISTINCT programName FROM data_tables ORDER BY programName");
-}
-$f['program'] = array_values(array_intersect($f['program'], array_column($programs, 'programName')));
 foreach (['program' => 'program', 'session' => 'sess', 'cashier' => 'cashier'] as $k => $col) {
     if ($f[$k]) {
         $w[] = "$col IN (" . implode(',', array_fill(0, count($f[$k]), '?')) . ")";
@@ -164,8 +158,29 @@ if ($f['compare']) {
     $prev = (float) rows($conn, "SELECT COALESCE(SUM(grad + extra),0) AS t FROM ($filtered) x", $P2)[0]['t'];
 }
 
+$programs = rows($conn, "SELECT programName FROM data_tables ORDER BY programName");
 $sessions = rows($conn, "SELECT DISTINCT session FROM data_tables WHERE session IS NOT NULL ORDER BY session");
 $cashiers = rows($conn, "SELECT DISTINCT cashier FROM ($ledger) l WHERE cashier IS NOT NULL AND cashier <> '' ORDER BY cashier");
+
+/* Daily chart (up to 62 days) */
+$chart = [];
+$peak = 1;
+$span = (strtotime($f['date_to']) - strtotime($f['date_from'])) / 86400 + 1;
+if ($span >= 1 && $span <= 62) {
+    $by = [];
+    foreach (
+        rows($conn, "SELECT DATE(ts) AS d, SUM(grad) AS g, SUM(CASE WHEN kind='payment' THEN extra END) AS x,
+            SUM(CASE WHEN kind='extra' THEN extra END) AS l FROM ($filtered) x GROUP BY d", $P) as $r
+    ) {
+        $by[$r['d']] = $r;
+    }
+    for ($t = strtotime($f['date_from']); $t <= strtotime($f['date_to']); $t += 86400) {
+        $d = date('Y-m-d', $t);
+        $r = $by[$d] ?? [];
+        $chart[] = ['d' => $d, 'g' => (float) ($r['g'] ?? 0), 'x' => (float) ($r['x'] ?? 0), 'l' => (float) ($r['l'] ?? 0)];
+    }
+    $peak = max(1, ...array_map(fn($c) => $c['g'] + $c['x'] + $c['l'], $chart));
+}
 
 $h = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $rs = fn($n) => number_format((float) $n);
@@ -194,6 +209,14 @@ if ($f['tickets'] !== '') {
     $active[] = ['Tickets: ' . $f['tickets'], 'tickets'];
 }
 
+$nf = count(array_filter($active, fn($a) => $a[1] !== 'search'));
+$checks = function (string $name, array $all, array $sel) use ($h) {
+    echo '<div class="pick"><input type="search" data-find placeholder="Find in list" aria-label="Find in list"><div class="opts">';
+    foreach ($all as $o) {
+        echo '<label><input type="checkbox" name="' . $name . '[]" value="' . $h($o) . '"' . (in_array($o, $sel, true) ? ' checked' : '') . '><span>' . $h($o) . '</span></label>';
+    }
+    echo '</div></div>';
+};
 include("includes/header.php");
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -285,6 +308,18 @@ include("includes/header.php");
         background: #094a57
     }
 
+    .cnt {
+        background: var(--c1);
+        color: #fff;
+        border-radius: 99px;
+        font-size: 12px;
+        min-width: 20px;
+        height: 20px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0 6px
+    }
+
     .tools {
         display: flex;
         flex-wrap: wrap;
@@ -355,6 +390,199 @@ include("includes/header.php");
         color: var(--mut)
     }
 
+    .scrim {
+        position: fixed;
+        inset: 0;
+        background: rgba(20, 35, 45, .35);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s;
+        z-index: 1040
+    }
+
+    .drawer {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 400px;
+        max-width: 100%;
+        background: #fff;
+        z-index: 1050;
+        display: flex;
+        flex-direction: column;
+        box-shadow: -12px 0 32px rgba(20, 35, 45, .16);
+        transform: translateX(100%);
+        visibility: hidden;
+        transition: transform .22s, visibility .22s
+    }
+
+    .open .drawer {
+        transform: none;
+        visibility: visible
+    }
+
+    .open .scrim {
+        opacity: 1;
+        visibility: visible
+    }
+
+    .drawer header,
+    .drawer footer {
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        padding: 14px 20px
+    }
+
+    .drawer header {
+        justify-content: space-between;
+        border-bottom: 1px solid var(--line)
+    }
+
+    .drawer footer {
+        border-top: 1px solid var(--line)
+    }
+
+    .drawer footer .pri {
+        flex: 1;
+        justify-content: center
+    }
+
+    .drawer h2 {
+        font-size: 17px;
+        font-weight: 600;
+        margin: 0
+    }
+
+    .dbody {
+        flex: 1;
+        overflow: auto;
+        padding: 4px 20px 20px
+    }
+
+    .drawer fieldset {
+        border: 0;
+        border-top: 1px solid var(--line);
+        margin: 0;
+        padding: 16px 0 6px
+    }
+
+    .drawer fieldset:first-child {
+        border: 0
+    }
+
+    .drawer legend {
+        float: left;
+        width: 100%;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 10px;
+        padding: 0
+    }
+
+    .drawer fieldset>* {
+        clear: both
+    }
+
+    .segf {
+        display: flex;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        overflow: hidden
+    }
+
+    .segf label {
+        flex: 1;
+        margin: 0;
+        position: relative
+    }
+
+    .segf input {
+        position: absolute;
+        opacity: 0
+    }
+
+    .segf span {
+        display: block;
+        text-align: center;
+        padding: 8px 6px;
+        color: var(--mut);
+        cursor: pointer
+    }
+
+    .segf input:checked+span {
+        background: var(--ink);
+        color: #fff
+    }
+
+    .segf input:focus-visible+span {
+        outline: 2px solid var(--c1);
+        outline-offset: -2px
+    }
+
+    .pick input {
+        width: 100%;
+        margin-bottom: 6px
+    }
+
+    .opts {
+        max-height: 168px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 4px
+    }
+
+    .opts label {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        padding: 5px 6px;
+        margin: 0;
+        border-radius: 6px;
+        cursor: pointer
+    }
+
+    .opts label:hover {
+        background: var(--soft)
+    }
+
+    .opts label[hidden] {
+        display: none
+    }
+
+    .opts input {
+        margin-top: 4px
+    }
+
+    .range {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px
+    }
+
+    .drawer .f {
+        display: block;
+        font-size: 13px;
+        color: var(--mut);
+        margin: 0 0 10px
+    }
+
+    .drawer .f input,
+    .drawer .f select,
+    .drawer select {
+        width: 100%;
+        margin-top: 4px
+    }
+
+    .chk {
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+        margin: 0
+    }
+
     .tabs {
         display: flex;
         gap: 2px;
@@ -378,102 +606,22 @@ include("includes/header.php");
     }
 
     .top {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        display: flex;
         gap: 16px;
-        align-items: stretch
-    }
-
-    .brk {
-        order: 3;
-        flex-basis: 100%;
-        height: 0
-    }
-
-    .find {
-        order: 1
-    }
-
-    .tools>.rb,
-    .tools>select {
-        order: 2
-    }
-
-    .tools>.seg,
-    .tools>.dates,
-    .cmp {
-        order: 4
-    }
-
-    .tools>select {
-        max-width: 230px;
-        text-overflow: ellipsis
-    }
-
-    .cmp {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin: 0 0 0 auto;
-        color: var(--mut);
-        cursor: pointer
-    }
-
-    .tools {
-        box-shadow: 0 1px 2px rgba(20, 35, 45, .06)
-    }
-
-    .kpis {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        align-content: stretch
-    }
-
-    .kpis div {
-        padding: 18px 22px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 4px;
-        border-bottom: 1px solid var(--line)
-    }
-
-    .kpis div:nth-child(odd) {
-        border-right: 1px solid var(--line)
-    }
-
-    .kpis div:nth-last-child(-n+2) {
-        border-bottom: 0
-    }
-
-    .kpis span {
-        color: var(--mut);
-        font-size: 13px
-    }
-
-    .kpis b {
-        font-size: 22px;
-        font-weight: 600;
-        letter-spacing: -.01em
-    }
-
-    @media (max-width:900px) {
-        .top {
-            grid-template-columns: 1fr
-        }
+        flex-wrap: wrap
     }
 
     .stmt,
-    .kpis,
+    .chart,
     .tbl {
         background: var(--pan);
         border: 1px solid var(--line);
-        border-radius: 12px;
-        box-shadow: 0 1px 2px rgba(20, 35, 45, .06)
+        border-radius: 12px
     }
 
     .stmt {
-        padding: 22px 26px
+        flex: 0 1 440px;
+        padding: 20px 22px
     }
 
     .stmt h2 {
@@ -542,7 +690,7 @@ include("includes/header.php");
         padding: 10px 0 8px;
         border-top: 1px solid var(--ink);
         border-bottom: 4px double var(--ink);
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 700
     }
 
@@ -558,6 +706,59 @@ include("includes/header.php");
 
     .delta.dn b {
         color: var(--dn)
+    }
+
+    .facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 16px;
+        font-size: 13px;
+        color: var(--mut)
+    }
+
+    .facts b {
+        display: block;
+        color: var(--ink);
+        font-size: 17px;
+        font-weight: 600
+    }
+
+    .chart {
+        flex: 1 1 320px;
+        padding: 20px 22px 14px
+    }
+
+    .cols {
+        display: flex;
+        gap: 3px;
+        height: 190px;
+        margin: 14px 0 8px
+    }
+
+    .bar {
+        flex: 1;
+        min-width: 2px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        border-bottom: 2px solid var(--line)
+    }
+
+    .bar:hover {
+        background: var(--soft)
+    }
+
+    .bar i {
+        display: block;
+        width: 100%
+    }
+
+    .row-between {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--mut)
     }
 
     .applied {
@@ -692,6 +893,14 @@ include("includes/header.php");
         }
     }
 
+    @media (prefers-reduced-motion:reduce) {
+
+        .drawer,
+        .scrim {
+            transition: none
+        }
+    }
+
     @media print {
 
         .tools,
@@ -733,29 +942,65 @@ include("includes/header.php");
                                 </select>
                                 <input type="search" name="search" value="<?= $h($f['search']) ?>" placeholder="Search students or receipts" aria-label="Search">
                             </div>
-                            <select name="session[]" aria-label="Session" onchange="this.form.elements['program[]'].value='';this.form.submit()">
-                                <option value="">All sessions</option>
-                                <?php foreach ($sessions as $o): $v = $o['session']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['session'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
-                            </select>
-
-                            <select name="program[]" aria-label="Program" onchange="this.form.submit()">
-                                <option value="">All programs</option>
-                                <?php foreach ($programs as $o): $v = $o['programName']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['program'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
-                            </select>
-
                             <div class="seg">
                                 <?php foreach ($ranges as $l => [$a, $b]): ?><a href="?<?= $qs(['date_from' => $a, 'date_to' => $b]) ?>" class="<?= ($f['date_from'] === $a && $f['date_to'] === $b) ? 'on' : '' ?>"><?= $l ?></a><?php endforeach; ?>
                             </div>
-                            <div class="brk"></div>
-                            <label class="cmp"><input type="checkbox" name="compare" value="1" <?= $f['compare'] ? 'checked' : '' ?> onchange="this.form.submit()"> Compare with previous period</label>
-                            <div class="seg" aria-label="Entry type">
-                                <?php foreach (['' => 'All entries', 'payment' => 'Payments', 'extra' => 'Added later'] as $v => $l): ?><a href="?<?= $qs(['type' => $v]) ?>" class="<?= $f['type'] === $v ? 'on' : '' ?>"><?= $l ?></a><?php endforeach; ?>
-                            </div>
                             <div class="dates">
-                                <input type="date" name="date_from" value="<?= $h($f['date_from']) ?>" aria-label="From date" onchange="this.form.submit()"> to
-                                <input type="date" name="date_to" value="<?= $h($f['date_to']) ?>" aria-label="To date" onchange="this.form.submit()">
+                                <input type="date" name="date_from" value="<?= $h($f['date_from']) ?>" aria-label="From date"> to
+                                <input type="date" name="date_to" value="<?= $h($f['date_to']) ?>" aria-label="To date">
                             </div>
+                            <button type="button" class="rb" id="open-f" aria-expanded="false" aria-controls="dr">Filters<?php if ($nf): ?><span class="cnt"><?= $nf ?></span><?php endif; ?></button>
                             <button class="rb pri" type="submit">Apply</button>
+
+                            <div class="scrim" id="scrim"></div>
+                            <aside class="drawer" id="dr" aria-label="More filters" inert>
+                                <header>
+                                    <h2>Filters</h2><button type="button" class="rb" data-close>Close</button>
+                                </header>
+                                <div class="dbody">
+                                    <fieldset>
+                                        <legend>Entry type</legend>
+                                        <div class="segf"><?php foreach (['' => 'All', 'payment' => 'Payments', 'extra' => 'Added later'] as $v => $l): ?><label><input type="radio" name="type" value="<?= $v ?>" <?= $f['type'] === $v ? 'checked' : '' ?>><span><?= $l ?></span></label><?php endforeach; ?></div>
+                                    </fieldset>
+                                    <fieldset>
+                                        <legend>Entry amount</legend>
+                                        <div class="range">
+                                            <label class="f">From<input type="number" min="0" name="min" value="<?= $h($f['min']) ?>" placeholder="Rs."></label>
+                                            <label class="f">To<input type="number" min="0" name="max" value="<?= $h($f['max']) ?>" placeholder="Rs."></label>
+                                        </div>
+                                    </fieldset>
+                                    <fieldset>
+                                        <legend>Extra tickets in entry</legend>
+                                        <select name="tickets" aria-label="Extra tickets in entry">
+                                            <option value="">Any</option>
+                                            <?php foreach (['none' => 'None', 'any' => 'At least one', '1-2' => '1 to 2', '3-5' => '3 to 5', '6+' => '6 or more'] as $v => $l): ?><option value="<?= $v ?>" <?= $f['tickets'] === $v ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+                                        </select>
+                                    </fieldset>
+                                    <fieldset>
+                                        <legend>Program</legend><?php $checks('program', array_column($programs, 'programName'), $f['program']); ?>
+                                    </fieldset>
+                                    <fieldset>
+                                        <legend>Session</legend><?php $checks('session', array_column($sessions, 'session'), $f['session']); ?>
+                                    </fieldset>
+                                    <fieldset>
+                                        <legend>Taken by</legend><?php $checks('cashier', array_column($cashiers, 'cashier'), $f['cashier']); ?>
+                                    </fieldset>
+                                    <?php if ($view === 'ledger'): ?>
+                                        <fieldset>
+                                            <legend>Sort ledger by</legend>
+                                            <select name="sort" aria-label="Sort ledger by">
+                                                <option value="">Newest first</option>
+                                                <?php foreach (['date_asc' => 'Oldest first', 'amount_desc' => 'Amount, high to low', 'amount_asc' => 'Amount, low to high', 'student' => 'Student ID'] as $v => $l): ?><option value="<?= $v ?>" <?= $f['sort'] === $v ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+                                            </select>
+                                        </fieldset>
+                                    <?php endif; ?>
+                                    <fieldset>
+                                        <legend>Compare</legend>
+                                        <label class="chk"><input type="checkbox" name="compare" value="1" <?= $f['compare'] ? 'checked' : '' ?>><span>Show change against the previous period of the same length</span></label>
+                                    </fieldset>
+                                </div>
+                                <footer><a class="rb" href="?view=<?= $h($view) ?>">Reset all</a><button class="rb pri" type="submit">Show results</button></footer>
+                            </aside>
                         </form>
 
                         <nav class="tabs" aria-label="Report view">
@@ -787,14 +1032,28 @@ include("includes/header.php");
                                 <?php if ($prev !== null): $dv = $rev - $prev; ?>
                                     <p class="delta <?= $dv >= 0 ? 'up' : 'dn' ?>"><?= $prev > 0 ? '<b>' . ($dv >= 0 ? '▲ ' : '▼ ') . number_format(abs($dv) / $prev * 100, 1) . '%</b> against the previous ' . $days . ' days (Rs. ' . $rs($prev) . ')' : 'No collections in the previous ' . $days . ' days to compare with' ?></p>
                                 <?php endif; ?>
+                                <div class="facts">
+                                    <div><b><?= $rs($s['payments']) ?></b>payments with a receipt</div>
+                                    <div><b><?= $rs($s['students']) ?></b>students</div>
+                                    <div><b><?= $rs($s['tickets']) ?></b>extra tickets sold</div>
+                                    <div><b>Rs. <?= $rs($avg) ?></b>average per student</div>
+                                </div>
                             </section>
-                            <section class="kpis" aria-label="Summary">
-                                <div><span>Payments with a receipt</span><b><?= $rs($s['payments']) ?></b></div>
-                                <div><span>Students</span><b><?= $rs($s['students']) ?></b></div>
-                                <div><span>Extra tickets sold</span><b><?= $rs($s['tickets']) ?></b></div>
-                                <div><span>Average per student</span><b>Rs. <?= $rs($avg) ?></b></div>
-                            </section>
-
+                            <?php if ($chart): ?>
+                                <section class="chart" aria-label="Collected each day">
+                                    <div class="row-between"><span>Collected each day</span><span>Highest day Rs. <?= $rs($peak) ?></span></div>
+                                    <div class="cols">
+                                        <?php foreach ($chart as $c): ?>
+                                            <div class="bar" title="<?= date('d M', strtotime($c['d'])) ?>: Rs. <?= $rs($c['g'] + $c['x'] + $c['l']) ?>">
+                                                <i style="height:<?= round($c['l'] / $peak * 100, 1) ?>%;background:var(--c3)"></i>
+                                                <i style="height:<?= round($c['x'] / $peak * 100, 1) ?>%;background:var(--c2)"></i>
+                                                <i style="height:<?= round($c['g'] / $peak * 100, 1) ?>%;background:var(--c1)"></i>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="row-between"><span><?= date('d M', strtotime($f['date_from'])) ?></span><span><?= date('d M', strtotime($f['date_to'])) ?></span></div>
+                                </section>
+                            <?php endif; ?>
                         </div>
 
                         <?php if ($active): ?>
@@ -802,12 +1061,7 @@ include("includes/header.php");
                                 <?php foreach ($active as $a): $drop = array_fill_keys(array_slice($a, 1), ''); ?>
                                     <span class="tag"><?= $h($a[0]) ?><a href="?<?= $qs($drop) ?>" aria-label="Remove filter">×</a></span>
                                 <?php endforeach; ?>
-                                <!-- <a class="clear" href="?view=<?= $h($view) ?>">Clear all</a> -->
-                                <a class="clear"
-                                    href="?view=<?= $h($view) ?>"
-                                    style="display:inline-block; padding:8px 16px; background:#dc3545; color:#fff; text-decoration:none; border-radius:5px; border:1px solid #dc3545; font-size:14px; cursor:pointer;">
-                                    Clear Filter
-                                </a>
+                                <a class="clear" href="?view=<?= $h($view) ?>">Clear all</a>
                             </div>
                         <?php endif; ?>
 
@@ -915,7 +1169,37 @@ include("includes/header.php");
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    /* Filters apply for this visit only: drop them from the address bar so a refresh starts clean. */
-    history.replaceState(null, '', location.pathname + '?view=<?= $h($view) ?>');
+    (function() {
+        var f = document.getElementById('flt'),
+            b = document.getElementById('open-f'),
+            d = document.getElementById('dr');
+
+        function t(o) {
+            f.classList.toggle('open', o);
+            b.setAttribute('aria-expanded', o);
+            d.inert = !o;
+            (o ? d.querySelector('[data-close]') : b).focus();
+        }
+        b.onclick = function() {
+            t(true);
+        };
+        document.getElementById('scrim').onclick = function() {
+            t(false);
+        };
+        f.querySelector('[data-close]').onclick = function() {
+            t(false);
+        };
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && f.classList.contains('open')) t(false);
+        });
+        f.querySelectorAll('[data-find]').forEach(function(i) {
+            i.oninput = function() {
+                var q = i.value.toLowerCase();
+                i.nextElementSibling.querySelectorAll('label').forEach(function(l) {
+                    l.hidden = l.textContent.toLowerCase().indexOf(q) < 0;
+                });
+            };
+        });
+    })();
 </script>
 <?php include("includes/footer.php"); ?>

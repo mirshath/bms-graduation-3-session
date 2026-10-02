@@ -16,22 +16,19 @@ $view = isset($views[$_GET['view'] ?? '']) ? $_GET['view'] : 'ledger';
 $isDate = fn($d) => is_string($d) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $d);
 $num = fn($v) => (isset($v) && is_numeric($v) && $v >= 0) ? (string) (float) $v : '';
 $pick = fn($v, array $ok) => in_array($v, $ok, true) ? $v : '';
-$many = fn($k) => array_values(array_unique(array_filter(array_map('trim', array_filter((array) ($_GET[$k] ?? []), 'is_string')), 'strlen')));
 
 $f = [
     'date_from' => $isDate($_GET['date_from'] ?? null) ? $_GET['date_from'] : date('Y-m-01'),
     'date_to'   => $isDate($_GET['date_to'] ?? null) ? $_GET['date_to'] : date('Y-m-d'),
-    'program'   => $many('program'),
-    'session'   => $many('session'),
+    'program'   => trim($_GET['program'] ?? ''),
+    'session'   => trim($_GET['session'] ?? ''),
     'search'    => trim($_GET['search'] ?? ''),
     'type'      => $pick($_GET['type'] ?? '', ['payment', 'extra']),
-    'cashier'   => $many('cashier'),
+    'cashier'   => trim($_GET['cashier'] ?? ''),
     'min'       => $num($_GET['min'] ?? null),
     'max'       => $num($_GET['max'] ?? null),
     'tickets'   => $pick($_GET['tickets'] ?? '', ['none', 'any', '1-2', '3-5', '6+']),
     'sort'      => $pick($_GET['sort'] ?? '', ['date_asc', 'amount_desc', 'amount_asc', 'student']),
-    'scope'     => $pick($_GET['scope'] ?? '', ['id', 'name', 'receipt']),
-    'compare'   => isset($_GET['compare']) ? '1' : '',
 ];
 $sorts = ['' => 'ts DESC', 'date_asc' => 'ts ASC', 'amount_desc' => '(grad + extra) DESC', 'amount_asc' => '(grad + extra) ASC', 'student' => 'student_id ASC, ts DESC'];
 
@@ -54,21 +51,11 @@ $ledger = "
 /* Every filter is applied to every ledger row, so the totals, tables and CSV always agree. */
 $w = ["DATE(ts) BETWEEN ? AND ?"];
 $P = [$f['date_from'], $f['date_to']];
-if ($f['session']) {
-    $programs = rows($conn, "SELECT DISTINCT programName FROM data_tables WHERE session IN (" . implode(',', array_fill(0, count($f['session']), '?')) . ") ORDER BY programName", $f['session']);
-} else {
-    $programs = rows($conn, "SELECT DISTINCT programName FROM data_tables ORDER BY programName");
-}
-$f['program'] = array_values(array_intersect($f['program'], array_column($programs, 'programName')));
-foreach (['program' => 'program', 'session' => 'sess', 'cashier' => 'cashier'] as $k => $col) {
-    if ($f[$k]) {
-        $w[] = "$col IN (" . implode(',', array_fill(0, count($f[$k]), '?')) . ")";
-        array_push($P, ...$f[$k]);
+foreach (['program' => 'program', 'session' => 'sess', 'type' => 'kind', 'cashier' => 'cashier'] as $k => $col) {
+    if ($f[$k] !== '') {
+        $w[] = "$col = ?";
+        $P[] = $f[$k];
     }
-}
-if ($f['type'] !== '') {
-    $w[] = "kind = ?";
-    $P[] = $f['type'];
 }
 if ($f['min'] !== '') {
     $w[] = "(grad + extra) >= ?";
@@ -87,11 +74,8 @@ $w[] = [
     '6+' => 'tickets >= 6'
 ][$f['tickets']];
 if ($f['search'] !== '') {
-    $cols = ['id' => ['student_id'], 'name' => ['student'], 'receipt' => ['ref']][$f['scope']] ?? ['student_id', 'student', 'ref'];
-    $w[] = '(' . implode(' OR ', array_map(fn($c) => "$c LIKE ?", $cols)) . ')';
-    foreach ($cols as $_) {
-        $P[] = "%{$f['search']}%";
-    }
+    $w[] = "(student_id LIKE ? OR student LIKE ? OR ref LIKE ?)";
+    array_push($P, "%{$f['search']}%", "%{$f['search']}%", "%{$f['search']}%");
 }
 $filtered = "SELECT * FROM ($ledger) l WHERE " . implode(' AND ', $w);
 
@@ -155,34 +139,42 @@ $s = rows($conn, "SELECT SUM(kind='payment') AS payments, COUNT(DISTINCT student
 $rev = $s['grad'] + $s['desk'] + $s['later'];
 $pct = fn($n) => $rev > 0 ? number_format($n / $rev * 100, 1) . '%' : '–';
 $avg = $s['students'] > 0 ? $rev / $s['students'] : 0;
-$days = (int) round((strtotime($f['date_to']) - strtotime($f['date_from'])) / 86400) + 1;
-$prev = null;
-if ($f['compare']) {
-    $P2 = $P;
-    $P2[0] = date('Y-m-d', strtotime($f['date_from'] . " -$days days"));
-    $P2[1] = date('Y-m-d', strtotime($f['date_from'] . ' -1 day'));
-    $prev = (float) rows($conn, "SELECT COALESCE(SUM(grad + extra),0) AS t FROM ($filtered) x", $P2)[0]['t'];
-}
 
+$programs = rows($conn, "SELECT programName FROM data_tables ORDER BY programName");
 $sessions = rows($conn, "SELECT DISTINCT session FROM data_tables WHERE session IS NOT NULL ORDER BY session");
 $cashiers = rows($conn, "SELECT DISTINCT cashier FROM ($ledger) l WHERE cashier IS NOT NULL AND cashier <> '' ORDER BY cashier");
+
+/* Daily chart (up to 62 days) */
+$chart = [];
+$peak = 1;
+$span = (strtotime($f['date_to']) - strtotime($f['date_from'])) / 86400 + 1;
+if ($span >= 1 && $span <= 62) {
+    $by = [];
+    foreach (
+        rows($conn, "SELECT DATE(ts) AS d, SUM(grad) AS g, SUM(CASE WHEN kind='payment' THEN extra END) AS x,
+            SUM(CASE WHEN kind='extra' THEN extra END) AS l FROM ($filtered) x GROUP BY d", $P) as $r
+    ) {
+        $by[$r['d']] = $r;
+    }
+    for ($t = strtotime($f['date_from']); $t <= strtotime($f['date_to']); $t += 86400) {
+        $d = date('Y-m-d', $t);
+        $r = $by[$d] ?? [];
+        $chart[] = ['d' => $d, 'g' => (float) ($r['g'] ?? 0), 'x' => (float) ($r['x'] ?? 0), 'l' => (float) ($r['l'] ?? 0)];
+    }
+    $peak = max(1, ...array_map(fn($c) => $c['g'] + $c['x'] + $c['l'], $chart));
+}
 
 $h = fn($v) => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 $rs = fn($n) => number_format((float) $n);
 $qs = fn(array $o = []) => http_build_query(array_filter(array_merge(['view' => $view], $f, $o), fn($v) => $v !== ''));
 $today = date('Y-m-d');
 $ranges = ['Today' => [$today, $today], '7 days' => [date('Y-m-d', strtotime('-6 days')), $today], 'This month' => [date('Y-m-01'), $today], 'All' => ['2020-01-01', $today]];
+$labels = ['program' => 'Program', 'session' => 'Session', 'cashier' => 'Taken by', 'search' => 'Search'];
 $active = [];
-foreach (['program' => 'Program', 'session' => 'Session', 'cashier' => 'Taken by'] as $k => $l) {
-    if ($f[$k]) {
-        $active[] = [$l . ': ' . implode(', ', $f[$k]), $k];
+foreach ($labels as $k => $l) {
+    if ($f[$k] !== '') {
+        $active[] = [$l . ': ' . $f[$k], $k];
     }
-}
-if ($f['search'] !== '') {
-    $active[] = ['Search' . ($f['scope'] ? ' in ' . ['id' => 'student ID', 'name' => 'name', 'receipt' => 'receipt'][$f['scope']] : '') . ': ' . $f['search'], 'search', 'scope'];
-}
-if ($f['compare']) {
-    $active[] = ['Compared with previous period', 'compare'];
 }
 if ($f['type'] !== '') {
     $active[] = ['Entry: ' . ($f['type'] === 'payment' ? 'payments' : 'extra tickets'), 'type'];
@@ -193,41 +185,144 @@ if ($f['min'] !== '' || $f['max'] !== '') {
 if ($f['tickets'] !== '') {
     $active[] = ['Tickets: ' . $f['tickets'], 'tickets'];
 }
-
+$adv = $f['type'] !== '' || $f['cashier'] !== '' || $f['min'] !== '' || $f['max'] !== '' || $f['tickets'] !== '' || $f['sort'] !== '';
 include("includes/header.php");
 ?>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
     .rpt {
-        --ink: #14232d;
-        --mut: #5f6f7b;
-        --line: #d9e0e6;
-        --soft: #eef2f5;
+        --ink: #0f2230;
+        --mut: #5d6d7a;
+        --line: #dbe1e7;
+        --bg: #f1f3f6;
         --pan: #fff;
         --c1: #0b5c6b;
-        --c2: #c98419;
+        --c2: #d08a1e;
         --c3: #7a4a8c;
-        --up: #17703f;
-        --dn: #b3261e;
-        font: 400 14px/1.45 'IBM Plex Sans', system-ui, sans-serif;
+        font-family: 'Public Sans', system-ui, sans-serif;
         color: var(--ink);
         font-variant-numeric: tabular-nums;
-        padding-bottom: 40px
+        display: grid;
+        grid-template-columns: 290px minmax(0, 1fr);
+        gap: 24px;
+        padding-bottom: 40px;
     }
 
     .rpt * {
-        box-sizing: border-box
+        box-sizing: border-box;
     }
 
     .rpt a {
         color: inherit;
-        text-decoration: none
+        text-decoration: none;
     }
 
     .rpt :focus-visible {
         outline: 2px solid var(--c1);
-        outline-offset: 2px
+        outline-offset: 2px;
+    }
+
+    .rail {
+        position: sticky;
+        top: 16px;
+        align-self: start;
+        background: var(--pan);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 18px;
+    }
+
+    .rail h2,
+    .stmt h2 {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 12px;
+    }
+
+    .rail label {
+        display: block;
+        font-size: 13px;
+        color: var(--mut);
+        margin-bottom: 12px;
+    }
+
+    .rail input,
+    .rail select {
+        display: block;
+        width: 100%;
+        margin-top: 4px;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font: 400 14px 'Public Sans', sans-serif;
+        color: var(--ink);
+        background: #fff;
+    }
+
+    .two {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .chips {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+    }
+
+    .chips a,
+    .tag {
+        border: 1px solid var(--line);
+        border-radius: 99px;
+        padding: 4px 11px;
+        font-size: 13px;
+        color: var(--mut);
+        background: #fff;
+    }
+
+    .chips a.on {
+        background: var(--ink);
+        border-color: var(--ink);
+        color: #fff;
+    }
+
+    .rail details {
+        border-top: 1px solid var(--line);
+        margin: 6px 0 14px;
+        padding-top: 12px;
+    }
+
+    .rail summary {
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 12px;
+    }
+
+    .rb {
+        display: inline-block;
+        border: 1px solid var(--line);
+        background: #fff;
+        border-radius: 6px;
+        padding: 8px 14px;
+        font: 500 14px 'Public Sans', sans-serif;
+        color: var(--ink);
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .rb.pri {
+        background: var(--c1);
+        border-color: var(--c1);
+        color: #fff;
+    }
+
+    .rail .rb {
+        width: 100%;
+        margin-bottom: 8px;
     }
 
     .head {
@@ -235,124 +330,25 @@ include("includes/header.php");
         justify-content: space-between;
         align-items: flex-end;
         gap: 12px;
-        flex-wrap: wrap
+        flex-wrap: wrap;
     }
 
     .head h4 {
-        font-size: 24px;
-        font-weight: 600;
-        letter-spacing: -.015em;
+        font-size: 22px;
+        font-weight: 700;
         margin: 0;
-        color: var(--ink)
+        letter-spacing: -0.01em;
+        color: var(--ink);
+    }
+
+    .stmt dt {
+        font-weight: 400;
     }
 
     .sub {
         color: var(--mut);
         font-size: 13.5px;
-        margin-top: 3px
-    }
-
-    .acts {
-        display: flex;
-        gap: 8px
-    }
-
-    .rb {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        border: 1px solid var(--line);
-        background: #fff;
-        border-radius: 8px;
-        padding: 8px 14px;
-        font: 500 14px 'IBM Plex Sans', sans-serif;
-        color: var(--ink);
-        cursor: pointer;
-        white-space: nowrap
-    }
-
-    .rb:hover {
-        background: var(--soft)
-    }
-
-    .rb.pri {
-        background: var(--c1);
-        border-color: var(--c1);
-        color: #fff
-    }
-
-    .rb.pri:hover {
-        background: #094a57
-    }
-
-    .tools {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 10px;
-        align-items: center;
-        margin-top: 18px;
-        padding: 12px;
-        background: var(--pan);
-        border: 1px solid var(--line);
-        border-radius: 12px
-    }
-
-    .rpt input[type=search],
-    .rpt input[type=date],
-    .rpt input[type=number],
-    .rpt select {
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        padding: 8px 10px;
-        font: 400 14px 'IBM Plex Sans', sans-serif;
-        color: var(--ink);
-        background: #fff;
-        min-width: 0
-    }
-
-    .find {
-        display: flex;
-        flex: 1 1 300px
-    }
-
-    .find select {
-        border-radius: 8px 0 0 8px;
-        background: var(--soft);
-        border-right: 0
-    }
-
-    .find input {
-        flex: 1;
-        border-radius: 0 8px 8px 0 !important
-    }
-
-    .seg {
-        display: flex;
-        border: 1px solid var(--line);
-        border-radius: 8px;
-        overflow: hidden
-    }
-
-    .seg a {
-        padding: 8px 12px;
-        color: var(--mut);
-        border-right: 1px solid var(--line)
-    }
-
-    .seg a:last-child {
-        border: 0
-    }
-
-    .seg a.on {
-        background: var(--ink);
-        color: #fff
-    }
-
-    .dates {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        color: var(--mut)
+        margin-top: 3px;
     }
 
     .tabs {
@@ -360,173 +356,71 @@ include("includes/header.php");
         gap: 2px;
         margin: 18px 0 16px;
         border-bottom: 1px solid var(--line);
-        overflow-x: auto
+        overflow-x: auto;
     }
 
     .tabs a {
         padding: 9px 15px;
+        font-size: 14px;
         color: var(--mut);
         border-bottom: 2px solid transparent;
         margin-bottom: -1px;
-        white-space: nowrap
+        white-space: nowrap;
     }
 
     .tabs a.on {
         color: var(--ink);
         font-weight: 600;
-        border-color: var(--c1)
+        border-color: var(--c1);
     }
 
     .top {
-        display: grid;
-        grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+        display: flex;
         gap: 16px;
-        align-items: stretch
-    }
-
-    .brk {
-        order: 3;
-        flex-basis: 100%;
-        height: 0
-    }
-
-    .find {
-        order: 1
-    }
-
-    .tools>.rb,
-    .tools>select {
-        order: 2
-    }
-
-    .tools>.seg,
-    .tools>.dates,
-    .cmp {
-        order: 4
-    }
-
-    .tools>select {
-        max-width: 230px;
-        text-overflow: ellipsis
-    }
-
-    .cmp {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        margin: 0 0 0 auto;
-        color: var(--mut);
-        cursor: pointer
-    }
-
-    .tools {
-        box-shadow: 0 1px 2px rgba(20, 35, 45, .06)
-    }
-
-    .kpis {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        align-content: stretch
-    }
-
-    .kpis div {
-        padding: 18px 22px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        gap: 4px;
-        border-bottom: 1px solid var(--line)
-    }
-
-    .kpis div:nth-child(odd) {
-        border-right: 1px solid var(--line)
-    }
-
-    .kpis div:nth-last-child(-n+2) {
-        border-bottom: 0
-    }
-
-    .kpis span {
-        color: var(--mut);
-        font-size: 13px
-    }
-
-    .kpis b {
-        font-size: 22px;
-        font-weight: 600;
-        letter-spacing: -.01em
-    }
-
-    @media (max-width:900px) {
-        .top {
-            grid-template-columns: 1fr
-        }
+        flex-wrap: wrap;
     }
 
     .stmt,
-    .kpis,
+    .chart,
     .tbl {
         background: var(--pan);
         border: 1px solid var(--line);
-        border-radius: 12px;
-        box-shadow: 0 1px 2px rgba(20, 35, 45, .06)
+        border-radius: 10px;
     }
 
     .stmt {
-        padding: 22px 26px
-    }
-
-    .stmt h2 {
-        font-size: 15px;
-        font-weight: 600;
-        margin: 0 0 12px
-    }
-
-    .mix {
-        display: flex;
-        height: 8px;
-        border-radius: 99px;
-        overflow: hidden;
-        gap: 2px;
-        margin-bottom: 10px
-    }
-
-    .mix i {
-        display: block;
-        min-width: 2px
+        flex: 0 1 430px;
+        padding: 20px 22px;
     }
 
     .stmt dl {
-        margin: 0
-    }
-
-    .stmt dt {
-        font-weight: 400
+        margin: 0;
     }
 
     .stmt dl>div {
         display: flex;
         align-items: baseline;
         gap: 8px;
-        padding: 6px 0
+        padding: 6px 0;
+        font-size: 14px;
     }
 
     .dots {
         flex: 1;
         border-bottom: 2px dotted var(--line);
-        transform: translateY(-3px)
+        transform: translateY(-3px);
     }
 
     .stmt dd {
         margin: 0;
-        font-weight: 500
+        font-weight: 500;
     }
 
     .stmt small {
         color: var(--mut);
         width: 46px;
         text-align: right;
-        font-size: 12.5px
+        font-size: 12.5px;
     }
 
     .sw {
@@ -534,7 +428,7 @@ include("includes/header.php");
         width: 9px;
         height: 9px;
         border-radius: 2px;
-        margin-right: 8px
+        margin-right: 8px;
     }
 
     .stmt dl>.tot {
@@ -542,62 +436,91 @@ include("includes/header.php");
         padding: 10px 0 8px;
         border-top: 1px solid var(--ink);
         border-bottom: 4px double var(--ink);
-        font-size: 24px;
-        font-weight: 700
+        font-size: 18px;
+        font-weight: 700;
     }
 
-    .delta {
-        margin: 10px 0 0;
+    .facts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 18px;
         font-size: 13px;
-        color: var(--mut)
+        color: var(--mut);
     }
 
-    .delta.up b {
-        color: var(--up)
+    .facts b {
+        display: block;
+        color: var(--ink);
+        font-size: 17px;
+        font-weight: 600;
     }
 
-    .delta.dn b {
-        color: var(--dn)
+    .chart {
+        flex: 1 1 320px;
+        padding: 20px 22px 14px;
+    }
+
+    .cols {
+        display: flex;
+        gap: 3px;
+        height: 190px;
+        margin: 14px 0 8px;
+        align-items: stretch;
+    }
+
+    .bar {
+        flex: 1;
+        min-width: 2px;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        border-bottom: 2px solid var(--line);
+    }
+
+    .bar:hover {
+        background: #eef2f5;
+    }
+
+    .bar i {
+        display: block;
+        width: 100%;
+    }
+
+    .row-between {
+        display: flex;
+        justify-content: space-between;
+        font-size: 13px;
+        color: var(--mut);
     }
 
     .applied {
         display: flex;
         gap: 8px;
         flex-wrap: wrap;
-        align-items: center;
-        margin: 18px 0 12px
+        margin: 18px 0 12px;
     }
 
     .tag {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid #cfdde2;
-        border-radius: 99px;
-        padding: 4px 11px;
-        font-size: 13px;
+        color: var(--ink);
         background: #e6eef1;
-        max-width: 100%
+        border-color: #cfdde2;
     }
 
     .tag a {
         margin-left: 8px;
-        color: var(--mut)
-    }
-
-    .clear {
-        font-size: 13px;
-        color: var(--c1);
-        text-decoration: underline !important
+        color: var(--mut);
     }
 
     .tbl {
         overflow-x: auto;
-        margin-top: 12px
+        margin-top: 12px;
     }
 
     .rpt table {
         width: 100%;
-        border-collapse: collapse
+        border-collapse: collapse;
+        font-size: 14px;
     }
 
     .rpt th {
@@ -607,38 +530,37 @@ include("includes/header.php");
         padding: 12px 16px;
         border-bottom: 1px solid var(--line);
         white-space: nowrap;
-        background: #fafbfc
     }
 
     .rpt td {
         padding: 12px 16px;
         border-bottom: 1px solid #edf0f3;
-        vertical-align: top
+        vertical-align: top;
     }
 
     .rpt tbody tr:hover td {
-        background: #f8fafb
+        background: #f8fafb;
     }
 
     .rpt tbody tr:last-child td {
-        border-bottom: 0
+        border-bottom: 0;
     }
 
     .rpt .n {
         text-align: right;
-        white-space: nowrap
+        white-space: nowrap;
     }
 
     .rpt .s {
         color: var(--mut);
         font-size: 12.5px;
-        margin-top: 2px
+        margin-top: 2px;
     }
 
     .rpt tfoot td {
         font-weight: 600;
         border-top: 1px solid var(--ink);
-        background: #f6f8fa
+        background: #f6f8fa;
     }
 
     .pill {
@@ -646,17 +568,17 @@ include("includes/header.php");
         padding: 2px 10px;
         border-radius: 99px;
         font-size: 12.5px;
-        font-weight: 500
+        font-weight: 500;
     }
 
     .pill.p {
         background: #d9ecf0;
-        color: #08474f
+        color: #08474f;
     }
 
     .pill.e {
         background: #f6e6c9;
-        color: #6b4306
+        color: #6b4306;
     }
 
     .clamp {
@@ -664,45 +586,45 @@ include("includes/header.php");
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
-        max-width: 250px
+        max-width: 250px;
     }
 
     .empty {
         padding: 56px 20px;
         text-align: center;
-        color: var(--mut)
+        color: var(--mut);
     }
 
     .empty b {
         display: block;
         color: var(--ink);
         font-size: 16px;
-        margin-bottom: 4px
+        margin-bottom: 4px;
     }
 
-    @media (max-width:760px) {
-
-        .seg,
-        .dates {
-            width: 100%
+    @media (max-width: 980px) {
+        .rpt {
+            grid-template-columns: 1fr;
         }
 
-        .dates input {
-            flex: 1
+        .rail {
+            position: static;
         }
     }
 
     @media print {
 
-        .tools,
+        .rail,
         .tabs,
         .acts,
         .applied {
-            display: none
+            display: none;
         }
 
         .rpt {
-            padding: 0
+            display: block;
+            background: #fff;
+            padding: 0;
         }
     }
 </style>
@@ -714,49 +636,83 @@ include("includes/header.php");
             <?php include("includes/topnav.php"); ?>
             <div class="container-fluid mt-4">
                 <div class="rpt">
+
+                    <form class="rail" method="get" aria-label="Filters">
+                        <input type="hidden" name="view" value="<?= $h($view) ?>">
+                        <h2>Filters</h2>
+                        <div class="chips">
+                            <?php foreach ($ranges as $l => [$a, $b]): ?>
+                                <a href="?<?= $qs(['date_from' => $a, 'date_to' => $b]) ?>" class="<?= ($f['date_from'] === $a && $f['date_to'] === $b) ? 'on' : '' ?>"><?= $l ?></a>
+                            <?php endforeach; ?>
+                        </div>
+                        <div class="two">
+                            <label>From<input type="date" name="date_from" value="<?= $h($f['date_from']) ?>"></label>
+                            <label>To<input type="date" name="date_to" value="<?= $h($f['date_to']) ?>"></label>
+                        </div>
+                        <label>Program
+                            <select name="program">
+                                <option value="">All programs</option>
+                                <?php foreach ($programs as $p): ?><option value="<?= $h($p['programName']) ?>" <?= $f['program'] === $p['programName'] ? 'selected' : '' ?>><?= $h($p['programName']) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Session
+                            <select name="session">
+                                <option value="">All sessions</option>
+                                <?php foreach ($sessions as $x): ?><option value="<?= $h($x['session']) ?>" <?= $f['session'] === $x['session'] ? 'selected' : '' ?>><?= $h($x['session']) ?></option><?php endforeach; ?>
+                            </select>
+                        </label>
+                        <label>Student or receipt<input type="search" name="search" value="<?= $h($f['search']) ?>" placeholder="ID, name or receipt no."></label>
+
+                        <details <?= $adv ? 'open' : '' ?>>
+                            <summary>More filters</summary>
+                            <label>Entry type
+                                <select name="type">
+                                    <option value="">Payments and extra tickets</option>
+                                    <option value="payment" <?= $f['type'] === 'payment' ? 'selected' : '' ?>>Payments only</option>
+                                    <option value="extra" <?= $f['type'] === 'extra' ? 'selected' : '' ?>>Extra tickets added later</option>
+                                </select>
+                            </label>
+                            <label>Taken by
+                                <select name="cashier">
+                                    <option value="">Everyone</option>
+                                    <?php foreach ($cashiers as $c): ?><option value="<?= $h($c['cashier']) ?>" <?= $f['cashier'] === $c['cashier'] ? 'selected' : '' ?>><?= $h($c['cashier']) ?></option><?php endforeach; ?>
+                                </select>
+                            </label>
+                            <div class="two">
+                                <label>Entry amount from<input type="number" min="0" name="min" value="<?= $h($f['min']) ?>" placeholder="Rs."></label>
+                                <label>to<input type="number" min="0" name="max" value="<?= $h($f['max']) ?>" placeholder="Rs."></label>
+                            </div>
+                            <label>Extra tickets in entry
+                                <select name="tickets">
+                                    <option value="">Any</option>
+                                    <?php foreach (['none' => 'None', 'any' => 'At least one', '1-2' => '1 to 2', '3-5' => '3 to 5', '6+' => '6 or more'] as $v => $l): ?>
+                                        <option value="<?= $v ?>" <?= $f['tickets'] === $v ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+                                </select>
+                            </label>
+                            <?php if ($view === 'ledger'): ?>
+                                <label>Sort ledger by
+                                    <select name="sort">
+                                        <option value="">Newest first</option>
+                                        <?php foreach (['date_asc' => 'Oldest first', 'amount_desc' => 'Amount, high to low', 'amount_asc' => 'Amount, low to high', 'student' => 'Student ID'] as $v => $l): ?>
+                                            <option value="<?= $v ?>" <?= $f['sort'] === $v ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
+                                    </select>
+                                </label>
+                            <?php endif; ?>
+                        </details>
+                        <button class="rb pri" type="submit">Apply filters</button>
+                        <a class="rb" href="?view=<?= $h($view) ?>">Clear all</a>
+                    </form>
+
                     <main>
                         <div class="head">
                             <div>
-                                <h4>Payment reports</h4>
+                                <h4>Payment Reports</h4>
                                 <div class="sub"><?= date('d M Y', strtotime($f['date_from'])) ?> to <?= date('d M Y', strtotime($f['date_to'])) ?>, in Sri Lanka time</div>
                             </div>
                             <div class="acts"><button class="rb" onclick="window.print()">Print</button>
                                 <a class="rb pri" href="?<?= $qs(['export' => 1]) ?>">Download CSV</a>
                             </div>
                         </div>
-
-                        <form class="tools" id="flt" method="get" aria-label="Filters">
-                            <input type="hidden" name="view" value="<?= $h($view) ?>">
-                            <div class="find">
-                                <select name="scope" aria-label="Search in">
-                                    <?php foreach (['' => 'Everything', 'id' => 'Student ID', 'name' => 'Name', 'receipt' => 'Receipt no.'] as $v => $l): ?><option value="<?= $v ?>" <?= $f['scope'] === $v ? 'selected' : '' ?>><?= $l ?></option><?php endforeach; ?>
-                                </select>
-                                <input type="search" name="search" value="<?= $h($f['search']) ?>" placeholder="Search students or receipts" aria-label="Search">
-                            </div>
-                            <select name="session[]" aria-label="Session" onchange="this.form.elements['program[]'].value='';this.form.submit()">
-                                <option value="">All sessions</option>
-                                <?php foreach ($sessions as $o): $v = $o['session']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['session'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
-                            </select>
-
-                            <select name="program[]" aria-label="Program" onchange="this.form.submit()">
-                                <option value="">All programs</option>
-                                <?php foreach ($programs as $o): $v = $o['programName']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['program'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
-                            </select>
-
-                            <div class="seg">
-                                <?php foreach ($ranges as $l => [$a, $b]): ?><a href="?<?= $qs(['date_from' => $a, 'date_to' => $b]) ?>" class="<?= ($f['date_from'] === $a && $f['date_to'] === $b) ? 'on' : '' ?>"><?= $l ?></a><?php endforeach; ?>
-                            </div>
-                            <div class="brk"></div>
-                            <label class="cmp"><input type="checkbox" name="compare" value="1" <?= $f['compare'] ? 'checked' : '' ?> onchange="this.form.submit()"> Compare with previous period</label>
-                            <div class="seg" aria-label="Entry type">
-                                <?php foreach (['' => 'All entries', 'payment' => 'Payments', 'extra' => 'Added later'] as $v => $l): ?><a href="?<?= $qs(['type' => $v]) ?>" class="<?= $f['type'] === $v ? 'on' : '' ?>"><?= $l ?></a><?php endforeach; ?>
-                            </div>
-                            <div class="dates">
-                                <input type="date" name="date_from" value="<?= $h($f['date_from']) ?>" aria-label="From date" onchange="this.form.submit()"> to
-                                <input type="date" name="date_to" value="<?= $h($f['date_to']) ?>" aria-label="To date" onchange="this.form.submit()">
-                            </div>
-                            <button class="rb pri" type="submit">Apply</button>
-                        </form>
 
                         <nav class="tabs" aria-label="Report view">
                             <?php foreach ($views as $v => $l): ?><a href="?<?= $qs(['view' => $v]) ?>" class="<?= $v === $view ? 'on' : '' ?>" <?= $v === $view ? 'aria-current="page"' : '' ?>><?= $l ?></a><?php endforeach; ?>
@@ -765,7 +721,6 @@ include("includes/header.php");
                         <div class="top">
                             <section class="stmt" aria-label="Closing statement">
                                 <h2>Closing statement</h2>
-                                <?php if ($rev > 0): ?><div class="mix" aria-hidden="true"><i style="flex:<?= (float) $s['grad'] ?>;background:var(--c1)"></i><i style="flex:<?= (float) $s['desk'] ?>;background:var(--c2)"></i><i style="flex:<?= (float) $s['later'] ?>;background:var(--c3)"></i></div><?php endif; ?>
                                 <dl>
                                     <div>
                                         <dt><i class="sw" style="background:var(--c1)"></i>Graduation fees</dt><span class="dots"></span>
@@ -784,17 +739,28 @@ include("includes/header.php");
                                         <dd>Rs. <?= $rs($rev) ?></dd>
                                     </div>
                                 </dl>
-                                <?php if ($prev !== null): $dv = $rev - $prev; ?>
-                                    <p class="delta <?= $dv >= 0 ? 'up' : 'dn' ?>"><?= $prev > 0 ? '<b>' . ($dv >= 0 ? '▲ ' : '▼ ') . number_format(abs($dv) / $prev * 100, 1) . '%</b> against the previous ' . $days . ' days (Rs. ' . $rs($prev) . ')' : 'No collections in the previous ' . $days . ' days to compare with' ?></p>
-                                <?php endif; ?>
+                                <div class="facts">
+                                    <div><b><?= $rs($s['payments']) ?></b>payments with a receipt</div>
+                                    <div><b><?= $rs($s['students']) ?></b>students</div>
+                                    <div><b><?= $rs($s['tickets']) ?></b>extra tickets sold</div>
+                                    <div><b>Rs. <?= $rs($avg) ?></b>average per student</div>
+                                </div>
                             </section>
-                            <section class="kpis" aria-label="Summary">
-                                <div><span>Payments with a receipt</span><b><?= $rs($s['payments']) ?></b></div>
-                                <div><span>Students</span><b><?= $rs($s['students']) ?></b></div>
-                                <div><span>Extra tickets sold</span><b><?= $rs($s['tickets']) ?></b></div>
-                                <div><span>Average per student</span><b>Rs. <?= $rs($avg) ?></b></div>
-                            </section>
-
+                            <?php if ($chart): ?>
+                                <section class="chart" aria-label="Collected each day">
+                                    <div class="row-between"><span>Collected each day</span><span>Highest day Rs. <?= $rs($peak) ?></span></div>
+                                    <div class="cols">
+                                        <?php foreach ($chart as $c): ?>
+                                            <div class="bar" title="<?= date('d M', strtotime($c['d'])) ?>: Rs. <?= $rs($c['g'] + $c['x'] + $c['l']) ?>">
+                                                <i style="height:<?= round($c['l'] / $peak * 100, 1) ?>%;background:var(--c3)"></i>
+                                                <i style="height:<?= round($c['x'] / $peak * 100, 1) ?>%;background:var(--c2)"></i>
+                                                <i style="height:<?= round($c['g'] / $peak * 100, 1) ?>%;background:var(--c1)"></i>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <div class="row-between"><span><?= date('d M', strtotime($f['date_from'])) ?></span><span><?= date('d M', strtotime($f['date_to'])) ?></span></div>
+                                </section>
+                            <?php endif; ?>
                         </div>
 
                         <?php if ($active): ?>
@@ -802,12 +768,6 @@ include("includes/header.php");
                                 <?php foreach ($active as $a): $drop = array_fill_keys(array_slice($a, 1), ''); ?>
                                     <span class="tag"><?= $h($a[0]) ?><a href="?<?= $qs($drop) ?>" aria-label="Remove filter">×</a></span>
                                 <?php endforeach; ?>
-                                <!-- <a class="clear" href="?view=<?= $h($view) ?>">Clear all</a> -->
-                                <a class="clear"
-                                    href="?view=<?= $h($view) ?>"
-                                    style="display:inline-block; padding:8px 16px; background:#dc3545; color:#fff; text-decoration:none; border-radius:5px; border:1px solid #dc3545; font-size:14px; cursor:pointer;">
-                                    Clear Filter
-                                </a>
                             </div>
                         <?php endif; ?>
 
@@ -875,8 +835,8 @@ include("includes/header.php");
                                             <tr>
                                                 <td><?php if ($view === 'day'): ?><?= date('d M Y', strtotime($d['k'])) ?><div class="s"><?= date('l', strtotime($d['k'])) ?></div>
                                                     <?php elseif ($view === 'month'): ?><?= date('F Y', strtotime($d['k'] . '-01')) ?>
-                                                <?php elseif ($view === 'program'): ?><a href="?<?= $qs(['view' => 'ledger', 'program' => [$d['k']]]) ?>"><?= $h($d['k']) ?></a>
-                                                <?php else: ?><a href="?<?= $qs(['view' => 'ledger', 'search' => $d['k'], 'scope' => 'id']) ?>"><?= $h($d['name'] ?: 'Unknown student') ?></a>
+                                                <?php elseif ($view === 'program'): ?><a href="?<?= $qs(['view' => 'ledger', 'program' => $d['k']]) ?>"><?= $h($d['k']) ?></a>
+                                                <?php else: ?><a href="?<?= $qs(['view' => 'ledger', 'search' => $d['k']]) ?>"><?= $h($d['name'] ?: 'Unknown student') ?></a>
                                                     <div class="s"><?= $h($d['k']) ?> · <?= $h($d['prog']) ?></div><?php endif; ?>
                                                 </td>
                                                 <td class="n"><?= $rs($d['payments']) ?></td>
@@ -914,8 +874,4 @@ include("includes/header.php");
 <script src="vendor/jquery/jquery.min.js"></script>
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-<script>
-    /* Filters apply for this visit only: drop them from the address bar so a refresh starts clean. */
-    history.replaceState(null, '', location.pathname + '?view=<?= $h($view) ?>');
-</script>
 <?php include("includes/footer.php"); ?>

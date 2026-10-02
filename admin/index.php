@@ -110,104 +110,98 @@ if ($result && $row = $result->fetch_assoc()) {
 
 
 // -------------------------
-// 🔟 Session-wise Stats (SESSION_01 / SESSION_02 / SESSION_03)
+// 🔟 Sessions = the unique values of data_tables.session (no hard-coded list)
 // -------------------------
-$sessionLabels = [
-    'SESSION_01' => 'Session 01',
-    'SESSION_02' => 'Session 02',
-    'SESSION_03' => 'Session 03',
-];
-$sessionSummary = [];
-
-// ALL extra_ticket_log tickets are added to SESSION_01 (same rule as the old MORNING logic)
-$extraLogTotal = 0;
-$resultLog = $conn->query("SELECT SUM(added_tickets) AS t FROM extra_ticket_log");
-if ($resultLog && $rowLog = $resultLog->fetch_assoc()) {
-    $extraLogTotal = (int)($rowLog['t'] ?? 0);
+function session_label(string $code): string
+{
+    return ucwords(strtolower(str_replace('_', ' ', trim($code))));
 }
 
-$stmtSession = $conn->prepare("
-    SELECT
-        COUNT(DISTINCT rs.student_id)            AS total_registered,
-        COUNT(DISTINCT pr.student_id)            AS total_paid_students,
-        COALESCE(SUM(pr.free_ticket_count), 0)   AS total_free_tickets,
-        COALESCE(SUM(pr.extra_ticket_count), 0)  AS total_extra_tickets
-    FROM registered_students rs
-    LEFT JOIN payment_records pr ON rs.student_id = pr.student_id
-    WHERE rs.program_name IN (SELECT programName FROM data_tables WHERE session = ?)
-");
-
-foreach ($sessionLabels as $sessionCode => $sessionLabel) {
-    $row = null;
-    if ($stmtSession) {
-        $stmtSession->bind_param("s", $sessionCode);
-        $stmtSession->execute();
-        $res = $stmtSession->get_result();
-        $row = $res ? $res->fetch_assoc() : null;
+$sessionCodes = [];
+$res = $conn->query("SELECT DISTINCT TRIM(`session`) AS code FROM data_tables WHERE `session` IS NOT NULL AND TRIM(`session`) <> ''");
+if ($res) {
+    while ($r = $res->fetch_assoc()) {
+        $sessionCodes[] = $r['code'];
     }
+}
+natcasesort($sessionCodes);
+$sessionCodes = array_values($sessionCodes);
 
-    $session_added = ($sessionCode === 'SESSION_01') ? $extraLogTotal : 0;
-    $base_extra = (int)($row['total_extra_tickets'] ?? 0);
-
-    $sessionSummary[$sessionCode] = [
-        'registered_students' => (int)($row['total_registered'] ?? 0),
-        'paid_students'       => (int)($row['total_paid_students'] ?? 0),
-        'free_tickets'        => (int)($row['total_free_tickets'] ?? 0),
-        'extra_tickets'       => $base_extra + $session_added,
-        'base_extra'          => $base_extra,
-        'session_added'       => $session_added,
+$sessionData = [];
+foreach ($sessionCodes as $code) {
+    $sessionData[$code] = [
+        'label' => session_label($code),
+        'registered' => 0,
+        'paid' => 0,
+        'attended' => 0,
+        'remaining' => 0,
+        'free' => 0,
+        'base_extra' => 0,
+        'log_extra' => 0,
+        'log_legacy' => 0,
     ];
 }
-if ($stmtSession) {
-    $stmtSession->close();
+
+// programme -> session map, one row per programme so a programme listed twice is never counted twice
+$programMap = "(SELECT DISTINCT TRIM(programName) AS pname, TRIM(`session`) AS sess
+                FROM data_tables WHERE `session` IS NOT NULL AND TRIM(`session`) <> '') m";
+
+// registered / paid / attended / not attended / free + extra tickets from payment receipts
+$res = $conn->query("
+    SELECT m.sess AS code,
+           COUNT(DISTINCT rs.student_id) AS registered,
+           COUNT(DISTINCT pr.student_id) AS paid,
+           COUNT(DISTINCT CASE WHEN rs.attend = 'attended' THEN rs.student_id END) AS attended,
+           COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
+                                AND (rs.attend IS NULL OR rs.attend != 'attended') THEN rs.student_id END) AS remaining,
+           COALESCE(SUM(pr.free_ticket_count), 0)  AS free_t,
+           COALESCE(SUM(pr.extra_ticket_count), 0) AS extra_t
+    FROM registered_students rs
+    JOIN $programMap ON TRIM(rs.program_name) = m.pname
+    LEFT JOIN payment_records pr ON pr.student_id = rs.student_id
+    GROUP BY m.sess
+");
+if ($res) {
+    while ($r = $res->fetch_assoc()) {
+        if (!isset($sessionData[$r['code']])) {
+            continue;
+        }
+        $sessionData[$r['code']]['registered'] = (int)$r['registered'];
+        $sessionData[$r['code']]['paid']       = (int)$r['paid'];
+        $sessionData[$r['code']]['attended']   = (int)$r['attended'];
+        $sessionData[$r['code']]['remaining']  = (int)$r['remaining'];
+        $sessionData[$r['code']]['free']       = (int)$r['free_t'];
+        $sessionData[$r['code']]['base_extra'] = (int)$r['extra_t'];
+    }
 }
 
-// -------------------------
-// 🔟 Session Stats (paid / attended / not attended) - Admin & Registration Desk
-// -------------------------
-function getSessionStats(mysqli $conn): array
-{
-    $stats = [];
-    foreach (['session_01', 'session_02', 'session_03'] as $key) {
-        $stats[$key] = ['paid' => 0, 'attended' => 0, 'remaining' => 0];
-    }
-
-    $sql = "
-        SELECT dt.session AS session_code,
-               COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
-                                   THEN rs.student_id END) AS total_paid,
-               COUNT(DISTINCT CASE WHEN rs.attend = 'attended'
-                                   THEN rs.student_id END) AS total_attended,
-               COUNT(DISTINCT CASE WHEN pr.student_id IS NOT NULL
-                                    AND (rs.attend IS NULL OR rs.attend != 'attended')
-                                   THEN rs.student_id END) AS total_remaining
-        FROM registered_students rs
-        INNER JOIN data_tables dt ON rs.program_name = dt.programName
-        LEFT JOIN payment_records pr ON rs.student_id = pr.student_id
-        WHERE dt.session IN ('SESSION_01', 'SESSION_02', 'SESSION_03')
-        GROUP BY dt.session
-    ";
-
-    $result = $conn->query($sql);
-    if ($result) {
-        while ($row = $result->fetch_assoc()) {
-            $key = strtolower(trim($row['session_code']));
-            if (isset($stats[$key])) {
-                $stats[$key] = [
-                    'paid'      => (int)$row['total_paid'],
-                    'attended'  => (int)$row['total_attended'],
-                    'remaining' => (int)$row['total_remaining'],
-                ];
-            }
+// extra tickets added at the desk: extra_ticket_log.session decides the session.
+// Rows with no session (older rows) or an unknown session are NOT dropped: they go to the first
+// session, exactly like the old rule, and are shown as "older tickets" so the totals stay complete.
+$sessionByUpper = [];
+foreach ($sessionCodes as $code) {
+    $sessionByUpper[strtoupper($code)] = $code;
+}
+$firstSession = $sessionCodes[0] ?? null;
+$res = $conn->query("
+    SELECT UPPER(TRIM(COALESCE(`session`, ''))) AS code, COALESCE(SUM(added_tickets), 0) AS t
+    FROM extra_ticket_log
+    GROUP BY code
+");
+if ($res) {
+    while ($r = $res->fetch_assoc()) {
+        $t = (int)$r['t'];
+        if (isset($sessionByUpper[$r['code']])) {
+            $sessionData[$sessionByUpper[$r['code']]]['log_extra'] += $t;
+        } elseif ($firstSession !== null) {
+            $sessionData[$firstSession]['log_extra']  += $t;
+            $sessionData[$firstSession]['log_legacy'] += $t;
         }
     }
-    return $stats;
 }
 
-$sessionStats = [];
-if (in_array($role, ['admin', 'registrationDesk'])) {
-    $sessionStats = getSessionStats($conn);
-}
+// receipts' extra tickets that belong to a student whose programme has no session
+$unlinkedExtra = max(0, (int)$paymentExtraTickets - array_sum(array_column($sessionData, 'base_extra')));
 
 ?>
 <meta http-equiv="refresh" content="10">
@@ -272,6 +266,473 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
         }
     }
 </style>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&family=Public+Sans:wght@400;500;600;700&family=Geist+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+    .dash {
+        --ink: #17233d;
+        --muted: #5f6b7e;
+        --line: #e2e6ee;
+        --soft: #f4f6fb;
+        --brand: #1f4bb6;
+        --brand-bg: #e8eefb;
+        --ok: #1b7f4b;
+        --ok-bg: #e6f4ec;
+        --bad: #c0372f;
+        font-family: 'Public Sans', system-ui, sans-serif;
+        color: var(--ink);
+        max-width: 1180px;
+        margin: 0 auto;
+        padding-bottom: 56px;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .dash * {
+        box-sizing: border-box;
+    }
+
+    .dash-head {
+        margin-bottom: 26px;
+    }
+
+    .dash-head h1 {
+        font-family: 'Newsreader', Georgia, serif;
+        font-weight: 600;
+        font-size: 2.1rem;
+        letter-spacing: -.02em;
+        margin: 0 0 4px;
+    }
+
+    .dash-head p {
+        margin: 0;
+        color: var(--muted);
+    }
+
+    .dash-sec {
+        margin-bottom: 30px;
+    }
+
+    .dash-sec h2,
+    .dash-sec-head h2 {
+        font-size: 1.05rem;
+        font-weight: 700;
+        letter-spacing: -.01em;
+        margin: 0 0 14px;
+    }
+
+    .dash-sec-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .dash-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+        gap: 16px;
+    }
+
+    .dash-card {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px 22px;
+        min-width: 0;
+    }
+
+    .dash-card.flush {
+        padding: 0;
+        overflow: hidden;
+    }
+
+    .dash-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+    }
+
+    .dash-chip {
+        display: inline-block;
+        padding: 4px 13px;
+        border-radius: 999px;
+        background: var(--brand-bg);
+        color: var(--brand);
+        font-weight: 700;
+        font-size: .9rem;
+    }
+
+    .dash-pct {
+        font-size: .8rem;
+        font-weight: 600;
+        color: var(--muted);
+    }
+
+    .dash-nums {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .dash-nums span {
+        display: block;
+        font-size: .78rem;
+        color: var(--muted);
+        margin-bottom: 4px;
+    }
+
+    .dash-nums strong,
+    .dash-kpi strong,
+    .dash-rows dd,
+    .dash-total strong {
+        font-family: 'Geist Mono', ui-monospace, monospace;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .dash-nums strong {
+        font-size: 2rem;
+        font-weight: 700;
+        letter-spacing: -.04em;
+        line-height: 1.1;
+    }
+
+    .dash-nums .ok {
+        color: var(--ok);
+    }
+
+    .dash-nums .bad {
+        color: var(--bad);
+    }
+
+    .dash-bar {
+        height: 8px;
+        border-radius: 4px;
+        background: #eceff5;
+        overflow: hidden;
+    }
+
+    .dash-bar i {
+        display: block;
+        height: 100%;
+        background: var(--ok);
+        border-radius: 4px;
+    }
+
+    .dash-kpis {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px;
+    }
+
+    .dash-kpi {
+        background: #fff;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px 20px;
+    }
+
+    .dash-kpi span {
+        display: block;
+        font-size: .84rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+    }
+
+    .dash-kpi strong {
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -.04em;
+    }
+
+    .dash-rows {
+        margin: 0 0 6px;
+    }
+
+    .dash-rows>div {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .dash-rows dt {
+        font-weight: 500;
+        font-size: .92rem;
+    }
+
+    .dash-rows dt small {
+        display: block;
+        font-weight: 400;
+        font-size: .74rem;
+        color: var(--muted);
+    }
+
+    .dash-rows dd {
+        margin: 0;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .dash-rows dd b {
+        font-weight: 700;
+        color: var(--brand);
+    }
+
+    .dash-note {
+        margin: 10px 0 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #fff3c4;
+        color: #6b4a00;
+        font-size: .78rem;
+    }
+
+    .dash-note.mt {
+        margin-top: 14px;
+    }
+
+    .dash-total {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 14px 0 16px;
+        padding: 14px 16px;
+        border-radius: 12px;
+        background: var(--brand);
+        color: #fff;
+    }
+
+    .dash-total span {
+        font-size: .84rem;
+        font-weight: 600;
+    }
+
+    .dash-total strong {
+        font-size: 1.9rem;
+        font-weight: 700;
+        letter-spacing: -.04em;
+    }
+
+    .dash-btn {
+        width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 42px;
+        font: inherit;
+        font-weight: 600;
+        font-size: .9rem;
+        color: var(--ink);
+        background: #fff;
+        border: 1px solid #c4ccd9;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background .15s, transform .1s;
+    }
+
+    .dash-btn:hover {
+        background: #f1f4f9;
+    }
+
+    .dash-btn:active {
+        transform: scale(.98);
+    }
+
+    .dash-btn:focus-visible {
+        outline: 3px solid rgba(31, 75, 182, .35);
+        outline-offset: 2px;
+    }
+
+    .dash-pill {
+        padding: 3px 12px;
+        border-radius: 999px;
+        background: var(--soft);
+        font-size: .8rem;
+        font-weight: 600;
+        color: var(--muted);
+    }
+
+    .dash-table {
+        margin: 0 !important;
+        font-size: .9rem;
+    }
+
+    .dash-table thead th {
+        font-size: .78rem;
+        font-weight: 600;
+        color: var(--muted);
+        background: var(--soft);
+        border-bottom: 1px solid var(--line) !important;
+        padding: 12px 16px;
+        white-space: nowrap;
+    }
+
+    .dash-table td {
+        padding: 12px 16px;
+        border-color: var(--line);
+        vertical-align: middle;
+    }
+
+    .dash-table .nowrap {
+        white-space: nowrap;
+        color: var(--muted);
+    }
+
+    .dash-tag {
+        display: inline-block;
+        padding: 2px 10px;
+        border-radius: 999px;
+        background: var(--soft);
+        font-size: .76rem;
+        font-weight: 600;
+    }
+
+    .dash-tag.ins {
+        background: var(--ok-bg);
+        color: var(--ok);
+    }
+
+    .dash-tag.upd {
+        background: #fff3c4;
+        color: #6b4a00;
+    }
+
+    .dash-foot {
+        padding: 12px 16px;
+        text-align: center;
+        border-top: 1px solid var(--line);
+    }
+
+    .dash-foot a {
+        font-weight: 600;
+        color: var(--brand);
+        text-decoration: none;
+    }
+
+    .dash-empty {
+        color: var(--muted);
+        margin: 0;
+    }
+
+    .dash-empty.m {
+        padding: 26px;
+        text-align: center;
+    }
+
+    /* attendance cards: soft shadow + a light tint per session */
+    .dash-card.tone {
+        --t: 31, 75, 182;
+        --tc: #1f4bb6;
+        background: rgba(var(--t), .11);
+        border-color: rgba(var(--t), .30);
+        box-shadow: 0 10px 26px -12px rgba(23, 35, 61, .22), 0 2px 6px rgba(23, 35, 61, .05);
+        transition: box-shadow .2s, transform .2s;
+    }
+
+    .dash-card.tone:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 16px 32px -12px rgba(23, 35, 61, .28), 0 3px 8px rgba(23, 35, 61, .06);
+    }
+
+    .dash-card.tone .dash-chip {
+        background: rgba(var(--t), .16);
+        color: var(--tc);
+    }
+
+    .dash-card.tone .dash-bar {
+        background: rgba(255, 255, 255, .75);
+    }
+
+    .dash-card.tone .dash-bar i {
+        background: var(--tc);
+    }
+
+    .dash-card.tone .dash-rows>div {
+        border-bottom-color: rgba(var(--t), .24);
+    }
+
+    .dash-card.tone .dash-rows dd b {
+        color: var(--tc);
+    }
+
+    .dash-card.tone .dash-total {
+        background: var(--tc);
+    }
+
+    .dash-card.tone .dash-btn {
+        background: rgba(255, 255, 255, .85);
+    }
+
+    .dash-card.tone .dash-btn:hover {
+        background: #fff;
+    }
+
+    .tone-pink {
+        --t: 236, 72, 153;
+        --tc: #c02a74;
+    }
+
+    .tone-purple {
+        --t: 124, 58, 237;
+        --tc: #6a35c9;
+    }
+
+    .tone-green {
+        --t: 22, 163, 74;
+        --tc: #1b8a4c;
+    }
+
+    .tone-blue {
+        --t: 31, 75, 182;
+        --tc: #1f4bb6;
+    }
+
+    .tone-amber {
+        --t: 217, 119, 6;
+        --tc: #b25f05;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .dash-card.tone {
+            transition: none;
+        }
+
+        .dash-card.tone:hover {
+            transform: none;
+        }
+    }
+
+    @media (max-width: 575px) {
+        .dash-head h1 {
+            font-size: 1.7rem;
+        }
+
+        .dash-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .dash-nums strong {
+            font-size: 1.7rem;
+        }
+
+        .dash-kpis {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .dash-kpi {
+            padding: 14px 16px;
+        }
+
+        .dash-kpi strong {
+            font-size: 1.6rem;
+        }
+    }
+</style>
 <!-- Page Wrapper -->
 <div id="wrapper">
     <?php include("nav.php"); ?>
@@ -290,171 +751,121 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
                     <i class="fas fa-bars"></i>
                     <span class="fw-semibold">Menu</span>
                 </button>
-                <h3 class="mb-4 text-primary fw-bold">Graduation Management Dashboard</h3>
+                <div class="dash">
+                    <header class="dash-head">
+                        <h1>Graduation dashboard</h1>
+                        <!-- <p><?php echo date('l, j F Y'); ?> &middot; updates every 10 seconds</p> -->
+                    </header>
 
-                <!-- Summary Cards Section -->
-                <div class="row text-center">
-                    <?php if (in_array($role, ['admin', 'registrationDesk'])): ?>
-                        <!-- Session 01 / 02 / 03 Cards - Admin & Registration Desk -->
-                        <?php
-                        $cardColors = ['session_01' => 'primary', 'session_02' => 'warning', 'session_03' => 'info'];
-                        foreach ($sessionLabels as $code => $label):
-                            $key = strtolower($code);
-                            $color = $cardColors[$key];
-                            $st = $sessionStats[$key] ?? ['paid' => 0, 'attended' => 0, 'remaining' => 0];
-                        ?>
-                            <div class="col-md-4 mb-4">
-                                <div class="card shadow border-left-<?php echo $color; ?> py-3">
-                                    <div class="card-body">
-                                        <h5 class="text-<?php echo $color; ?> fw-bold mb-4"><?php echo $label; ?></h5>
-                                        <div class="row text-center">
-                                            <div class="col-4">
-                                                <h6 class="text-success fw-bold">Paid Students</h6>
-                                                <h2 class="fw-bold text-dark"><?php echo (int)$st['paid']; ?></h2>
-                                            </div>
-                                            <div class="col-4">
-                                                <h6 class="text-info fw-bold">Attended Students</h6>
-                                                <h2 class="fw-bold text-dark"><?php echo (int)$st['attended']; ?></h2>
-                                            </div>
-                                            <div class="col-4">
-                                                <h6 class="text-danger fw-bold">Not Attended</h6>
-                                                <h2 class="fw-bold text-dark"><?php echo (int)$st['remaining']; ?></h2>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
                     <?php
-                    endif; ?>
+                    $tones = ['pink', 'purple', 'green', 'blue', 'amber'];
+                    $toneOf = function ($code) use ($sessionCodes, $tones) {
+                        $i = array_search($code, $sessionCodes, true);
+                        return $tones[($i === false ? 0 : $i) % count($tones)];
+                    };
+                    ?>
 
-                    <!-- General Stats Cards - ALL ROLES -->
-                    <div class="col-md-3 mb-4">
-                        <div class="card shadow border-left-primary py-3">
-                            <div class="card-body">
-                                <h6 class="text-primary fw-bold">Today's Registered</h6>
-                                <h2 class="fw-bold text-dark"><?php echo $todayRegistered; ?></h2>
-                            </div>
-                        </div>
-                    </div>
+                    <?php if (in_array($role, ['admin', 'registrationDesk'])): ?>
+                        <section class="dash-sec">
+                            <h2>Attendance by session</h2>
+                            <?php if (!$sessionData): ?>
+                                <p class="dash-empty">No sessions are set in the programme list yet.</p>
+                            <?php else: ?>
+                                <div class="dash-grid">
+                                    <?php foreach ($sessionData as $code => $d):
+                                        $pct = $d['paid'] ? min(100, (int)round($d['attended'] / $d['paid'] * 100)) : 0; ?>
+                                        <article class="dash-card tone tone-<?php echo $toneOf($code); ?>">
+                                            <div class="dash-card-head">
+                                                <span class="dash-chip"><?php echo htmlspecialchars($d['label']); ?></span>
+                                                <span class="dash-pct"><?php echo $pct; ?>% attended</span>
+                                            </div>
+                                            <div class="dash-nums">
+                                                <div><span>Paid students</span><strong><?php echo $d['paid']; ?></strong></div>
+                                                <div><span>Attended</span><strong class="ok"><?php echo $d['attended']; ?></strong></div>
+                                                <div><span>Not attended</span><strong class="bad"><?php echo $d['remaining']; ?></strong></div>
+                                            </div>
+                                            <div class="dash-bar" role="img" aria-label="<?php echo $pct; ?> percent attended"><i style="width:<?php echo $pct; ?>%"></i></div>
+                                        </article>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </section>
+                    <?php endif; ?>
 
-                    <div class="col-md-3 mb-4">
-                        <div class="card shadow border-left-success py-3">
-                            <div class="card-body">
-                                <h6 class="text-success fw-bold">Today's Payments</h6>
-                                <h2 class="fw-bold text-dark"><?php echo $todayPayments; ?></h2>
-                            </div>
+                    <section class="dash-sec">
+                        <h2>Today and overall</h2>
+                        <div class="dash-kpis">
+                            <div class="dash-kpi"><span>Today's registered</span><strong><?php echo number_format((int)$todayRegistered); ?></strong></div>
+                            <div class="dash-kpi"><span>Today's payments</span><strong><?php echo number_format((int)$todayPayments); ?></strong></div>
+                            <div class="dash-kpi"><span>Total registered</span><strong><?php echo number_format((int)$totalRegistered); ?></strong></div>
+                            <div class="dash-kpi"><span>Total payments</span><strong><?php echo number_format((int)$totalPayments); ?></strong></div>
+                            <?php if ($role == 'admin'): ?>
+                                <div class="dash-kpi"><span>Database students</span><strong><?php echo number_format((int)$oldStudentCount); ?></strong></div>
+                                <div class="dash-kpi"><span>Free tickets</span><strong><?php echo number_format((int)$totalFreeTickets); ?></strong></div>
+                                <div class="dash-kpi"><span>Extra tickets sold</span><strong><?php echo number_format((int)$totalExtraTickets); ?></strong></div>
+                            <?php endif; ?>
                         </div>
-                    </div>
-
-                    <div class="col-md-3 mb-4">
-                        <div class="card shadow border-left-info py-3">
-                            <div class="card-body">
-                                <h6 class="text-info fw-bold">Total Registered</h6>
-                                <h2 class="fw-bold text-dark"><?php echo $totalRegistered; ?></h2>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 mb-4">
-                        <div class="card shadow border-left-warning py-3">
-                            <div class="card-body">
-                                <h6 class="text-warning fw-bold">Total Payments</h6>
-                                <h2 class="fw-bold text-dark"><?php echo $totalPayments; ?></h2>
-                            </div>
-                        </div>
-                    </div>
+                    </section>
 
                     <?php if ($role == 'admin'): ?>
-                        <!-- Admin Only Cards -->
-
-                        <!-- Old Students -->
-                        <div class="col-md-3 mb-4">
-                            <div class="card shadow border-left-secondary py-3">
-                                <div class="card-body">
-                                    <h6 class="text-secondary fw-bold">Database Students</h6>
-                                    <h2 class="fw-bold text-dark"><?php echo $oldStudentCount; ?></h2>
+                        <section class="dash-sec">
+                            <h2>Tickets by session</h2>
+                            <?php if (!$sessionData): ?>
+                                <p class="dash-empty">No sessions are set in the programme list yet.</p>
+                            <?php else: ?>
+                                <div class="dash-grid">
+                                    <?php foreach ($sessionData as $code => $d):
+                                        $extraTotal = $d['base_extra'] + $d['log_extra'];
+                                        $total = $d['paid'] + $d['free'] + $extraTotal; ?>
+                                        <article class="dash-card tone tone-<?php echo $toneOf($code); ?>">
+                                            <div class="dash-card-head">
+                                                <span class="dash-chip"><?php echo htmlspecialchars($d['label']); ?></span>
+                                            </div>
+                                            <dl class="dash-rows">
+                                                <div>
+                                                    <dt>Registered students</dt>
+                                                    <dd><?php echo $d['registered']; ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Paid students</dt>
+                                                    <dd><?php echo $d['paid']; ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Free tickets</dt>
+                                                    <dd><?php echo $d['free']; ?></dd>
+                                                </div>
+                                                <div>
+                                                    <dt>Extra tickets <small>receipts + added at desk</small></dt>
+                                                    <dd><?php echo $d['base_extra']; ?> + <?php echo $d['log_extra']; ?> = <b><?php echo $extraTotal; ?></b></dd>
+                                                </div>
+                                            </dl>
+                                            <?php if ($d['log_legacy'] > 0): ?>
+                                                <p class="dash-note"><?php echo (int)$d['log_legacy']; ?> older desk ticket(s) saved without a session are counted here.</p>
+                                            <?php endif; ?>
+                                            <div class="dash-total"><span>Total (paid + free + extra)</span><strong><?php echo $total; ?></strong></div>
+                                            <form action="export_session_data.php" method="POST">
+                                                <input type="hidden" name="session" value="<?php echo htmlspecialchars($code); ?>">
+                                                <button type="submit" class="dash-btn"><i class="fas fa-file-csv" aria-hidden="true"></i> Export <?php echo htmlspecialchars($d['label']); ?> (CSV)</button>
+                                            </form>
+                                        </article>
+                                    <?php endforeach; ?>
                                 </div>
+                                <?php if ($unlinkedExtra > 0): ?>
+                                    <p class="dash-note mt">Not in any session: <?php echo $unlinkedExtra; ?> extra ticket(s) from receipts of students whose programme has no session.</p>
+                                <?php endif; ?>
+                            <?php endif; ?>
+                        </section>
+
+                        <section class="dash-sec">
+                            <div class="dash-sec-head">
+                                <h2>Recent notifications</h2>
+                                <span class="dash-pill">Unread: <?php echo (int)$totalNotifications; ?></span>
                             </div>
-                        </div>
-
-                        <!-- Total Free Tickets -->
-                        <div class="col-md-3 mb-4">
-                            <div class="card shadow border-left-info py-3">
-                                <div class="card-body">
-                                    <h6 class="text-info fw-bold">Total Free Tickets</h6>
-                                    <h2 class="fw-bold text-dark"><?php echo $totalFreeTickets; ?></h2>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Total Extra Tickets -->
-                        <div class="col-md-3 mb-4">
-                            <div class="card shadow border-left-dark py-3">
-                                <div class="card-body">
-                                    <h6 class="text-dark fw-bold">Total Extra Tickets Sold</h6>
-                                    <h2 class="fw-bold text-dark"><?php echo $totalExtraTickets; ?></h2>
-                                </div>
-                            </div>
-                        </div>
-
-
-
-                        <!-- Session-wise Stats -->
-                        <!-- Session-wise Stats -->
-                        <div class="row text-center">
-
-                            <?php foreach ($sessionSummary as $session => $data): ?>
-                                <?php
-                                // Total = Paid Students + Free Tickets + Extra Tickets
-                                $total = ($data['paid_students'] ?? 0) +
-                                    ($data['free_tickets'] ?? 0) +
-                                    ($data['extra_tickets'] ?? 0);
-                                ?>
-                                <div class="col-md-4 mb-4">
-                                    <div class="card shadow border-left-primary py-3">
-                                        <div class="card-body">
-                                            <h6 class="text-primary fw-bold"><?php echo $sessionLabels[$session]; ?></h6>
-                                            <p class="mb-1">Registered Students: <?php echo $data['registered_students']; ?></p>
-                                            <p class="mb-1">Paid Students: <?php echo $data['paid_students']; ?></p>
-                                            <p class="mb-1">Free Tickets: <?php echo $data['free_tickets']; ?></p>
-                                            <p class="mb-1">Extra Tickets: <?php echo $data['base_extra']; ?> + <?php echo $data['session_added']; ?> = <strong><?php echo $data['extra_tickets']; ?></strong></p>
-                                            <hr>
-                                            <p class="fw-bold mb-0">Total (Paid + Free + Extra): <?php echo $total; ?></p>
-                                        </div>
-                                    </div>
-                                </div>
-                            <?php
-                            endforeach; ?>
-                            <div class="row mt-4">
-                                <?php foreach ($sessionLabels as $session => $sessionLabel): ?>
-                                    <div class="col-md-4 text-center mb-3">
-                                        <form action="export_session_data.php" method="POST">
-                                            <input type="hidden" name="session" value="<?php echo $session; ?>">
-                                            <button type="submit" class="btn btn-success fw-bold">
-                                                <i class="fas fa-file-csv"></i> Export <?php echo $sessionLabel; ?> Data (CSV)
-                                            </button>
-                                        </form>
-                                    </div>
-                                <?php
-                                endforeach; ?>
-                            </div>
-                        </div>
-
-
-
-                        <!-- Notifications Card -->
-                        <div class="card shadow mb-5">
-                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                                <h5 class="mb-0">Recent Notifications</h5>
-                                <span class="badge bg-light text-dark">Unread Total: <?php echo $totalNotifications; ?></span>
-                            </div>
-
-                            <div class="card-body">
+                            <div class="dash-card flush">
                                 <?php if (count($notifications) > 0): ?>
                                     <div class="table-responsive">
-                                        <table class="table table-striped table-hover align-middle">
-                                            <thead class="table-light">
+                                        <table class="table dash-table">
+                                            <thead>
                                                 <tr>
                                                     <th>#</th>
                                                     <th>Table</th>
@@ -465,41 +876,29 @@ if (in_array($role, ['admin', 'registrationDesk'])) {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php foreach ($notifications as $index => $note): ?>
+                                                <?php foreach ($notifications as $index => $note):
+                                                    $action = htmlspecialchars($note['action_type']);
+                                                    $cls = ($action == 'INSERT') ? 'ins' : (($action == 'UPDATE') ? 'upd' : 'oth'); ?>
                                                     <tr>
                                                         <td><?php echo $index + 1; ?></td>
-                                                        <td><span class="badge bg-info text-dark"><?php echo htmlspecialchars($note['table_name']); ?></span></td>
+                                                        <td><span class="dash-tag"><?php echo htmlspecialchars($note['table_name']); ?></span></td>
                                                         <td><?php echo htmlspecialchars($note['student_id']); ?></td>
-                                                        <td>
-                                                            <?php
-                                                            $action = htmlspecialchars($note['action_type']);
-                                                            $badgeClass = ($action == 'INSERT') ? 'bg-success' : (($action == 'UPDATE') ? 'bg-warning text-dark' : 'bg-secondary');
-                                                            ?>
-                                                            <span class="badge <?php echo $badgeClass; ?>"><?php echo $action; ?></span>
-                                                        </td>
+                                                        <td><span class="dash-tag <?php echo $cls; ?>"><?php echo $action; ?></span></td>
                                                         <td><?php echo htmlspecialchars($note['description']); ?></td>
-                                                        <td><?php echo htmlspecialchars($note['created_at']); ?></td>
+                                                        <td class="nowrap"><?php echo htmlspecialchars($note['created_at']); ?></td>
                                                     </tr>
-                                                <?php
-                                                endforeach; ?>
+                                                <?php endforeach; ?>
                                             </tbody>
                                         </table>
                                     </div>
-                                <?php
-                                else: ?>
-                                    <p class="text-muted text-center mb-0">No notifications available.</p>
-                                <?php
-                                endif; ?>
+                                    <div class="dash-foot"><a href="notifications.php">View all notifications</a></div>
+                                <?php else: ?>
+                                    <p class="dash-empty m">No notifications available.</p>
+                                <?php endif; ?>
                             </div>
-
-                            <div class="card-footer text-center">
-                                <a href="notifications.php" class="btn btn-outline-primary btn-sm fw-bold">View All Notifications</a>
-                            </div>
-                        </div>
-                    <?php
-                    endif; ?>
+                        </section>
+                    <?php endif; ?>
                 </div>
-
 
             </div>
         </div>

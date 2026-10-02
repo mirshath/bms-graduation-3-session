@@ -54,12 +54,6 @@ $ledger = "
 /* Every filter is applied to every ledger row, so the totals, tables and CSV always agree. */
 $w = ["DATE(ts) BETWEEN ? AND ?"];
 $P = [$f['date_from'], $f['date_to']];
-if ($f['session']) {
-    $programs = rows($conn, "SELECT DISTINCT programName FROM data_tables WHERE session IN (" . implode(',', array_fill(0, count($f['session']), '?')) . ") ORDER BY programName", $f['session']);
-} else {
-    $programs = rows($conn, "SELECT DISTINCT programName FROM data_tables ORDER BY programName");
-}
-$f['program'] = array_values(array_intersect($f['program'], array_column($programs, 'programName')));
 foreach (['program' => 'program', 'session' => 'sess', 'cashier' => 'cashier'] as $k => $col) {
     if ($f[$k]) {
         $w[] = "$col IN (" . implode(',', array_fill(0, count($f[$k]), '?')) . ")";
@@ -164,6 +158,7 @@ if ($f['compare']) {
     $prev = (float) rows($conn, "SELECT COALESCE(SUM(grad + extra),0) AS t FROM ($filtered) x", $P2)[0]['t'];
 }
 
+$programs = rows($conn, "SELECT programName FROM data_tables ORDER BY programName");
 $sessions = rows($conn, "SELECT DISTINCT session FROM data_tables WHERE session IS NOT NULL ORDER BY session");
 $cashiers = rows($conn, "SELECT DISTINCT cashier FROM ($ledger) l WHERE cashier IS NOT NULL AND cashier <> '' ORDER BY cashier");
 
@@ -733,16 +728,14 @@ include("includes/header.php");
                                 </select>
                                 <input type="search" name="search" value="<?= $h($f['search']) ?>" placeholder="Search students or receipts" aria-label="Search">
                             </div>
-                            <select name="session[]" aria-label="Session" onchange="this.form.elements['program[]'].value='';this.form.submit()">
-                                <option value="">All sessions</option>
-                                <?php foreach ($sessions as $o): $v = $o['session']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['session'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
-                            </select>
-
                             <select name="program[]" aria-label="Program" onchange="this.form.submit()">
                                 <option value="">All programs</option>
                                 <?php foreach ($programs as $o): $v = $o['programName']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['program'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
                             </select>
-
+                            <select name="session[]" aria-label="Session" onchange="this.form.submit()">
+                                <option value="">All sessions</option>
+                                <?php foreach ($sessions as $o): $v = $o['session']; ?><option value="<?= $h($v) ?>" <?= in_array($v, $f['session'], true) ? 'selected' : '' ?>><?= $h($v) ?></option><?php endforeach; ?>
+                            </select>
                             <div class="seg">
                                 <?php foreach ($ranges as $l => [$a, $b]): ?><a href="?<?= $qs(['date_from' => $a, 'date_to' => $b]) ?>" class="<?= ($f['date_from'] === $a && $f['date_to'] === $b) ? 'on' : '' ?>"><?= $l ?></a><?php endforeach; ?>
                             </div>
@@ -802,12 +795,7 @@ include("includes/header.php");
                                 <?php foreach ($active as $a): $drop = array_fill_keys(array_slice($a, 1), ''); ?>
                                     <span class="tag"><?= $h($a[0]) ?><a href="?<?= $qs($drop) ?>" aria-label="Remove filter">×</a></span>
                                 <?php endforeach; ?>
-                                <!-- <a class="clear" href="?view=<?= $h($view) ?>">Clear all</a> -->
-                                <a class="clear"
-                                    href="?view=<?= $h($view) ?>"
-                                    style="display:inline-block; padding:8px 16px; background:#dc3545; color:#fff; text-decoration:none; border-radius:5px; border:1px solid #dc3545; font-size:14px; cursor:pointer;">
-                                    Clear Filter
-                                </a>
+                                <a class="clear" href="?view=<?= $h($view) ?>">Clear all</a>
                             </div>
                         <?php endif; ?>
 
@@ -914,8 +902,4 @@ include("includes/header.php");
 <script src="vendor/jquery/jquery.min.js"></script>
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-<script>
-    /* Filters apply for this visit only: drop them from the address bar so a refresh starts clean. */
-    history.replaceState(null, '', location.pathname + '?view=<?= $h($view) ?>');
-</script>
 <?php include("includes/footer.php"); ?>
