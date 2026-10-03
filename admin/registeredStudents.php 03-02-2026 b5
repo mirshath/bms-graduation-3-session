@@ -1,0 +1,340 @@
+<?php
+session_start();
+// Check if the admin is logged in by checking session variable
+if (!isset($_SESSION['admin_id'])) {
+    // Redirect to the login page if not logged in
+    header("Location: login");
+    exit();
+}
+
+include("../database/connection.php");
+include("includes/header.php");
+?>
+
+<!-- Page Wrapper -->
+<div id="wrapper">
+    <!-- Sidebar -->
+    <?php include("nav.php"); ?>
+    <!-- Content Wrapper -->
+    <div id="content-wrapper" class="d-flex flex-column">
+        <!-- Main Content -->
+        <div id="content">
+            <!-- Topbar -->
+            <?php include("includes/topnav.php"); ?>
+            <!-- Begin Page Content -->
+            <div class="p-3">
+                <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                    <h4 class="h4 mb-0 text-gray-800">Registered Students </h4>
+                </div>
+            </div>
+
+            <div class="container-fluid">
+                <div class="card shadow mb-4" style="font-size: 13px;">
+                    <div class="card-header d-flex align-items-center" style="height: 60px;">
+                        <span class="bg-dark text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                            <i class="fas fa-list"></i>
+                        </span> &nbsp;&nbsp;&nbsp;&nbsp;
+                        <h6 class="mb-0">Registered Students</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Program Filter Dropdown -->
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <label for="programFilter" class="font-weight-bold">
+                                    <i class="fas fa-filter"></i> Filter by Program:
+                                </label>
+                                <select id="programFilter" class="form-control form-control-sm">
+                                    <option value="">All Programs</option>
+                                    <?php
+                                    // Get unique programs for filter
+                                    try {
+                                        $program_query = "SELECT DISTINCT program_name FROM registered_students WHERE program_name IS NOT NULL AND program_name != '' ORDER BY program_name ASC";
+                                        $program_result = mysqli_query($conn, $program_query);
+
+                                        if ($program_result && mysqli_num_rows($program_result) > 0) {
+                                            while ($program_row = mysqli_fetch_assoc($program_result)) {
+                                                $program = htmlspecialchars($program_row['program_name'], ENT_QUOTES, 'UTF-8');
+                                                echo "<option value='" . $program . "'>" . $program . "</option>";
+                                            }
+                                        }
+                                    } catch (Exception $e) {
+                                        error_log("Program filter error: " . $e->getMessage());
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button id="resetFilter" class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-redo"></i> Reset Filter
+                                </button>
+                                <span id="filterInfo" class="ml-3 text-muted" style="line-height: 31px;"></span>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label for="mealFilter" class="font-weight-bold">
+                                    <i class="fas fa-utensils"></i> Filter by Meal:
+                                </label>
+                                <select id="mealFilter" class="form-control form-control-sm">
+                                    <option value="">All</option>
+                                    <option value="Vegetarian">Vegetarian</option>
+                                    <option value="Non-Vegetarian">Non-Vegetarian</option>
+                                </select>
+                                <span id="mealFilterInfo" class="ml-2 text-muted" style="line-height: 31px;"></span>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                                <thead>
+                                    <tr>
+                                        <th>Attended</th>
+                                        <th>#</th>
+                                        <th>Student ID</th>
+                                        <th>Full Name</th>
+                                        <th>Calling Name</th>
+                                        <th>Date of Birth</th>
+                                        <th>Entered Email</th>
+                                        <th>Phone</th>
+                                        <th>Programs</th>
+                                        <th>Student Meals</th>
+                                        <th>Guest Meals</th>
+                                        <th>Course Fee Status</th>
+                                        <th>Graduation Payment Status</th>
+                                        <th>Registered Time</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $counter = 1; // Initialize counter
+                                    $query = "SELECT * FROM registered_students ORDER BY id DESC";
+                                    $result = mysqli_query($conn, $query);
+
+                                    if (mysqli_num_rows($result) > 0) {
+                                        while ($row = mysqli_fetch_assoc($result)) {
+                                            echo "<tr>";
+                                            echo "<td>" . (empty($row['attend']) ? 'N/A' : htmlspecialchars($row['attend'], ENT_QUOTES, 'UTF-8')) . "</td>";
+                                            echo "<td>" . $counter++ . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['student_id'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['name_in_full'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['calling_name'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['dob'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['email_address'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['phone_no'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['program_name'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['student_meals'] ?? '', ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['guest_meals'] ?? '', ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['crsfee_payment_status'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['graduation_payment_status'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['created_at'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "</tr>";
+                                        }
+                                    } else {
+                                        echo "<tr><td colspan='13' class='text-center text-muted'>No registered students found.</td></tr>";
+                                    }
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- /.container-fluid -->
+        </div>
+        <!-- End of Main Content -->
+    </div>
+    <!-- End of Content Wrapper -->
+</div>
+<!-- End of Page Wrapper -->
+
+<!-- Page level plugins -->
+<link rel="stylesheet" href="./vendor/datatables/dataTables.bootstrap4.min.css">
+
+<script src="vendor/datatables/jquery.dataTables.min.js"></script>
+<script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
+<!-- DataTables Buttons CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css">
+
+<!-- DataTables Buttons JS -->
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap4.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+
+<!-- JSZip for Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+<!-- PDFMake for PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+<style>
+    .dt-buttons {
+        margin-bottom: 15px;
+    }
+    .dt-button {
+        margin-right: 5px;
+        border-radius: 5px;
+        padding: 8px 15px;
+        font-size: 13px;
+    }
+    
+    /* Make Select2 match .form-control-sm height */
+    .select2-container .select2-selection--single {
+        height: 31px;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 31px;
+    }
+    
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 31px;
+    }
+</style>
+
+<script>
+$(document).ready(function() {
+    try {
+        // Initialize Select2 on Program Filter
+        $('#programFilter').select2({
+            placeholder: 'All Programs',
+            allowClear: true,
+            width: '100%'
+        });
+        try { $('#mealFilter').select2({ placeholder: 'All', allowClear: true, width: '100%' }); } catch(e) {}
+
+        var table = $('#dataTable').DataTable({
+            "pageLength": 200,
+            "order": [[2, "asc"]],
+            "dom": 'Bfrtip',
+            "buttons": [
+                {
+                    extend: 'excelHtml5',
+                    text: '<i class="fas fa-file-excel"></i> Excel',
+                    className: 'btn btn-success btn-sm',
+                    title: 'Registered Students',
+                    exportOptions: { columns: ':visible' }
+                },
+                {
+                    extend: 'pdfHtml5',
+                    text: '<i class="fas fa-file-pdf"></i> PDF',
+                    className: 'btn btn-danger btn-sm',
+                    title: 'Registered Students',
+                    orientation: 'landscape',
+                    pageSize: 'A4',
+                    exportOptions: { columns: ':visible' },
+                    customize: function(doc) {
+                        doc.defaultStyle.fontSize = 8;
+                        doc.styles.tableHeader.fontSize = 9;
+                        doc.styles.tableHeader.fillColor = '#343a40';
+                    }
+                },
+                {
+                    extend: 'csvHtml5',
+                    text: '<i class="fas fa-file-csv"></i> CSV',
+                    className: 'btn btn-info btn-sm',
+                    title: 'Registered Students',
+                    exportOptions: { columns: ':visible' }
+                },
+                {
+                    extend: 'print',
+                    text: '<i class="fas fa-print"></i> Print',
+                    className: 'btn btn-secondary btn-sm',
+                    title: 'Registered Students',
+                    exportOptions: { columns: ':visible' },
+                    customize: function(win) {
+                        $(win.document.body).find('table').addClass('display').css('font-size','12px');
+                        $(win.document.body).find('h1').css('text-align','center');
+                    }
+                },
+                {
+                    extend: 'copy',
+                    text: '<i class="fas fa-copy"></i> Copy',
+                    className: 'btn btn-warning btn-sm',
+                    exportOptions: { columns: ':visible' }
+                }
+            ]
+        });
+
+        // Function to update filter info
+        function updateFilterInfo() {
+            var selectedProgram = $('#programFilter').val();
+            var info = table.page.info();
+
+            if (selectedProgram !== '') {
+                $('#filterInfo').html('<i class="fas fa-info-circle"></i> Showing <strong>' + info.recordsDisplay + '</strong> student(s) for <strong>' + selectedProgram + '</strong>');
+            } else {
+                $('#filterInfo').html('');
+            }
+        }
+
+        function updateMealInfo() {
+            var selectedMeal = $('#mealFilter').val();
+            var info = table.page.info();
+
+            if (selectedMeal !== '') {
+                $('#mealFilterInfo').html('<i class="fas fa-info-circle"></i> Showing <strong>' + info.recordsDisplay + '</strong> student(s) for <strong>' + selectedMeal + '</strong>');
+            } else {
+                $('#mealFilterInfo').html('');
+            }
+        }
+
+        // Program Filter Functionality
+        $('#programFilter').on('change', function() {
+            var selectedProgram = $(this).val();
+
+            if (selectedProgram === '') {
+                // Show all records
+                table.column(8).search('').draw();
+            } else {
+                // Filter by selected program (column 7 = Program Name)
+                // Using exact match with regex
+                table.column(8).search('^' + $.fn.dataTable.util.escapeRegex(selectedProgram) + '$', true, false).draw();
+            }
+
+            updateFilterInfo();
+            updateMealInfo();
+        });
+
+        $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+            var meal = $('#mealFilter').val();
+            if (!meal) return true;
+            var studentMeal = data[9] || '';
+            var guestMeal = data[10] || '';
+            return (studentMeal === meal) || (guestMeal === meal);
+        });
+
+        $('#mealFilter').on('change', function() {
+            table.draw();
+            updateMealInfo();
+        });
+
+        // Reset Filter Button
+        $('#resetFilter').on('click', function() {
+            $('#programFilter').val('').trigger('change'); // keep Select2 UI in sync
+            $('#mealFilter').val('').trigger('change');
+            $('#mealFilterInfo').html('');
+        });
+
+        // Update filter info on page change
+        table.on('draw', function() {
+            updateFilterInfo();
+            updateMealInfo();
+        });
+
+        // Initial filter info update
+        updateFilterInfo();
+        updateMealInfo();
+
+    } catch(e) {
+        console.error("DataTable initialization error:", e);
+        alert("Error loading table features. Please refresh the page.");
+    }
+});
+</script>
+
+</body>
+</html>

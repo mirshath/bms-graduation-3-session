@@ -792,36 +792,7 @@ function pp($v)
                     </header>
 
                     <!-- Summary (follows the filters and the search box) -->
-                    <section class="pp-kpis" aria-label="Payment summary">
-                        <div class="pp-kpi">
-                            <span class="pp-kic" aria-hidden="true"><i class="fas fa-receipt"></i></span>
-                            <div>
-                                <span class="k">Payments</span>
-                                <strong id="kpiCount"><?php echo number_format($totalCount); ?></strong>
-                            </div>
-                        </div>
-                        <div class="pp-kpi money">
-                            <span class="pp-kic" aria-hidden="true"><i class="fas fa-money-bill-wave"></i></span>
-                            <div>
-                                <span class="k">Total collected (Rs.)</span>
-                                <strong id="kpiAmount"><?php echo number_format($totalAmount, 2); ?></strong>
-                            </div>
-                        </div>
-                        <div class="pp-kpi tix">
-                            <span class="pp-kic" aria-hidden="true"><i class="fas fa-ticket-alt"></i></span>
-                            <div>
-                                <span class="k">Extra tickets</span>
-                                <strong id="kpiExtra"><?php echo number_format($totalExtra); ?></strong>
-                            </div>
-                        </div>
-                        <div class="pp-kpi miss<?php echo $totalMissing > 0 ? ' has-miss' : ''; ?>" id="kpiMissCard">
-                            <span class="pp-kic" aria-hidden="true"><i class="fas fa-exclamation-triangle"></i></span>
-                            <div>
-                                <span class="k">Missing receipt PDFs</span>
-                                <strong id="kpiMissing"><?php echo number_format($totalMissing); ?></strong>
-                            </div>
-                        </div>
-                    </section>
+                    
 
                     <div class="pp-card">
 

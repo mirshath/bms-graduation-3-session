@@ -190,7 +190,7 @@
 #accordionSidebar .collapse-inner {
   min-width: 0 !important;
   margin: 2px 2px 3px 9px !important;
-  padding: 2px 0 2px 12px !important;
+  padding: 2px 0 2px 2px !important;
   border-left: 1px solid var(--nav-line);
   border-radius: 0 !important;
   background: transparent !important;
