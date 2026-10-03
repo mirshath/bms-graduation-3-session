@@ -121,18 +121,6 @@ try {
         if ($count < 1 || $count > 5) {
             out(422, ['ok' => false, 'error' => 'Choose between 1 and 5 tickets.']);
         }
-
-        // one meal per extra ticket: ["Vegetarian","Non-Vegetarian", ...]
-        $meals = json_decode((string)($_POST['meals'] ?? ''), true);
-        if (!is_array($meals) || count($meals) !== $count) {
-            out(422, ['ok' => false, 'error' => 'Choose a meal for every guest.']);
-        }
-        $meals = array_values($meals);
-        foreach ($meals as $m) {
-            if (!in_array($m, ['Vegetarian', 'Non-Vegetarian'], true)) {
-                out(422, ['ok' => false, 'error' => 'Invalid meal choice.']);
-            }
-        }
         if (!$s) {
             out(404, ['ok' => false, 'error' => 'No registered student found for this ID.']);
         }
@@ -150,48 +138,16 @@ try {
             }
         }
 
-        $r = $conn->query("SHOW COLUMNS FROM `extra_guest_meals` LIKE 'extra_ticket_log_id'");
-        if (!$r || $r->num_rows === 0) {
-            out(500, ['ok' => false, 'error' => 'Guest meals table is not ready. Run extra_guest_meals.sql first.']);
-        }
-
         $price = (float)$s['fee'];          // never taken from the browser
         $total = $price * $count;
-        $conn->begin_transaction();
-        try {
-            // 1) the ticket purchase
-            $st = $conn->prepare(
-                "INSERT INTO extra_ticket_log
-                    (student_id, student_name, program_name, `session`, added_tickets, ticket_price, total_added, added_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-            );
-            $st->bind_param("ssssidds", $s['student_id'], $s['name'], $s['program'], $s['session'], $count, $price, $total, $admin_name);
-            if (!$st->execute()) {
-                throw new Exception($st->error);
-            }
-            $log_id = (int)$conn->insert_id;
-            $st->close();
-
-            // 2) one row per guest in extra_guest_meals (same transaction: both save or neither)
-            $ms = $conn->prepare(
-                "INSERT INTO extra_guest_meals
-                    (student_id, student_name, program_name, `session`, receipt_number, extra_ticket_log_id, guest_type, meal_type, entered_by)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-            );
-            foreach ($meals as $i => $meal) {
-                $guest_type = 'Guest ' . str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT);
-                $ms->bind_param("sssssisss", $s['student_id'], $s['name'], $s['program'], $s['session'], $s['receipt'], $log_id, $guest_type, $meal, $admin_name);
-                if (!$ms->execute()) {
-                    throw new Exception($ms->error);
-                }
-            }
-            $ms->close();
-
-            $conn->commit();
-        } catch (Throwable $e) {
-            $conn->rollback();
-            throw $e; // handled by the outer catch -> generic error message
-        }
+        $st = $conn->prepare(
+            "INSERT INTO extra_ticket_log
+                (student_id, student_name, program_name, `session`, added_tickets, ticket_price, total_added, added_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        $st->bind_param("ssssidds", $s['student_id'], $s['name'], $s['program'], $s['session'], $count, $price, $total, $admin_name);
+        $st->execute();
+        $st->close();
 
         out(200, ['ok' => true, 'count' => $count, 'price' => $price, 'total' => $total, 'name' => $s['name']]);
     }

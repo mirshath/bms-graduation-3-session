@@ -1,54 +1,60 @@
 <?php
-// session_start();
-// include("../database/connection.php");
-
-// if (!isset($_SESSION['admin_id'])) {
-//     echo "Unauthorized";
-//     exit();
-// }
-
-// if (isset($_POST['id']) && isset($_POST['dob'])) {
-//     $id = intval($_POST['id']);
-//     $dob = $_POST['dob'];
-
-//     $stmt = $conn->prepare("UPDATE old_student_db SET DOB=? WHERE id=?");
-//     $stmt->bind_param("si", $dob, $id);
-
-//     if ($stmt->execute()) {
-//         echo "DOB updated successfully";
-//     } else {
-//         echo "Failed to update DOB";
-//     }
-//     $stmt->close();
-// } else {
-//     echo "Invalid request";
-// }
-
-
-
 session_start();
+header('Content-Type: application/json; charset=utf-8');
 include("../database/connection.php");
 
-if (!isset($_SESSION['admin_id'])) {
-    echo "Unauthorized";
+function respond(bool $ok, string $msg): void
+{
+    echo json_encode(['success' => $ok, 'message' => $msg]);
     exit();
 }
 
-if (isset($_POST['id']) && isset($_POST['dob']) && isset($_POST['student_id'])) {
-    $id = intval($_POST['id']);
-    $dob = $_POST['dob'];
-    $student_id = $_POST['student_id'];
+if (!isset($_SESSION['admin_id'])) {
+    http_response_code(401);
+    respond(false, 'Unauthorized');
+}
 
-    $stmt = $conn->prepare("UPDATE old_student_db SET DOB=?, student_id=? WHERE id=?");
-    $stmt->bind_param("ssi", $dob, $student_id, $id);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_POST['id'], $_POST['dob'], $_POST['student_id'])) {
+    respond(false, 'Invalid request');
+}
 
-    if ($stmt->execute()) {
-        echo "Record updated successfully";
+$id         = intval($_POST['id']);
+$dob        = trim($_POST['dob']);
+$student_id = trim($_POST['student_id']);
+
+if ($id <= 0 || $student_id === '') {
+    respond(false, 'Student ID cannot be empty');
+}
+
+// DOB must be a real date in yyyy-mm-dd
+$d = DateTime::createFromFormat('Y-m-d', $dob);
+if (!$d || $d->format('Y-m-d') !== $dob) {
+    respond(false, 'Invalid date. Use yyyy-mm-dd');
+}
+
+try {
+    if (isset($_POST['active'])) {
+        // Active status: completed / not-completed (empty = not set)
+        $active = trim($_POST['active']);
+        if ($active === '') {
+            $active = null;
+        } elseif (mb_strlen($active) > 255) {
+            respond(false, 'Active status is too long');
+        }
+
+        $stmt = $conn->prepare("UPDATE old_student_db SET DOB=?, student_id=?, active=? WHERE id=?");
+        $stmt->bind_param("sssi", $dob, $student_id, $active, $id);
     } else {
-        echo "Failed to update record";
+        $stmt = $conn->prepare("UPDATE old_student_db SET DOB=?, student_id=? WHERE id=?");
+        $stmt->bind_param("ssi", $dob, $student_id, $id);
     }
 
-    $stmt->close();
-} else {
-    echo "Invalid request";
+    if ($stmt->execute()) {
+        respond(true, 'Record updated successfully');
+    }
+    error_log("update_dob.php: " . $stmt->error);
+    respond(false, 'Failed to update record');
+} catch (Throwable $e) {
+    error_log("update_dob.php: " . $e->getMessage());
+    respond(false, 'Failed to update record');
 }

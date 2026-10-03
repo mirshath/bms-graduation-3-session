@@ -1005,82 +1005,6 @@ $session_missing = ($program_session === '');
             transform: none;
         }
     }
-
-    /* ---- extra-ticket guest meals ---- */
-    .spd-guests {
-        padding: 2px 0 14px;
-        border-top: 1px solid var(--spd-line);
-    }
-
-    .spd-guests-title {
-        margin: 12px 0 2px;
-        font-size: 12px;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-        color: var(--spd-mute);
-    }
-
-    .spd-guest-row {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 9px 0;
-        border-bottom: 1px dashed var(--spd-line);
-    }
-
-    .spd-guest-row:last-child {
-        border-bottom: 0;
-    }
-
-    .spd-guest-name {
-        font-size: 14px;
-        font-weight: 500;
-        color: var(--spd-ink);
-    }
-
-    .spd-guest-opts {
-        display: flex;
-        gap: 8px;
-    }
-
-    .spd-radio {
-        margin: 0;
-        cursor: pointer;
-    }
-
-    .spd-radio input {
-        position: absolute;
-        opacity: 0;
-        pointer-events: none;
-    }
-
-    .spd-radio span {
-        display: inline-block;
-        padding: 7px 14px;
-        border: 1px solid #c9d0de;
-        border-radius: 8px;
-        font-size: 13px;
-        font-weight: 500;
-        color: var(--spd-ink);
-        transition: background-color .15s ease, border-color .15s ease, color .15s ease;
-    }
-
-    .spd-radio:hover span {
-        border-color: var(--spd-brand);
-    }
-
-    .spd-radio input:checked+span {
-        background: var(--spd-brand);
-        border-color: var(--spd-brand);
-        color: #fff;
-    }
-
-    .spd-radio input:focus-visible+span {
-        outline: 2px solid var(--spd-info-ink);
-        outline-offset: 2px;
-    }
 </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -1196,9 +1120,6 @@ $session_missing = ($program_session === '');
                                             <option value="5">5</option>
                                         </select>
                                     </div>
-
-                                    <!-- guest meal radios are built here by renderGuestMeals() -->
-                                    <div id="guestMealsBox" class="spd-guests" style="display:none;"></div>
 
                                     <div class="spd-total">
                                         <div>
@@ -1419,48 +1340,7 @@ $session_missing = ($program_session === '');
                         }));
                     }
 
-                    // 🔹 One meal choice (Veg / Non-veg) per extra ticket
-                    function renderGuestMeals() {
-                        const count = parseInt($("#extraTickets").val()) || 0;
-                        const $box = $("#guestMealsBox");
-
-                        // remember choices already made so changing 2 -> 4 keeps guest 01 & 02
-                        const saved = {};
-                        $box.find('input[type=radio]:checked').each(function() {
-                            saved[this.name] = this.value;
-                        });
-
-                        if (count === 0) {
-                            $box.empty().hide();
-                            return;
-                        }
-
-                        let h = '<p class="spd-guests-title">Guest meal preference</p>';
-                        for (let i = 1; i <= count; i++) {
-                            const label = 'Guest ' + String(i).padStart(2, '0');
-                            const name = 'guestMeal' + i;
-                            h += `
-                                <div class="spd-guest-row">
-                                    <span class="spd-guest-name">${label}</span>
-                                    <div class="spd-guest-opts">
-                                        <label class="spd-radio">
-                                            <input type="radio" name="${name}" value="Vegetarian" ${saved[name] === 'Vegetarian' ? 'checked' : ''}>
-                                            <span>Veg</span>
-                                        </label>
-                                        <label class="spd-radio">
-                                            <input type="radio" name="${name}" value="Non-Vegetarian" ${saved[name] === 'Non-Vegetarian' ? 'checked' : ''}>
-                                            <span>Non-veg</span>
-                                        </label>
-                                    </div>
-                                </div>`;
-                        }
-                        $box.html(h).show();
-                    }
-
-                    $("#extraTickets").on("change", function() {
-                        updateTotal();
-                        renderGuestMeals();
-                    });
+                    $("#extraTickets").on("change", updateTotal);
                     updateTotal();
 
                 }
@@ -1472,19 +1352,6 @@ $session_missing = ($program_session === '');
 
     $(document).on('click', '#emailOfferLetter', function() {
         const button = $(this);
-
-        // every extra ticket needs a meal choice before we take the payment
-        const extraCount = parseInt($('#extraTickets').val()) || 0;
-        const guestMeals = [];
-        for (let i = 1; i <= extraCount; i++) {
-            const meal = $('input[name="guestMeal' + i + '"]:checked').val();
-            if (!meal) {
-                alert('Please choose a meal (Veg / Non-veg) for Guest ' + String(i).padStart(2, '0') + '.');
-                return;
-            }
-            guestMeals.push(meal);
-        }
-
         button.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Sending...');
 
         const offerLetterElement = document.getElementById('offerLetterPreview');
@@ -1576,31 +1443,8 @@ $session_missing = ($program_session === '');
                 dataType: 'json',
                 success: function(res) {
                     if (res.success) {
-                        const okMsg = '✅ Payment successful! Receipt has been sent to ' + studentData.university_email;
-
-                        if (guestMeals.length === 0) {
-                            alert(okMsg);
-                            location.reload();
-                            return;
-                        }
-
-                        // payment is done -> now store the guest meals (entered-by comes from the PHP session)
-                        $.ajax({
-                            url: 'save_guest_meals.php',
-                            type: 'POST',
-                            dataType: 'json',
-                            data: {
-                                student_id: studentData.student_id,
-                                receipt_number: studentData.receipt_number,
-                                meals: guestMeals
-                            }
-                        }).done(function(r) {
-                            alert(r.success ? okMsg : '⚠️ Payment saved, but guest meals were NOT saved: ' + (r.message || 'Unknown error'));
-                        }).fail(function() {
-                            alert('⚠️ Payment saved, but guest meals were NOT saved. Please inform the admin.');
-                        }).always(function() {
-                            location.reload();
-                        });
+                        alert('✅ Payment successful! Receipt has been sent to ' + studentData.university_email);
+                        location.reload();
                     } else {
                         alert('❌ Failed: ' + (res.message || 'Unknown error'));
                         // include the after error refresh to avoid the error refresh

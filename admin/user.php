@@ -987,7 +987,7 @@ $totalAdmins = count($admins);
     window.jQuery || document.write('<script src="vendor/jquery/jquery.min.js"><\/script>');
 </script>
 <script>
-    // (window.jQuery && jQuery.fn.modal && jQuery.fn.collapse) || document.write('<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"><\/script>');
+    (window.jQuery && jQuery.fn.modal && jQuery.fn.collapse) || document.write('<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"><\/script>');
 </script>
 <script>
     (window.jQuery && jQuery.fn.DataTable) || document.write('<script src="vendor/datatables/jquery.dataTables.min.js"><\/script><script src="vendor/datatables/dataTables.bootstrap4.min.js"><\/script>');

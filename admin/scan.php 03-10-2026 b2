@@ -11,6 +11,35 @@ include("includes/header.php");
 
 
 
+// Program cards under each session: use data_tables.session (SESSION_01 / 02 / 03),
+// not bulk_data_table.session_time — that table is empty until seats are uploaded.
+$query = "
+SELECT dt.programName AS program_name,
+       dt.session AS session_code,
+       COUNT(rs.student_id) AS total_registered,
+       COALESCE(SUM(CASE WHEN rs.attend = 'attended' THEN 1 ELSE 0 END), 0) AS total_attended
+FROM data_tables dt
+LEFT JOIN registered_students rs ON rs.program_name = dt.programName
+WHERE dt.session IN ('SESSION_01', 'SESSION_02', 'SESSION_03')
+GROUP BY dt.programName, dt.session
+ORDER BY dt.session, dt.programName
+";
+
+$result = $conn->query($query);
+$summariesBySession = [
+    'SESSION_01' => [],
+    'SESSION_02' => [],
+    'SESSION_03' => [],
+];
+if ($result) {
+    while ($row = $result->fetch_assoc()) {
+        $sessionCode = strtoupper(trim((string)($row['session_code'] ?? '')));
+        if (isset($summariesBySession[$sessionCode])) {
+            $summariesBySession[$sessionCode][] = $row;
+        }
+    }
+}
+
 function getSessionStats(mysqli $conn): array
 {
     $sessions = ['SESSION_01', 'SESSION_02', 'SESSION_03'];
@@ -155,26 +184,19 @@ $sessionStats = getSessionStats($conn);
         line-height: 1.5;
     }
 
-    /* session colours: 01 pink, 02 purple, 03 green */
     .sc .s1 {
-        --acc: #d6336c;
-        --acc-bg: #ffffff;
-        --ses-bg: #fdeaf2;
-        --ses-line: #f5c9dc;
+        --acc: #1f4bb6;
+        --acc-bg: #e8eefb;
     }
 
     .sc .s2 {
-        --acc: #7048c9;
-        --acc-bg: #ffffff;
-        --ses-bg: #f0ebfc;
-        --ses-line: #d9ccf4;
+        --acc: #c77700;
+        --acc-bg: #fff4e0;
     }
 
     .sc .s3 {
-        --acc: #1b9a5a;
-        --acc-bg: #ffffff;
-        --ses-bg: #e5f6ec;
-        --ses-line: #bfe3cd;
+        --acc: #0f8a8a;
+        --acc-bg: #e0f4f4;
     }
 
     /* header */
@@ -412,30 +434,14 @@ $sessionStats = getSessionStats($conn);
 
     /* session stat cards */
     .sc-stats {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: flex-start;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 16px;
     }
 
-    .sc-stats .sc-ses {
-        flex: 1 1 260px;
-        min-width: 0;
-    }
-
-    .sc-card.sc-ses {
+    .sc-ses {
         padding: 20px 22px 22px;
-        background: var(--ses-bg);
-        border: 1px solid var(--ses-line);
         border-top: 4px solid var(--acc);
-    }
-
-    .sc-ses .sc-bar {
-        background: rgba(255, 255, 255, .75);
-    }
-
-    .sc-ses .sc-num span {
-        color: #566174;
     }
 
     .sc-ses-top {
@@ -471,91 +477,6 @@ $sessionStats = getSessionStats($conn);
         font-family: 'Geist Mono', ui-monospace, monospace;
         font-size: 12px;
         font-weight: 700;
-    }
-
-
-    /* Live / Hidden toggle per session */
-    .sc-toggle {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 5px 12px;
-        border: 1px solid rgba(27, 127, 75, .25);
-        border-radius: 999px;
-        background: #fff;
-        color: var(--ok);
-        font: inherit;
-        font-size: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: background .2s, color .2s, border-color .2s;
-    }
-
-    .sc-toggle .dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: currentColor;
-    }
-
-    .sc-toggle.is-live .dot {
-        animation: sc-live 1.8s ease-out infinite;
-    }
-
-    .sc-toggle:not(.is-live) {
-        background: rgba(255, 255, 255, .6);
-        border-color: rgba(23, 35, 61, .15);
-        color: var(--muted);
-    }
-
-    .sc-toggle:focus-visible {
-        outline: 2px solid var(--brand);
-        outline-offset: 2px;
-    }
-
-    .sc-pct-row {
-        margin: 14px 0 0;
-    }
-
-    .sc-ses.is-hidden .sc-ses-body {
-        display: none;
-    }
-
-    /* hidden sessions: small chips in their own row below, aligned to the right */
-    .sc-stats-hidden {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-        gap: 10px;
-    }
-
-    .sc-stats-hidden:not(:empty) {
-        margin-top: 14px;
-    }
-
-    .sc-stats-hidden .sc-ses {
-        flex: 0 0 auto;
-    }
-
-    .sc-stats .sc-card.sc-ses.is-hidden,
-    .sc-stats-hidden .sc-card.sc-ses.is-hidden {
-        flex: 0 0 auto;
-        padding: 8px 12px;
-        border-top-width: 3px;
-        border-radius: 12px;
-    }
-
-    .sc-ses.is-hidden .sc-ses-top {
-        gap: 14px;
-    }
-
-    .sc-ses.is-hidden h3 {
-        font-size: 13px;
-    }
-
-    .sc-ses.is-hidden .sc-toggle {
-        padding: 3px 10px;
-        font-size: 11px;
     }
 
     .sc-bar {
@@ -609,6 +530,69 @@ $sessionStats = getSessionStats($conn);
 
     .sc-num.rem strong {
         color: var(--bad);
+    }
+
+    /* programmes by session */
+    .sc-progs {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        align-items: start;
+    }
+
+    .sc-col h3 {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0 0 10px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+        color: var(--muted);
+    }
+
+    .sc-col h3::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        border-radius: 2px;
+        background: var(--acc);
+    }
+
+    .sc-prog-card {
+        padding: 14px 16px;
+        margin-bottom: 10px;
+    }
+
+    .sc-prog-name {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 1.35;
+        color: var(--ink);
+    }
+
+    .sc-prog-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 12.5px;
+        color: var(--muted);
+    }
+
+    .sc-prog-meta b {
+        font-family: 'Geist Mono', ui-monospace, monospace;
+        color: var(--ink);
+    }
+
+    .sc-empty {
+        padding: 18px;
+        border: 1px dashed #c9d0de;
+        border-radius: 12px;
+        font-size: 13px;
+        text-align: center;
+        color: var(--muted);
     }
 
     /* =========================================================
@@ -1042,12 +1026,9 @@ $sessionStats = getSessionStats($conn);
     /* responsive */
     @media (max-width: 991px) {
 
-        .sc-stats .sc-ses {
-            flex-basis: 100%;
-        }
-
-        .sc-stats .sc-ses.is-hidden {
-            flex-basis: auto;
+        .sc-stats,
+        .sc-progs {
+            grid-template-columns: 1fr;
         }
     }
 
@@ -1137,66 +1118,63 @@ $sessionStats = getSessionStats($conn);
                     <!-- session stats (refreshed every 5 seconds) -->
                     <div class="sc-sec">
                         <h2>Session attendance</h2>
+                        <span class="sc-live">Live</span>
                     </div>
                     <section class="sc-stats">
                         <?php foreach (['01', '02', '03'] as $n):
                             $st  = $sessionStats['session_' . $n];
                             $pct = $st['paid'] > 0 ? min(100, (int)round($st['attended'] / $st['paid'] * 100)) : 0; ?>
-                            <article class="sc-card sc-ses s<?php echo (int)$n; ?>" data-session="<?php echo $n; ?>">
+                            <article class="sc-card sc-ses s<?php echo (int)$n; ?>">
                                 <div class="sc-ses-top">
                                     <h3>Session <?php echo $n; ?></h3>
-                                    <button type="button" class="sc-toggle is-live" data-session="<?php echo $n; ?>" aria-pressed="true" title="Click to hide this session">
-                                        <span class="dot" aria-hidden="true"></span><span class="lbl">Live</span>
-                                    </button>
+                                    <span class="sc-pct" id="session_<?php echo $n; ?>Pct"><?php echo $pct; ?>%</span>
                                 </div>
-                                <div class="sc-ses-body">
-                                    <div class="sc-pct-row"><span class="sc-pct" id="session_<?php echo $n; ?>Pct"><?php echo $pct; ?>%</span></div>
-                                    <div class="sc-bar" role="progressbar" aria-label="Session <?php echo $n; ?> attendance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo $pct; ?>">
-                                        <i id="session_<?php echo $n; ?>Bar" style="width:<?php echo $pct; ?>%"></i>
-                                    </div>
-                                    <div class="sc-nums">
-                                        <div class="sc-num"><span>Paid</span><strong id="session_<?php echo $n; ?>Paid"><?php echo (int)$st['paid']; ?></strong></div>
-                                        <div class="sc-num att"><span>Attended</span><strong id="session_<?php echo $n; ?>Attended"><?php echo (int)$st['attended']; ?></strong></div>
-                                        <div class="sc-num rem"><span>Remaining</span><strong id="session_<?php echo $n; ?>Remaining"><?php echo (int)$st['remaining']; ?></strong></div>
-                                    </div>
+                                <div class="sc-bar" role="progressbar" aria-label="Session <?php echo $n; ?> attendance" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?php echo $pct; ?>">
+                                    <i id="session_<?php echo $n; ?>Bar" style="width:<?php echo $pct; ?>%"></i>
+                                </div>
+                                <div class="sc-nums">
+                                    <div class="sc-num"><span>Paid</span><strong id="session_<?php echo $n; ?>Paid"><?php echo (int)$st['paid']; ?></strong></div>
+                                    <div class="sc-num att"><span>Attended</span><strong id="session_<?php echo $n; ?>Attended"><?php echo (int)$st['attended']; ?></strong></div>
+                                    <div class="sc-num rem"><span>Remaining</span><strong id="session_<?php echo $n; ?>Remaining"><?php echo (int)$st['remaining']; ?></strong></div>
                                 </div>
                             </article>
                         <?php endforeach; ?>
                     </section>
-                    <div class="sc-stats-hidden" id="scHiddenRow"></div>
-                    <script>
-                        // Put live cards in the main row, hidden ones in a small row below (right side)
-                        window.scLayoutSessions = function() {
-                            var live = document.querySelector('.sc-stats');
-                            var hid = document.getElementById('scHiddenRow');
-                            var cards = Array.prototype.slice.call(document.querySelectorAll('.sc-ses'));
-                            cards.sort(function(x, y) {
-                                return x.getAttribute('data-session') - y.getAttribute('data-session');
-                            });
-                            cards.forEach(function(c) {
-                                (c.classList.contains('is-hidden') ? hid : live).appendChild(c);
-                            });
-                        };
-                        // Restore saved Live / Hidden state right away so a refresh doesn't flash
-                        (function() {
-                            var saved = {};
-                            try {
-                                saved = JSON.parse(localStorage.getItem('scanSessionLive') || '{}') || {};
-                            } catch (e) {}
-                            document.querySelectorAll('.sc-ses').forEach(function(card) {
-                                var n = card.getAttribute('data-session');
-                                if (saved[n] === false) {
-                                    card.classList.add('is-hidden');
-                                    var b = card.querySelector('.sc-toggle');
-                                    b.classList.remove('is-live');
-                                    b.setAttribute('aria-pressed', 'false');
-                                    b.setAttribute('title', 'Click to show this session');
-                                    b.querySelector('.lbl').textContent = 'Hidden';
-                                }
-                            });
-                            window.scLayoutSessions();
-                        })();
-                    </script>
+
+                    <!-- programmes under each session -->
+                    <div class="sc-sec">
+                        <h2>Programmes by session</h2>
+                    </div>
+                    <section class="sc-progs">
+                        <?php
+                        $sessionColumns = [
+                            'SESSION_01' => 'Session 01',
+                            'SESSION_02' => 'Session 02',
+                            'SESSION_03' => 'Session 03',
+                        ];
+                        foreach ($sessionColumns as $sessionCode => $sessionTitle):
+                            $cls = 's' . (int)substr($sessionCode, -2); ?>
+                            <div class="sc-col <?php echo $cls; ?>">
+                                <h3><?php echo $sessionTitle; ?></h3>
+                                <?php if (empty($summariesBySession[$sessionCode])): ?>
+                                    <div class="sc-empty">No programmes in this session.</div>
+                                <?php endif; ?>
+                                <?php foreach ($summariesBySession[$sessionCode] as $sum):
+                                    $reg = (int)$sum['total_registered'];
+                                    $att = (int)$sum['total_attended'];
+                                    $pp  = $reg > 0 ? min(100, (int)round($att / $reg * 100)) : 0; ?>
+                                    <div class="sc-card sc-prog-card">
+                                        <p class="sc-prog-name"><?php echo htmlspecialchars($sum['program_name']); ?></p>
+                                        <div class="sc-bar sm"><i style="width:<?php echo $pp; ?>%"></i></div>
+                                        <div class="sc-prog-meta">
+                                            <span>Attended <b><?php echo $att; ?></b></span>
+                                            <span>Registered <b><?php echo $reg; ?></b></span>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </section>
 
                 </div> <!-- /sc -->
             </div>
@@ -1219,9 +1197,8 @@ $sessionStats = getSessionStats($conn);
             <div class="modal-body sc-mbody">
                 <div id="studentInfo"></div>
                 <div class="sc-inline-err" id="markErr" role="alert" hidden></div>
-                <div class="sc-inline-err" id="unpaidNote" role="alert" hidden>Graduation fee is not paid, so attendance cannot be marked.</div>
             </div>
-            <div class="modal-footer sc-mfoot" id="successFoot">
+            <div class="modal-footer sc-mfoot">
                 <button type="button" class="sc-btn" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" id="attendedBtn" class="sc-btn ok grow"><i class="fas fa-user-check" aria-hidden="true"></i> <span>Mark as attended</span></button>
             </div>
@@ -1444,12 +1421,6 @@ $sessionStats = getSessionStats($conn);
         $('#successModal').on('show.bs.modal', function() {
             $('#markErr').prop('hidden', true).text('');
             $('#attendedBtn').prop('disabled', false).find('span').text('Mark as attended');
-
-            // Only students who paid the graduation fee get the Cancel / Mark as attended buttons
-            const paid = !!currentStudentData &&
-                String(currentStudentData.graduation_payment_status ?? '').trim().toLowerCase() === 'paid';
-            $('#successFoot').toggle(paid);
-            $('#unpaidNote').prop('hidden', paid);
         });
 
         // Handle form submission (manual input, scanner or Enter key)
@@ -1517,25 +1488,6 @@ $sessionStats = getSessionStats($conn);
             $('#' + prefix + 'Bar').css('width', pct + '%').parent().attr('aria-valuenow', pct);
         }
 
-        // Live / Hidden toggle per session (remembered across refreshes until changed manually)
-        $(document).on('click', '.sc-toggle', function() {
-            const $btn = $(this);
-            const n = String($btn.data('session'));
-            const $card = $btn.closest('.sc-ses');
-            const nowLive = $card.hasClass('is-hidden'); // hidden -> becomes live
-            $card.toggleClass('is-hidden', !nowLive);
-            $btn.toggleClass('is-live', nowLive)
-                .attr('aria-pressed', nowLive ? 'true' : 'false')
-                .attr('title', nowLive ? 'Click to hide this session' : 'Click to show this session')
-                .find('.lbl').text(nowLive ? 'Live' : 'Hidden');
-            if (window.scLayoutSessions) window.scLayoutSessions();
-            try {
-                const saved = JSON.parse(localStorage.getItem('scanSessionLive') || '{}') || {};
-                saved[n] = nowLive;
-                localStorage.setItem('scanSessionLive', JSON.stringify(saved));
-            } catch (e) {}
-        });
-
         // Function to update session stats in real-time
         function updateSessionStats() {
             $.ajax({
@@ -1563,7 +1515,6 @@ $sessionStats = getSessionStats($conn);
             const $btn = $(this);
             const studentID = $('#studentID').val().trim();
             if (!studentID || $btn.prop('disabled')) return;
-            if (!currentStudentData || String(currentStudentData.graduation_payment_status ?? '').trim().toLowerCase() !== 'paid') return;
 
             function fail(msg) {
                 $('#markErr').text(msg || 'Could not mark attendance.').prop('hidden', false);

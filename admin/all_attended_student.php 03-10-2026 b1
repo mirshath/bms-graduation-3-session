@@ -9,111 +9,41 @@ if (!isset($_SESSION['admin_id'])) {
 
 include("../database/connection.php");
 include("includes/header.php");
-
-function at_h($v): string
-{
-    return htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
-}
-
-function at_initials(string $name): string
-{
-    $w = preg_split('/\s+/', trim($name), -1, PREG_SPLIT_NO_EMPTY);
-    if (!$w) return '?';
-    $first = mb_substr($w[0], 0, 1);
-    $last  = count($w) > 1 ? mb_substr($w[count($w) - 1], 0, 1) : '';
-    return mb_strtoupper($first . $last);
-}
-
-// All students with seat number and session (bulk_data_table + data_tables)
-$query = "SELECT rs.*, bdt.seat_no, COALESCE(dt.session, 'N/A') AS session_name,
-          CASE
-              WHEN rs.attend IS NULL OR rs.attend = '' THEN 'N/A'
-              ELSE rs.attend
-          END AS attendance_status
-          FROM registered_students rs
-          LEFT JOIN bulk_data_table bdt ON rs.student_id = bdt.student_id
-          LEFT JOIN data_tables dt ON rs.program_name = dt.programName
-          ORDER BY rs.id DESC";
-$result = mysqli_query($conn, $query);
-
-$rows = [];
-$totalAttended = 0;
-if ($result) {
-    while ($r = mysqli_fetch_assoc($result)) {
-        $rows[] = $r;
-        if ($r['attendance_status'] === 'attended' || $r['attendance_status'] === 'Registered') {
-            $totalAttended++;
-        }
-    }
-}
-$totalStudents = count($rows);
-$totalPending  = $totalStudents - $totalAttended;
-$ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents * 100) : 0;
 ?>
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Page level plugins -->
-<link rel="stylesheet" href="./vendor/datatables/dataTables.bootstrap4.min.css">
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css">
-
-<!---------------- Custom styles for this template---------------------------->
-<link href="css/new_style_css/all_attended_student.css" rel="stylesheet">
 <!-- Page Wrapper -->
 <div id="wrapper">
     <!-- Sidebar -->
     <?php include("nav.php"); ?>
-    <div id="sidebarOverlay"></div>
     <!-- Content Wrapper -->
     <div id="content-wrapper" class="d-flex flex-column">
         <!-- Main Content -->
         <div id="content">
             <!-- Topbar -->
             <?php include("includes/topnav.php"); ?>
+            <!-- Begin Page Content -->
+            <div class="p-3">
+                <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                    <h4 class="h4 mb-0 text-gray-800">All Attended Students</h4>
+                </div>
+            </div>
 
-            <div class="container-fluid mt-4">
-                <button type="button" id="sidebarToggleMobile" class="at-menu" aria-label="Open menu">
-                    <i class="fas fa-bars" aria-hidden="true"></i> <span>Menu</span>
-                </button>
-
-                <div class="at">
-
-                    <header class="at-head">
-                        <div>
-                            <h1>All attended students</h1>
-                            <p>Every registered student with seat, session and attendance status.</p>
-                        </div>
-                        <a href="scan" class="at-back"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to scan</a>
-                    </header>
-
-                    <!-- summary -->
-                    <section class="at-kpis">
-                        <div class="at-card at-kpi">
-                            <span class="at-kpi-ic"><i class="fas fa-users" aria-hidden="true"></i></span>
-                            <div><span class="k">Total students</span><strong><?php echo $totalStudents; ?></strong></div>
-                        </div>
-                        <div class="at-card at-kpi ok">
-                            <span class="at-kpi-ic"><i class="fas fa-user-check" aria-hidden="true"></i></span>
-                            <div><span class="k">Attended</span><strong><?php echo $totalAttended; ?></strong></div>
-                        </div>
-                        <div class="at-card at-kpi warn">
-                            <span class="at-kpi-ic"><i class="fas fa-user-clock" aria-hidden="true"></i></span>
-                            <div><span class="k">Not attended</span><strong><?php echo $totalPending; ?></strong></div>
-                        </div>
-                        <div class="at-card at-kpi">
-                            <span class="at-kpi-ic"><i class="fas fa-percentage" aria-hidden="true"></i></span>
-                            <div><span class="k">Attendance rate</span><strong><?php echo $ratePct; ?>%</strong></div>
-                        </div>
-                    </section>
-
-                    <!-- filters -->
-                    <section class="at-card at-filters">
-                        <div class="at-grid">
-                            <div class="at-field">
-                                <label for="sessionFilter"><i class="fas fa-filter"></i> Session</label>
-                                <select id="sessionFilter" class="select2">
+            <div class="container-fluid">
+                <div class="card shadow mb-4" style="font-size: 13px;">
+                    <div class="card-header d-flex align-items-center" style="height: 60px;">
+                        <span class="bg-success text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                            <i class="fas fa-check-circle"></i>
+                        </span> &nbsp;&nbsp;&nbsp;&nbsp;
+                        <h6 class="mb-0">All Attended Students</h6>
+                    </div>
+                    <div class="card-body">
+                        <!-- Filter Section -->
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <label for="sessionFilter" class="font-weight-bold">
+                                    <i class="fas fa-filter"></i> Filter by Session:
+                                </label>
+                                <select id="sessionFilter" class="form-control form-control-sm select2">
                                     <option value="">All Sessions</option>
                                     <?php
                                     // Sessions = unique values of data_tables.session (SESSION_01, SESSION_02, SESSION_03 ...)
@@ -126,7 +56,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
 
                                         if ($session_result && mysqli_num_rows($session_result) > 0) {
                                             while ($session_row = mysqli_fetch_assoc($session_result)) {
-                                                $session = at_h($session_row['session']);
+                                                $session = htmlspecialchars($session_row['session'], ENT_QUOTES, 'UTF-8');
                                                 echo "<option value='" . $session . "'>" . $session . "</option>";
                                             }
                                         }
@@ -137,13 +67,15 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                                 </select>
                             </div>
 
-                            <div class="at-field">
-                                <label for="programFilter"><i class="fas fa-filter"></i> Program</label>
-                                <select id="programFilter" class="select2">
+                            <div class="col-md-3">
+                                <label for="programFilter" class="font-weight-bold">
+                                    <i class="fas fa-filter"></i> Filter by Program:
+                                </label>
+                                <select id="programFilter" class="form-control form-control-sm select2">
                                     <option value="">All Programs</option>
                                     <?php
-                                    // Programs actually registered, each tagged with its session (data_tables),
-                                    // so the Program list can be narrowed by Session in JS.
+                                    // Programs actually attended (registered_students), each tagged with its
+                                    // session (data_tables), so the Program list can be narrowed by Session in JS.
                                     try {
                                         $program_query = "SELECT DISTINCT rs.program_name, dt.session
                                                           FROM registered_students rs
@@ -154,8 +86,8 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
 
                                         if ($program_result && mysqli_num_rows($program_result) > 0) {
                                             while ($program_row = mysqli_fetch_assoc($program_result)) {
-                                                $program = at_h($program_row['program_name']);
-                                                $prog_session = at_h($program_row['session'] ?? '');
+                                                $program = htmlspecialchars($program_row['program_name'], ENT_QUOTES, 'UTF-8');
+                                                $prog_session = htmlspecialchars($program_row['session'] ?? '', ENT_QUOTES, 'UTF-8');
                                                 echo "<option value='" . $program . "' data-session='" . $prog_session . "'>" . $program . "</option>";
                                             }
                                         }
@@ -166,14 +98,16 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                                 </select>
                             </div>
 
-                            <div class="at-field">
-                                <label for="programMainFilter"><i class="fas fa-filter"></i> Program (before "-")</label>
-                                <select id="programMainFilter" class="select2">
+                            <div class="col-md-3">
+                                <label for="programMainFilter" class="font-weight-bold">
+                                    <i class="fas fa-filter"></i> Program (Before "-"):
+                                </label>
+                                <select id="programMainFilter" class="form-control form-control-sm select2">
                                     <option value="">All Programs (Before "-")</option>
                                     <?php
                                     // Collect all possible program_name
                                     $main_program_names = [];
-                                    $base_query = "SELECT DISTINCT rs.program_name
+                                    $base_query = "SELECT DISTINCT rs.program_name 
                                                    FROM registered_students rs
                                                    WHERE rs.program_name IS NOT NULL AND rs.program_name != ''
                                                    ORDER BY rs.program_name ASC";
@@ -181,7 +115,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                                     if ($base_result && mysqli_num_rows($base_result) > 0) {
                                         while ($r = mysqli_fetch_assoc($base_result)) {
                                             $full = trim($r['program_name']);
-                                            // Substring before first "-" (with spaces trimmed)
+                                            // Want the substring before first "-" (with spaces trimmed)
                                             $main = $full;
                                             if (strpos($full, '-') !== false) {
                                                 $main = trim(substr($full, 0, strpos($full, '-')));
@@ -191,7 +125,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                                             }
                                         }
                                         foreach (array_keys($main_program_names) as $main_prog) {
-                                            $main_prog_h = at_h($main_prog);
+                                            $main_prog_h = htmlspecialchars($main_prog, ENT_QUOTES, 'UTF-8');
                                             echo "<option value=\"{$main_prog_h}\">{$main_prog_h}</option>";
                                         }
                                     }
@@ -199,75 +133,80 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                                 </select>
                             </div>
 
-                            <div class="at-field">
-                                <label for="attendanceFilter"><i class="fas fa-filter"></i> Attendance status</label>
-                                <select id="attendanceFilter" class="select2">
+                            <div class="col-md-3">
+                                <label for="attendanceFilter" class="font-weight-bold">
+                                    <i class="fas fa-filter"></i> Filter by Attendance Status:
+                                </label>
+                                <select id="attendanceFilter" class="form-control form-control-sm select2">
                                     <option value="">All Status</option>
                                     <option value="attended">Attended</option>
-                                    <option value="N/A">Not attended (N/A)</option>
+                                    <option value="N/A">N/A</option>
                                 </select>
+                                <div class="d-flex align-items-end mt-2">
+                                    <button id="resetFilter" class="btn btn-secondary btn-sm">
+                                        <i class="fas fa-redo"></i> Reset Filter
+                                    </button>
+                                    <span id="filterInfo" class="ml-3 text-muted" style="line-height: 31px; font-size: 12px;"></span>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="at-filter-foot">
-                            <button id="resetFilter" type="button" class="at-reset">
-                                <i class="fas fa-redo" aria-hidden="true"></i> Reset filters
-                            </button>
-                            <span id="filterInfo"></span>
-                        </div>
-                    </section>
-
-                    <!-- table -->
-                    <section class="at-card at-table-card">
-                        <table class="table" id="dataTable" width="100%" cellspacing="0">
-                            <thead>
-                                <tr>
-                                    <th>#</th>
-                                    <th>Student ID</th>
-                                    <th>Full Name</th>
-                                    <th>IN Number</th>
-                                    <th>Seat No</th>
-                                    <th>Phone</th>
-                                    <th>Programs</th>
-                                    <th>Session</th>
-                                    <th>Attendance Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php
-                                $counter = 1;
-                                foreach ($rows as $row):
-                                    $inNo   = !empty($row['in_no'])    ? at_h($row['in_no'])    : '';
-                                    $seatNo = !empty($row['seat_no'])  ? at_h($row['seat_no'])  : '';
-                                    $phone  = !empty($row['phone_no']) ? at_h($row['phone_no']) : '';
-                                    $prog   = !empty($row['program_name']) ? at_h($row['program_name']) : '';
-                                    $sessionDisplay = !empty($row['session_name']) ? $row['session_name'] : 'N/A';
-                                    $sesCls = preg_match('/(\d+)$/', $sessionDisplay, $m) && in_array((int)$m[1], [1, 2, 3], true) ? 's' . (int)$m[1] : '';
-                                    $status = $row['attendance_status'];
-                                    $isOk   = ($status === 'attended' || $status === 'Registered');
-                                ?>
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped" id="dataTable" width="100%" cellspacing="0">
+                                <thead>
                                     <tr>
-                                        <td data-label="#"><span class="at-n"><?php echo $counter++; ?></span></td>
-                                        <td data-label="Student ID"><span class="at-id"><?php echo at_h($row['student_id']); ?></span></td>
-                                        <td data-label="Name">
-                                            <div class="at-person">
-                                                <span class="at-ini" data-i="<?php echo at_h(at_initials((string)$row['name_in_full'])); ?>" aria-hidden="true"></span>
-                                                <span class="nm"><?php echo at_h($row['name_in_full']); ?></span>
-                                            </div>
-                                        </td>
-                                        <td data-label="IN number"><?php echo $inNo !== '' ? '<span class="at-mono">' . $inNo . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
-                                        <td data-label="Seat no"><?php echo $seatNo !== '' ? '<span class="at-seat">' . $seatNo . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
-                                        <td data-label="Phone"><?php echo $phone !== '' ? '<span class="at-mono">' . $phone . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
-                                        <td data-label="Program"><?php echo $prog !== '' ? '<div class="at-prog">' . $prog . '</div>' : '<span class="at-na">N/A</span>'; ?></td>
-                                        <td data-label="Session"><span class="at-ses <?php echo $sesCls; ?>"><?php echo at_h($sessionDisplay); ?></span></td>
-                                        <td data-label="Status"><span class="at-st <?php echo $isOk ? 'ok' : 'off'; ?>"><?php echo at_h($status); ?></span></td>
+                                        <th>#</th>
+                                        <th>Student ID</th>
+                                        <th>Full Name</th>
+                                        <th>IN Number</th>
+                                        <th>Seat No</th>
+                                        <th>Phone</th>
+                                        <th>Programs</th>
+                                        <th>Session</th>
+                                        <th>Attendance Status</th>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </section>
+                                </thead>
+                                <tbody>
+                                    <?php
+                                    $counter = 1; // Initialize counter
+                                    // Query to fetch all students with seat number and session from bulk_data_table and data_tables
+                                    $query = "SELECT rs.*, bdt.seat_no, COALESCE(dt.session, 'N/A') as session_name,
+                                              CASE 
+                                                  WHEN rs.attend IS NULL OR rs.attend = '' THEN 'N/A'
+                                                  ELSE rs.attend
+                                              END as attendance_status
+                                              FROM registered_students rs 
+                                              LEFT JOIN bulk_data_table bdt ON rs.student_id = bdt.student_id 
+                                              LEFT JOIN data_tables dt ON rs.program_name = dt.programName
+                                              ORDER BY rs.id DESC";
+                                    $result = mysqli_query($conn, $query);
 
-                </div> <!-- /at -->
+                                    if (mysqli_num_rows($result) > 0) {
+                                        while ($row = mysqli_fetch_assoc($result)) {
+                                            echo "<tr>";
+                                            echo "<td>" . $counter++ . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['student_id'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . htmlspecialchars($row['name_in_full'], ENT_QUOTES, 'UTF-8') . "</td>";
+                                            echo "<td>" . (!empty($row['in_no']) ? htmlspecialchars($row['in_no'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
+                                            echo "<td>" . (!empty($row['seat_no']) ? htmlspecialchars($row['seat_no'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
+                                            echo "<td>" . (!empty($row['phone_no']) ? htmlspecialchars($row['phone_no'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
+                                            echo "<td>" . (!empty($row['program_name']) ? htmlspecialchars($row['program_name'], ENT_QUOTES, 'UTF-8') : 'N/A') . "</td>";
+                                            $session_display = !empty($row['session_name']) ? $row['session_name'] : 'N/A';
+                                            echo "<td>" . htmlspecialchars($session_display, ENT_QUOTES, 'UTF-8') . "</td>";
+                                            $attendance_status = $row['attendance_status'];
+                                            $badge_class = ($attendance_status == 'attended' || $attendance_status == 'Registered') ? 'bg-success' : 'bg-secondary';
+                                            echo "<td><span class='badge " . $badge_class . "'>" . htmlspecialchars($attendance_status, ENT_QUOTES, 'UTF-8') . "</span></td>";
+                                            echo "</tr>";
+                                        }
+                                    } else {
+                                        echo "<tr><td colspan='9' class='text-center text-muted'>No students found.</td></tr>";
+                                    }
+                                    ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
             <!-- /.container-fluid -->
         </div>
@@ -277,8 +216,14 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
 </div>
 <!-- End of Page Wrapper -->
 
+<!-- Page level plugins -->
+<link rel="stylesheet" href="./vendor/datatables/dataTables.bootstrap4.min.css">
+
 <script src="vendor/datatables/jquery.dataTables.min.js"></script>
 <script src="vendor/datatables/dataTables.bootstrap4.min.js"></script>
+
+<!-- DataTables Buttons CSS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap4.min.css">
 
 <!-- DataTables Buttons JS -->
 <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
@@ -293,27 +238,34 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 
+<style>
+    .dt-buttons {
+        margin-bottom: 15px;
+    }
+
+    .dt-button {
+        margin-right: 5px;
+        border-radius: 5px;
+        padding: 8px 15px;
+        font-size: 13px;
+    }
+
+    /* Make Select2 match .form-control-sm height */
+    .select2-container .select2-selection--single {
+        height: 31px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 31px;
+    }
+
+    .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 31px;
+    }
+</style>
+
 <script>
     $(document).ready(function() {
-        // Mobile sidebar: open with the Menu button, close by tapping the overlay / Esc / widening the screen
-        $('body').addClass('at-page');
-
-        $('#sidebarToggleMobile').on('click', function() {
-            $('body').toggleClass('sidebar-open');
-        });
-
-        $('#sidebarOverlay').on('click', function() {
-            $('body').removeClass('sidebar-open');
-        });
-
-        $(document).on('keydown', function(e) {
-            if (e.key === 'Escape') $('body').removeClass('sidebar-open');
-        });
-
-        $(window).on('resize', function() {
-            if (window.innerWidth >= 992) $('body').removeClass('sidebar-open');
-        });
-
         try {
             // Initialize Select2 on filter dropdowns
             $('#sessionFilter').select2({
@@ -355,17 +307,11 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                 "order": [
                     [1, "asc"]
                 ],
-                "dom": "<'at-bar'<'at-btns'B><'at-search'f>><'at-scroll'rt><'at-foot'<'at-info'i><'at-pg'p>>",
-                "language": {
-                    "search": "",
-                    "searchPlaceholder": "Search students…",
-                    "emptyTable": "No students found.",
-                    "zeroRecords": "No matching students found."
-                },
+                "dom": 'Bfrtip',
                 "buttons": [{
                         extend: 'excelHtml5',
                         text: '<i class="fas fa-file-excel"></i> Excel',
-                        className: 'btn btn-sm at-b at-xl',
+                        className: 'btn btn-success btn-sm',
                         title: 'All Attended Students',
                         exportOptions: {
                             columns: ':visible'
@@ -374,7 +320,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                     {
                         extend: 'pdfHtml5',
                         text: '<i class="fas fa-file-pdf"></i> PDF',
-                        className: 'btn btn-sm at-b at-pdf',
+                        className: 'btn btn-danger btn-sm',
                         title: 'All Attended Students',
                         orientation: 'landscape',
                         pageSize: 'A4',
@@ -384,13 +330,13 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                         customize: function(doc) {
                             doc.defaultStyle.fontSize = 8;
                             doc.styles.tableHeader.fontSize = 9;
-                            doc.styles.tableHeader.fillColor = '#1f4bb6';
+                            doc.styles.tableHeader.fillColor = '#28a745';
                         }
                     },
                     {
                         extend: 'csvHtml5',
                         text: '<i class="fas fa-file-csv"></i> CSV',
-                        className: 'btn btn-sm at-b at-csv',
+                        className: 'btn btn-info btn-sm',
                         title: 'All Attended Students',
                         exportOptions: {
                             columns: ':visible'
@@ -399,7 +345,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                     {
                         extend: 'print',
                         text: '<i class="fas fa-print"></i> Print',
-                        className: 'btn btn-sm at-b at-prt',
+                        className: 'btn btn-secondary btn-sm',
                         title: 'All Attended Students',
                         exportOptions: {
                             columns: ':visible'
@@ -412,7 +358,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                     {
                         extend: 'copy',
                         text: '<i class="fas fa-copy"></i> Copy',
-                        className: 'btn btn-sm at-b at-cp',
+                        className: 'btn btn-warning btn-sm',
                         exportOptions: {
                             columns: ':visible'
                         }
@@ -428,36 +374,31 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                 return program.slice(0, idx).trim();
             }
 
-            // One persistent custom filter for "Program (before '-')"
-            var selectedMainProgram = '';
-            $.fn.dataTable.ext.search.push(function(settings, data) {
-                if (settings.nTable.id !== 'dataTable' || selectedMainProgram === '') return true;
-                return getBeforeHyphen(data[6] || '') === selectedMainProgram;
-            });
-
             // Function to update filter info
             function updateFilterInfo() {
                 var selectedSession = $('#sessionFilter').val();
                 var selectedAttendance = $('#attendanceFilter').val();
                 var selectedProgram = $('#programFilter').val();
+                var selectedMainProgram = $('#programMainFilter').val();
                 var info = table.page.info();
                 var filterText = [];
 
-                if (selectedSession) {
+                if (selectedSession !== '') {
                     filterText.push('Session: <strong>' + selectedSession + '</strong>');
                 }
-                if (selectedAttendance) {
-                    filterText.push('Status: <strong>' + (selectedAttendance === 'attended' ? 'Attended' : 'Not attended') + '</strong>');
+                if (selectedAttendance !== '') {
+                    var attendanceText = selectedAttendance === 'attended' ? 'Attended' : 'N/A';
+                    filterText.push('Status: <strong>' + attendanceText + '</strong>');
                 }
-                if (selectedProgram) {
-                    filterText.push('Program: <strong>' + $('<div>').text(selectedProgram).html() + '</strong>');
+                if (selectedProgram !== '') {
+                    filterText.push('Program: <strong>' + selectedProgram + '</strong>');
                 }
-                if (selectedMainProgram) {
-                    filterText.push('Program (before "-"): <strong>' + $('<div>').text(selectedMainProgram).html() + '</strong>');
+                if (selectedMainProgram !== '') {
+                    filterText.push('Program (Before "-"): <strong>' + selectedMainProgram + '</strong>');
                 }
 
                 if (filterText.length > 0) {
-                    $('#filterInfo').html('<i class="fas fa-info-circle"></i> Showing <strong>' + info.recordsDisplay + '</strong> student(s) · ' + filterText.join(' · '));
+                    $('#filterInfo').html('<i class="fas fa-info-circle"></i> Showing <strong>' + info.recordsDisplay + '</strong> student(s) - ' + filterText.join(', '));
                 } else {
                     $('#filterInfo').html('');
                 }
@@ -465,7 +406,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
 
             // Session Filter Functionality
             $('#sessionFilter').on('change', function() {
-                var selectedSession = $(this).val() || '';
+                var selectedSession = $(this).val();
 
                 // Narrow the Program dropdown to this session's programs (data-session, set from data_tables)
                 var $programFilter = $('#programFilter');
@@ -488,9 +429,9 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
 
                 if (stillValid) {
                     $programFilter.val(currentProgram);
-                } else if (currentProgram) {
+                } else if (currentProgram !== '') {
                     // The program that was selected doesn't belong to the new session
-                    table.column(6).search('');
+                    table.column(6).search('').draw();
                 }
                 $programFilter.trigger('change.select2');
 
@@ -499,11 +440,13 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                 } else {
                     table.column(7).search('^' + $.fn.dataTable.util.escapeRegex(selectedSession) + '$', true, false).draw();
                 }
+
+                updateFilterInfo();
             });
 
             // Attendance Status Filter Functionality
             $('#attendanceFilter').on('change', function() {
-                var selectedAttendance = $(this).val() || '';
+                var selectedAttendance = $(this).val();
 
                 if (selectedAttendance === '') {
                     table.column(8).search('').draw();
@@ -512,48 +455,87 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                 } else if (selectedAttendance === 'N/A') {
                     table.column(8).search('^N/A$', true, false).draw();
                 }
+
+                updateFilterInfo();
             });
 
-            // Program Filter (full name with batch) - clears the "before hyphen" filter
+            // Program Filter Functionality
             $('#programFilter').on('change', function() {
-                var selectedProgram = $(this).val() || '';
+                var selectedProgram = $(this).val();
 
-                if (selectedProgram !== '') {
-                    selectedMainProgram = '';
-                    $('#programMainFilter').val('').trigger('change.select2');
-                }
+                // Remove main filter selection when "program with batch" filter is used
+                $('#programMainFilter').val('').trigger('change.select2');
 
                 if (selectedProgram === '') {
                     table.column(6).search('').draw();
                 } else {
                     table.column(6).search('^' + $.fn.dataTable.util.escapeRegex(selectedProgram) + '$', true, false).draw();
                 }
+
+                updateFilterInfo();
             });
 
-            // Program Main Filter (before hyphen) - clears the "full name" filter
+            // Program Main Filter Functionality (Before Hyphen)
             $('#programMainFilter').on('change', function() {
-                selectedMainProgram = $(this).val() || '';
+                var selectedMainProgram = $(this).val();
 
-                if (selectedMainProgram !== '') {
-                    $('#programFilter').val('').trigger('change.select2');
-                    table.column(6).search('');
+                // Remove batch filter selection when "main" program filter is used
+                $('#programFilter').val('').trigger('change.select2');
+
+                // Remove any previous filter
+                $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(f) {
+                    return !f._isMainProgFilter;
+                });
+
+                if (selectedMainProgram === '') {
+                    table.column(6).search('').draw();
+                } else {
+                    // Custom search by program name before hyphen
+                    var mainProgFilter = function(settings, data, dataIndex) {
+                        var program = data[6] || '';
+                        // If no filter, show all
+                        if (selectedMainProgram === '') return true;
+                        return getBeforeHyphen(program) === selectedMainProgram;
+                    }
+                    mainProgFilter._isMainProgFilter = true;
+                    $.fn.dataTable.ext.search.push(mainProgFilter);
+                    table.draw();
                 }
 
-                table.draw();
+                updateFilterInfo();
             });
 
             // Reset Filter Button
             $('#resetFilter').on('click', function() {
-                selectedMainProgram = '';
                 $('#sessionFilter').val('').trigger('change');
                 $('#attendanceFilter').val('').trigger('change');
                 $('#programFilter').val('').trigger('change');
-                $('#programMainFilter').val('').trigger('change.select2');
+                $('#programMainFilter').val('').trigger('change');
+                // Remove ext.search
+                $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(f) {
+                    return !f._isMainProgFilter;
+                });
                 table.columns().search('').draw();
+                updateFilterInfo();
             });
 
-            // Update filter info on every redraw
-            table.on('draw', updateFilterInfo);
+            // If user changes the filter in another one, clear the other
+            $('#programFilter').on('change', function() {
+                if ($(this).val() !== '') {
+                    $('#programMainFilter').val('').trigger('change.select2');
+                }
+            });
+
+            $('#programMainFilter').on('change', function() {
+                if ($(this).val() !== '') {
+                    $('#programFilter').val('').trigger('change.select2');
+                }
+            });
+
+            // Update filter info on page change
+            table.on('draw', function() {
+                updateFilterInfo();
+            });
 
             // Initial filter info update
             updateFilterInfo();

@@ -12,7 +12,7 @@ if (isset($_POST['student_id']) && isset($_POST['dob'])) {
     $dob = $_POST['dob'];
 
     // Use prepared statement to prevent SQL injection
-    $stmt = $conn->prepare("SELECT * FROM old_student_db WHERE student_id = ? AND DOB = ? AND active='completed'");
+    $stmt = $conn->prepare("SELECT * FROM old_student_db WHERE student_id = ? AND DOB = ? WHERE active='completed'");
     $stmt->bind_param("ss", $student_id, $dob);
     $stmt->execute();
     $result = $stmt->get_result();
