@@ -1296,10 +1296,6 @@ $sessionStats = getSessionStats($conn);
 
         // Store student data (kept for receipt printing)
         let currentStudentData = null;
-        // Clothing still to be handed over for the student currently on screen, and the in-flight requests
-        let pendingClothing = null;
-        let clothingXhr = null;
-        let scanSeq = 0;
 
         // Escape text before putting it into HTML
         function esc(v) {
@@ -1356,34 +1352,14 @@ $sessionStats = getSessionStats($conn);
                 </div>`;
         }
 
-        // Save the items handed over to the student as 'collected' in clothing_collections
-        // (inserts a new row, or updates the student's existing row)
-        function saveCollectedClothing(studentID, items) {
-            return $.ajax({
-                url: 'save_collected_clothing.php',
-                type: 'POST',
-                dataType: 'json',
-                cache: false,
-                data: {
-                    studentID: studentID,
-                    items: items
-                }
-            });
-        }
-
         // Load clothing status (required in data_tables vs collected in clothing_collections)
         function loadClothing(studentID, $target) {
             $target.html('<div class="sc-skel" role="status" aria-label="Checking clothing"></div>');
 
-            // never let an older student's answer land on the new student's card
-            if (clothingXhr) clothingXhr.abort();
-            pendingClothing = null;
-
-            clothingXhr = $.ajax({
+            $.ajax({
                 url: 'check_clothing.php',
                 type: 'POST',
                 dataType: 'json',
-                cache: false,
                 data: {
                     studentID
                 },
@@ -1412,10 +1388,6 @@ $sessionStats = getSessionStats($conn);
                     html += '</div>';
 
                     if (c.missing && c.missing.length > 0) {
-                        pendingClothing = {
-                            id: studentID,
-                            items: c.missing.slice()
-                        };
                         html += '<p class="sc-note bad"><i class="fas fa-exclamation-triangle" aria-hidden="true"></i> Pending to collect: ' + esc(c.missing.join(', ')) + '</p>';
                     } else {
                         html += '<p class="sc-note ok"><i class="fas fa-check-circle" aria-hidden="true"></i> All required clothing collected</p>';
@@ -1423,8 +1395,7 @@ $sessionStats = getSessionStats($conn);
 
                     $target.html(html);
                 },
-                error: function(xhr, status) {
-                    if (status === 'abort') return;
+                error: function() {
                     $target.html('<p class="sc-note bad"><i class="fas fa-exclamation-circle" aria-hidden="true"></i> Clothing check failed.</p>');
                 }
             });
@@ -1464,28 +1435,10 @@ $sessionStats = getSessionStats($conn);
         // Focus input on page load
         $studentID.focus();
 
-        // After ANY modal closes (found / already attended / error): wipe everything from the last scan
-        // and pull fresh numbers, so the page never shows or reuses old data.
-        function resetScanState() {
-            scanSeq++; // answers still on their way for the old scan are ignored
-            if (clothingXhr) {
-                clothingXhr.abort();
-                clothingXhr = null;
-            }
-            currentStudentData = null;
-            window.lastStudentCheck = null;
-            pendingClothing = null;
-
-            $('#studentInfo, #attendedInfo').empty();
-            $('#errorId').text('').hide();
-            $('#markErr').prop('hidden', true).text('');
-            $('#unpaidNote').prop('hidden', true);
-
+        // Reset input and focus when any modal is hidden
+        $('#successModal, #errorModal, #attendedModal').on('hidden.bs.modal', function() {
             $studentID.val('').focus();
-            updateSessionStats(); // fresh counters right now, no waiting for the 5 second timer
-        }
-
-        $('#successModal, #errorModal, #attendedModal').on('hidden.bs.modal', resetScanState);
+        });
 
         // Fresh state every time the "found" modal opens
         $('#successModal').on('show.bs.modal', function() {
@@ -1507,19 +1460,16 @@ $sessionStats = getSessionStats($conn);
             if (!studentID || busy) return;
 
             setBusy(true);
-            const mySeq = ++scanSeq;
 
             $.ajax({
                 url: 'check_student.php',
                 type: 'POST',
                 dataType: 'json',
-                cache: false,
                 data: {
                     studentID
                 },
 
                 success: function(res) {
-                    if (mySeq !== scanSeq) return; // a newer scan / reset happened meanwhile
 
                     if (res.status === 'success') {
                         // Store student data for receipt printing
@@ -1592,7 +1542,6 @@ $sessionStats = getSessionStats($conn);
                 url: 'fetch_session_stats.php',
                 type: 'GET',
                 dataType: 'json',
-                cache: false,
                 success: function(data) {
                     if (data.status === 'success') {
                         setSession('session_01', data.session_01);
@@ -1642,21 +1591,13 @@ $sessionStats = getSessionStats($conn);
                     }
 
                     if (res && res.status === 'success') {
-                        const who = (currentStudentData && currentStudentData.full_name) || studentID;
-                        const sid = (currentStudentData && currentStudentData.student_id) || studentID;
-                        const items = (pendingClothing && pendingClothing.id === sid) ? pendingClothing.items.slice() : [];
+                        $('#successModal').modal('hide');
+                        toast('Attendance marked for ' + ((currentStudentData && currentStudentData.full_name) || studentID));
 
-                        $('#successModal').modal('hide'); // closing it resets the page and refreshes the stats
-                        toast('Attendance marked for ' + who);
-
-                        // The clothing handed over now is stored as collected (insert or update)
-                        if (items.length) {
-                            saveCollectedClothing(sid, items).done(function(r) {
-                                if (!r || r.status !== 'success') toast('Attendance saved, but clothing was not recorded');
-                            }).fail(function() {
-                                toast('Attendance saved, but clothing was not recorded');
-                            });
-                        }
+                        // Update stats immediately after marking attendance
+                        setTimeout(function() {
+                            updateSessionStats();
+                        }, 500);
                     } else {
                         fail(res && res.message);
                     }

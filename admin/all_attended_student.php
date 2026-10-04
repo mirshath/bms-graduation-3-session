@@ -102,10 +102,7 @@ $ratePct       = $totalStudents > 0 ? (int)round($totalAttended / $totalStudents
                             <span class="at-kpi-ic"><i class="fas fa-user-clock" aria-hidden="true"></i></span>
                             <div><span class="k">Not attended</span><strong><?php echo $totalPending; ?></strong></div>
                         </div>
-                        <div class="at-card at-kpi">
-                            <span class="at-kpi-ic"><i class="fas fa-percentage" aria-hidden="true"></i></span>
-                            <div><span class="k">Attendance rate</span><strong><?php echo $ratePct; ?>%</strong></div>
-                        </div>
+
                     </section>
 
                     <!-- filters -->

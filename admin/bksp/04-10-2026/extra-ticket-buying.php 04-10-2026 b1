@@ -183,17 +183,6 @@ include("includes/header.php");
                         </form>
                     </dialog>
 
-                    <dialog id="nfDlg" class="et-dlg" aria-labelledby="nfDlgT">
-                        <form method="dialog">
-                            <div class="et-dlg-ic"><i class="fas fa-user-slash" aria-hidden="true"></i></div>
-                            <h2 id="nfDlgT">Student not found</h2>
-                            <p id="nfText"></p>
-                            <div class="et-dlg-act">
-                                <button class="et-btn solid" value="ok" autofocus>Scan again</button>
-                            </div>
-                        </form>
-                    </dialog>
-
                     <dialog id="okDlg" class="et-dlg ok" aria-labelledby="okDlgT">
                         <form method="dialog">
                             <div class="et-dlg-ic ok"><i class="fas fa-check" aria-hidden="true"></i></div>
@@ -207,57 +196,55 @@ include("includes/header.php");
                     </dialog>
 
                     <!-- today -->
-                    <div id="todayWrap">
-                        <div class="et-stats">
-                            <div class="et-card et-stat"><span>Extra tickets today</span><strong><?= (int)$totalTicketsToday ?></strong></div>
-                            <div class="et-card et-stat"><span>Amount today</span><strong>Rs. <?= number_format($totalAmountToday, 2) ?></strong></div>
-                        </div>
+                    <div class="et-stats">
+                        <div class="et-card et-stat"><span>Extra tickets today</span><strong><?= (int)$totalTicketsToday ?></strong></div>
+                        <div class="et-card et-stat"><span>Amount today</span><strong>Rs. <?= number_format($totalAmountToday, 2) ?></strong></div>
+                    </div>
 
-                        <section class="et-card et-list">
-                            <h2>Today's added tickets</h2>
-                            <div class="table-responsive">
-                                <table class="table et-table" id="todayExtraTickets">
-                                    <thead>
+                    <section class="et-card et-list">
+                        <h2>Today's added tickets</h2>
+                        <div class="table-responsive">
+                            <table class="table et-table" id="todayExtraTickets">
+                                <thead>
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Time</th>
+                                        <th>Student ID</th>
+                                        <th>Student</th>
+                                        <th>Programme</th>
+                                        <th>Session</th>
+                                        <th>Tickets</th>
+                                        <th>Price</th>
+                                        <th>Total</th>
+                                        <th>Admin</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($todayRows)): ?>
                                         <tr>
-                                            <th>#</th>
-                                            <th>Time</th>
-                                            <th>Student ID</th>
-                                            <th>Student</th>
-                                            <th>Programme</th>
-                                            <th>Session</th>
-                                            <th>Tickets</th>
-                                            <th>Price</th>
-                                            <th>Total</th>
-                                            <th>Admin</th>
+                                            <td colspan="10" class="text-center text-muted py-4">No tickets added today</td>
                                         </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php if (empty($todayRows)): ?>
+                                        <?php else:
+                                        $n = 1;
+                                        foreach ($todayRows as $row): ?>
                                             <tr>
-                                                <td colspan="10" class="text-center text-muted py-4">No tickets added today</td>
+                                                <td><?= $n++ ?></td>
+                                                <td data-order="<?= strtotime($row['added_on']) ?>"><?= date('h:i A', strtotime($row['added_on'])) ?></td>
+                                                <td class="et-mono"><?= htmlspecialchars((string)($row['student_id'] ?? '-')) ?></td>
+                                                <td><?= htmlspecialchars((string)($row['student_name'] ?? '-')) ?></td>
+                                                <td><?= htmlspecialchars((string)($row['program_name'] ?? '-')) ?></td>
+                                                <td><?php if (trim((string)$row['session']) !== ''): ?><span class="et-sess"><?= htmlspecialchars(et_session_label($row['session'])) ?></span><?php else: ?>-<?php endif; ?></td>
+                                                <td class="et-mono"><?= (int)$row['added_tickets'] ?></td>
+                                                <td class="et-mono">Rs. <?= number_format($row['ticket_price'], 2) ?></td>
+                                                <td class="et-mono"><strong>Rs. <?= number_format($row['total_added'], 2) ?></strong></td>
+                                                <td><?= htmlspecialchars((string)$row['added_by_name']) ?></td>
                                             </tr>
-                                            <?php else:
-                                            $n = 1;
-                                            foreach ($todayRows as $row): ?>
-                                                <tr>
-                                                    <td><?= $n++ ?></td>
-                                                    <td data-order="<?= strtotime($row['added_on']) ?>"><?= date('h:i A', strtotime($row['added_on'])) ?></td>
-                                                    <td class="et-mono"><?= htmlspecialchars((string)($row['student_id'] ?? '-')) ?></td>
-                                                    <td><?= htmlspecialchars((string)($row['student_name'] ?? '-')) ?></td>
-                                                    <td><?= htmlspecialchars((string)($row['program_name'] ?? '-')) ?></td>
-                                                    <td><?php if (trim((string)$row['session']) !== ''): ?><span class="et-sess"><?= htmlspecialchars(et_session_label($row['session'])) ?></span><?php else: ?>-<?php endif; ?></td>
-                                                    <td class="et-mono"><?= (int)$row['added_tickets'] ?></td>
-                                                    <td class="et-mono">Rs. <?= number_format($row['ticket_price'], 2) ?></td>
-                                                    <td class="et-mono"><strong>Rs. <?= number_format($row['total_added'], 2) ?></strong></td>
-                                                    <td><?= htmlspecialchars((string)$row['added_by_name']) ?></td>
-                                                </tr>
-                                        <?php endforeach;
-                                        endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </section>
-                    </div> <!-- /todayWrap -->
+                                    <?php endforeach;
+                                    endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
                 </div>
 
             </div> <!-- /container-fluid -->
@@ -506,16 +493,8 @@ include("includes/header.php");
                     if (!j.ok) throw new Error(j.error || 'Lookup failed.');
                     if (!j.found) {
                         cur = null;
-                        $('msg').hidden = true;
-                        $('result').hidden = true;
+                        showMsg('No registered student found for "' + id + '"', 'Check the ID or ask the student to register.', true);
                         say('Not found. Scan again or type another ID.', true);
-                        $('nfText').textContent = 'No registered student found for "' + id + '". Check the ID or ask the student to register.';
-                        if (nfDlg.showModal) {
-                            if (!nfDlg.open) nfDlg.showModal();
-                        } else {
-                            alert('Student not found: ' + id);
-                            softRefresh();
-                        }
                         return;
                     }
                     say('Student found.');
@@ -551,61 +530,10 @@ include("includes/header.php");
             recalc();
             renderGuests(false);
         });
-        // ---------- refresh in place (no page reload) ----------
-        var nfDlg = $('nfDlg');
-        var refreshing = false;
-
-        function initTodayTable() {
-            if (window.jQuery && jQuery('#todayExtraTickets').length && jQuery('#todayExtraTickets tbody tr td[colspan]').length === 0) {
-                jQuery('#todayExtraTickets').DataTable({
-                    order: [
-                        [1, 'desc']
-                    ],
-                    pageLength: 25,
-                    lengthMenu: [10, 25, 50, 100]
-                });
-            }
-        }
-
-        // pull today's totals + table from the server again, so nothing old stays on screen
-        function refreshToday() {
-            return fetch(location.pathname + location.search, {
-                    credentials: 'same-origin',
-                    cache: 'no-store'
-                })
-                .then(function(r) {
-                    if (r.status === 401) {
-                        location.href = 'login';
-                        throw new Error('auth');
-                    }
-                    return r.text();
-                })
-                .then(function(html) {
-                    var fresh = new DOMParser().parseFromString(html, 'text/html').getElementById('todayWrap');
-                    var wrap = $('todayWrap');
-                    if (!fresh || !wrap) return;
-                    if (window.jQuery && jQuery.fn.DataTable && jQuery.fn.DataTable.isDataTable('#todayExtraTickets')) {
-                        jQuery('#todayExtraTickets').DataTable().destroy();
-                    }
-                    wrap.innerHTML = fresh.innerHTML;
-                    initTodayTable();
-                })
-                .catch(function() {}); // the screen is already reset; a failed refresh just keeps the old numbers
-        }
-
-        function softRefresh() {
-            reset(); // clears the student, the messages and the ID box, and focuses the box
-            if (refreshing) return;
-            refreshing = true;
-            refreshToday().then(function() {
-                refreshing = false;
-                $('sid').focus();
-            });
-        }
-
-        // closing "Make the payment first" or "Student not found": reset + fresh data + cursor in the ID box
-        dlg.addEventListener('close', softRefresh);
-        nfDlg.addEventListener('close', softRefresh);
+        dlg.addEventListener('close', function() {
+            $('sid').focus();
+            $('sid').select();
+        });
 
         // ---------- add the tickets (one click) ----------
         $('addBtn').addEventListener('click', function() {

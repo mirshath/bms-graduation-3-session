@@ -44,7 +44,7 @@ $items = [
     'hats'    => ['assigned' => false, 'collected' => false],
 ];
 
-$itemStmt = $conn->prepare("SELECT cloak, slashes, hats, session FROM data_tables WHERE TRIM(programName) = TRIM(?) ORDER BY active DESC, id DESC LIMIT 1");
+$itemStmt = $conn->prepare("SELECT cloak, slashes, hats, session FROM data_tables WHERE programName = ?");
 $itemStmt->bind_param("s", $programName);
 $itemStmt->execute();
 $itemResult = $itemStmt->get_result();
@@ -54,7 +54,7 @@ if ($itemResult->num_rows > 0) {
     $items['cloak']['assigned']   = !empty($row['cloak']) && (int)$row['cloak'] === 1;
     $items['slashes']['assigned'] = !empty($row['slashes']) && (int)$row['slashes'] === 1;
     $items['hats']['assigned']    = !empty($row['hats']) && (int)$row['hats'] === 1;
-    $session_str = !empty($row['session']) ? $row['session'] : 'None';
+    $session_str = $row['session'] ?? 'None';
 }
 
 $check = $conn->prepare("SELECT collect_cloak, collect_slashes, collect_hats FROM clothing_collections WHERE student_id = ?");

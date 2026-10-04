@@ -13,60 +13,8 @@ if (empty($student_id)) {
                 <h5 class='alert-heading'>Error!</h5>
                 <h3>Student ID cannot be empty!</h3>
             </div>`;
-        // After this error is closed: reset the screen in place (no page reload) so the old Student ID
-        // is cleared and the cursor is back in the box, ready for the next scan.
-        (function () {
-            var el = document.getElementById('errorModal');
-            var done = false;
-            var watcher = null;
-
-            function findIdInput() {
-                var selectors = ['input[name=student_id]', '#student_id', '#studentID', 'input[name=studentID]', 'input[name=studentId]', '#studentId', 'input[name=sid]'];
-                var usable = function (c) { return c && !c.readOnly && !c.disabled && !c.closest('.modal'); };
-                for (var i = 0; i < selectors.length; i++) {
-                    var list = document.querySelectorAll(selectors[i]);
-                    for (var j = 0; j < list.length; j++) { if (usable(list[j])) { return list[j]; } }
-                }
-                // fallback: an editable text box that looks like the student id / scan box
-                var all = document.querySelectorAll('input[type=text], input[type=search], input[type=number], input:not([type])');
-                for (var k = 0; k < all.length; k++) {
-                    var c = all[k];
-                    var hint = (c.id + ' ' + c.name + ' ' + (c.placeholder || '')).toLowerCase();
-                    if (usable(c) && c.offsetParent !== null && /student|scan|qr|\bid\b/.test(hint)) { return c; }
-                }
-                return null;
-            }
-
-            function softReset() {
-                if (done) { return; }
-                done = true;
-                if (watcher) { clearInterval(watcher); }
-                el.removeEventListener('hidden.bs.modal', softReset);
-                if (window.jQuery) { window.jQuery(el).off('hidden.bs.modal', softReset); }
-
-                var input = findIdInput();
-                if (input) {
-                    input.value = '';   // value only: no input/change events, so nothing is submitted again
-                    input.focus();
-                }
-                window.dispatchEvent(new CustomEvent('student-check-reset'));
-            }
-
-            // 1) Bootstrap 5 event
-            el.addEventListener('hidden.bs.modal', softReset);
-            // 2) jQuery style event (in case the modal is closed through jQuery)
-            if (window.jQuery) { window.jQuery(el).on('hidden.bs.modal', softReset); }
-            // 3) safety net: once the modal has been shown and is no longer visible, reset
-            var wasOpen = false;
-            watcher = setInterval(function () {
-                var visible = el.classList.contains('show') || window.getComputedStyle(el).display !== 'none';
-                if (visible) { wasOpen = true; }
-                else if (wasOpen) { softReset(); }
-            }, 200);
-
-            var modal = (bootstrap.Modal.getOrCreateInstance) ? bootstrap.Modal.getOrCreateInstance(el) : new bootstrap.Modal(el);
-            modal.show();
-        })();
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+        errorModal.show();
     </script>";
     exit;
 }
@@ -112,60 +60,8 @@ if ($result->num_rows === 0) {
                 <h5 class='alert-heading'>Error!</h5>
                 <h3>Student ID not registered in the database!</h3>
             </div>`;
-        // After this error is closed: reset the screen in place (no page reload) so the old Student ID
-        // is cleared and the cursor is back in the box, ready for the next scan.
-        (function () {
-            var el = document.getElementById('errorModal');
-            var done = false;
-            var watcher = null;
-
-            function findIdInput() {
-                var selectors = ['input[name=student_id]', '#student_id', '#studentID', 'input[name=studentID]', 'input[name=studentId]', '#studentId', 'input[name=sid]'];
-                var usable = function (c) { return c && !c.readOnly && !c.disabled && !c.closest('.modal'); };
-                for (var i = 0; i < selectors.length; i++) {
-                    var list = document.querySelectorAll(selectors[i]);
-                    for (var j = 0; j < list.length; j++) { if (usable(list[j])) { return list[j]; } }
-                }
-                // fallback: an editable text box that looks like the student id / scan box
-                var all = document.querySelectorAll('input[type=text], input[type=search], input[type=number], input:not([type])');
-                for (var k = 0; k < all.length; k++) {
-                    var c = all[k];
-                    var hint = (c.id + ' ' + c.name + ' ' + (c.placeholder || '')).toLowerCase();
-                    if (usable(c) && c.offsetParent !== null && /student|scan|qr|\bid\b/.test(hint)) { return c; }
-                }
-                return null;
-            }
-
-            function softReset() {
-                if (done) { return; }
-                done = true;
-                if (watcher) { clearInterval(watcher); }
-                el.removeEventListener('hidden.bs.modal', softReset);
-                if (window.jQuery) { window.jQuery(el).off('hidden.bs.modal', softReset); }
-
-                var input = findIdInput();
-                if (input) {
-                    input.value = '';   // value only: no input/change events, so nothing is submitted again
-                    input.focus();
-                }
-                window.dispatchEvent(new CustomEvent('student-check-reset'));
-            }
-
-            // 1) Bootstrap 5 event
-            el.addEventListener('hidden.bs.modal', softReset);
-            // 2) jQuery style event (in case the modal is closed through jQuery)
-            if (window.jQuery) { window.jQuery(el).on('hidden.bs.modal', softReset); }
-            // 3) safety net: once the modal has been shown and is no longer visible, reset
-            var wasOpen = false;
-            watcher = setInterval(function () {
-                var visible = el.classList.contains('show') || window.getComputedStyle(el).display !== 'none';
-                if (visible) { wasOpen = true; }
-                else if (wasOpen) { softReset(); }
-            }, 200);
-
-            var modal = (bootstrap.Modal.getOrCreateInstance) ? bootstrap.Modal.getOrCreateInstance(el) : new bootstrap.Modal(el);
-            modal.show();
-        })();
+        var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+        errorModal.show();
     </script>";
     exit;
 }

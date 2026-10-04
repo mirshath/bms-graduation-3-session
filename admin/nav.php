@@ -167,7 +167,7 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     <!-- INVITATION ROLE: admin, invitation -->
     <?php if ($can_invite): ?>
 
-        <?php $nav_link('oldStudentsDOBupdate', 'fa-calendar-alt', 'DOB Updates'); ?>
+        <?php $nav_link('oldStudentsDOBupdate', 'fa-calendar-alt', 'Edit Student'); ?>
     <?php endif; ?>
 
     <!-- ============================================ -->

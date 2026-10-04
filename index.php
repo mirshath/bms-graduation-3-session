@@ -41,6 +41,11 @@ include('./includes/header.php'); // Include your database connection file
         padding: 0 12px 56px;
     }
 
+    .bg_color_ds {
+        background-color: rgba(238, 232, 232, 0.68);
+        border-radius: 10px;
+    }
+
     .reg-banner {
         width: 100%;
         height: auto;
@@ -743,7 +748,7 @@ include('./includes/header.php'); // Include your database connection file
                 </div>
 
                 <!-- -------- Student Meal Preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29); border-radius: 10px;">
+                <div class="mb-2 meal-row bg_color_ds">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Student meal preference</b>
@@ -803,7 +808,7 @@ include('./includes/header.php'); // Include your database connection file
                 <!-- ---------------------------------------------  -->
 
                 <!-- -------- Guest 02 meal preference ----------  -->
-                <div class="mb-2 meal-row" style="background-color:rgba(238, 232, 232, 0.29);border-radius: 10px;">
+                <div class="mb-2 meal-row bg_color_ds">
                     <div class="row">
                         <div class="col-md-3">
                             <label class="form-label"> <b>Guest 02 meal preference</b>
@@ -868,12 +873,12 @@ include('./includes/header.php'); // Include your database connection file
                         </div>
                     </div>
                 </div>
-
-                <p>
+                <hr>
+                <b>
                     <center>Your invitation will be sent to your email after submiting the registration
                         form. You will need to present the QR code provided in the email at the registration
                         table for entry</center>
-                </p>
+                </b>
             </div>
         </div>
 
