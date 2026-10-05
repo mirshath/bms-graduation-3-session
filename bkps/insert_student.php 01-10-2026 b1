@@ -351,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->Username = 'bmsgraduation@bms.ac.lk';
             $mail->Password = 'vspcktnnkhtwhxgr';
             // $mail->Username = 'noreply@bms.ac.lk';
-            // $mail->Password = 'gqfxxrphvjnlmwrn';
+            // $mail->Password = 'sdfsdfsdf';
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
 

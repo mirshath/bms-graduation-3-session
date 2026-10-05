@@ -124,12 +124,12 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     <!-- Roles: admin, finance -->
     <!-- ============================================ -->
     <?php if ($can_finance): ?>
-        <?php $nav_label('Payments'); ?>
+        <?php $nav_label('Finance'); ?>
         <!-- <?php $nav_link('payment_reg', 'fa-credit-card', 'Payment Registration'); ?> -->
         <!-- <?php $nav_link('payment-reports', 'fa-chart-line', 'Payment Report'); ?> -->
 
         <!-- Payment  Dropdown -->
-        <?php $nav_menu('paymentSectionDropdown', 'collapsePaymentDropDwn', 'fa-ticket-alt', 'Payment', [
+        <?php $nav_menu('paymentSectionDropdown', 'collapsePaymentDropDwn', 'fa-ticket-alt', 'Finance', [
             ['payment_reg', 'fa-credit-card', 'Payment Registration'],
             ['payment-reports', 'fa-chart-line', 'Payment Report'],
         ]); ?>

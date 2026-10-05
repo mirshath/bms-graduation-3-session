@@ -3,8 +3,25 @@ include('./database/connection.php');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 require 'vendor/autoload.php';
+
+// Load environment variables from .env (kept outside version control)
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+$dotenv->required([
+    'SMTP_HOST',
+    'SMTP_PORT',
+    'SMTP_USERNAME',
+    'SMTP_PASSWORD',
+    'MAIL_FROM_ADDRESS',
+    'MAIL_FROM_NAME',
+])->notEmpty();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -129,8 +146,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $updateOld->execute();
         $updateOld->close();
         // --- Prepare QR Code Image with only student_id ---
-        // $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($student_id);
-        $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
+        // PHPMailer object is created here so the QR can be embedded in the email
+        $mail = new PHPMailer(true);
+
+        $qr_embedded = false;
+
+        try {
+            $qr_result = (new Builder(
+                writer: new PngWriter(),
+                data: $student_id,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::High,
+                size: 300,
+                margin: 40, // white padding around the QR (increase for more, decrease for less)
+                roundBlockSizeMode: RoundBlockSizeMode::Margin
+            ))->build();
+
+            // Embedded inline -> referenced in the HTML as cid:student_qr
+            $mail->addStringEmbeddedImage(
+                $qr_result->getString(),
+                'student_qr',
+                'student-qr-' . $student_id . '.png',
+                PHPMailer::ENCODING_BASE64,
+                'image/png'
+            );
+
+            $qr_embedded = true;
+        } catch (\Throwable $qrError) {
+            // A QR problem must never block the registration email
+            error_log('QR generation failed for student ' . $student_id . ': ' . $qrError->getMessage());
+        }
+
+        // Used in the email body: <img src='$qrCodeImage'>
+        $qrCodeImage = $qr_embedded
+            ? 'cid:student_qr'
+            : "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
+
         // Session text for the email (e.g. SESSION_01 -> Session 01)
         $sessionHtml = '';
         if (!empty($session)) {
@@ -369,20 +420,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ";
 
         // --- Send Email via PHPMailer ---
-        $mail = new PHPMailer(true);
         try {
             $mail->isSMTP();
-            $mail->Host = 'smtp.office365.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'bmsgraduation@bms.ac.lk';
-            $mail->Password = 'vspcktnnkhtwhxgr';
-            // $mail->Username = 'noreply@bms.ac.lk';
-            // $mail->Password = 'gqfxxrphvjnlmwrn';
+            $mail->Host       = $_ENV['SMTP_HOST'];
+            $mail->SMTPAuth   = true;
+            $mail->Username   = $_ENV['SMTP_USERNAME'];
+            $mail->Password   = $_ENV['SMTP_PASSWORD'];
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-            $mail->Port = 587;
+            $mail->Port       = (int) $_ENV['SMTP_PORT'];
 
-            $mail->setFrom('bmsgraduation@bms.ac.lk', 'BMS Graduation');
-            // $mail->setFrom('noreply@bms.ac.lk', 'BMS Graduation');
+            $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
 
             // Add recipients conditionally
             if (!empty($given_email_add) && strtolower($given_email_add) !== strtolower($email_address)) {
@@ -403,7 +450,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->send();
             echo 'Registration successful';
         } catch (Exception $e) {
-            echo "Registration saved, but email could not be sent. Error: {$mail->ErrorInfo}";
+            error_log('Mail error for student ' . $student_id . ': ' . $mail->ErrorInfo);
+            echo 'Registration saved, but the confirmation email could not be sent.';
         }
     } else {
         echo 'Database Error: ' . htmlspecialchars($stmt->error);

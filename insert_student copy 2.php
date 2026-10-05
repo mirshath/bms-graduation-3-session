@@ -3,6 +3,11 @@ include('./database/connection.php');
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 require 'vendor/autoload.php';
 
@@ -38,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     }
 
+   
     // Validate calling name format: letters, spaces, hyphens, apostrophes only
     if (!preg_match("/^[\p{L}\s\-']+$/u", $calling_name)) {
         echo 'Calling name can only contain letters, spaces, hyphens and apostrophes.';
@@ -56,6 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // Format phone
     $phone_no = preg_replace('/[^0-9]/', '', $phone_no);
+    if (strlen($phone_no) < 9) {
+        echo 'Please enter a valid mobile number.';
+        exit;
+    }
     if (strlen($phone_no) >= 9) {
         $phone_no = '+94' . substr($phone_no, -9);
     }
@@ -63,10 +73,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $crsfee_payment_status = trim($_POST['crsfee_payment_status'] ?? '');
     $graduation_payment_status = trim($_POST['graduation_payment_status'] ?? 'Not-Completed');
 
+    // Look up the program's session from data_tables (server-side, not trusted from the form)
+    $session = null;
+    $sessStmt = $conn->prepare("SELECT `session` FROM data_tables WHERE TRIM(programName) = TRIM(?) ORDER BY active DESC, id ASC LIMIT 1");
+    $sessStmt->bind_param("s", $program_name);
+    $sessStmt->execute();
+    $sessStmt->bind_result($sessionValue);
+    if ($sessStmt->fetch()) {
+        $session = $sessionValue;
+    }
+    $sessStmt->close();
+
     $stmt = $conn->prepare("
     INSERT INTO registered_students
-    (student_id, dob, name_in_full, title, calling_name, confirmation, program_name, given_email_add, email_address, phone_no, crsfee_payment_status, graduation_payment_status, student_meals, guest_meals, guest_meals_02)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (student_id, dob, name_in_full, title, calling_name, confirmation, program_name, `session`, given_email_add, email_address, phone_no, crsfee_payment_status, graduation_payment_status, student_meals, guest_meals, guest_meals_02)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
         dob = VALUES(dob),
         name_in_full = VALUES(name_in_full),
@@ -74,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         calling_name = VALUES(calling_name),
         confirmation = VALUES(confirmation),
         program_name = VALUES(program_name),
+        `session` = VALUES(`session`),
         given_email_add = VALUES(given_email_add),
         email_address = VALUES(email_address),
         phone_no = VALUES(phone_no),
@@ -85,7 +107,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ");
 
     $stmt->bind_param(
-        "sssssisssssssss",
+        "sssssissssssssss",
         $student_id,
         $dob,
         $name_in_full,
@@ -93,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $calling_name,
         $confirmation,
         $program_name,
+        $session,
         $given_email_add,
         $email_address,
         $phone_no,
@@ -112,10 +135,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $updateOld->execute();
         $updateOld->close();
         // --- Prepare QR Code Image with only student_id ---
-        // $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=" . urlencode($student_id);
-        $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
+        // PHPMailer object is created here so the QR can be embedded in the email
+        $mail = new PHPMailer(true);
+
+        $qr_embedded = false;
+
+        try {
+            $qr_result = (new Builder(
+                writer: new PngWriter(),
+                data: $student_id,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::High,
+                size: 300,
+                margin: 40, // white padding around the QR (increase for more, decrease for less)
+                roundBlockSizeMode: RoundBlockSizeMode::Margin
+            ))->build();
+
+            // Embedded inline -> referenced in the HTML as cid:student_qr
+            $mail->addStringEmbeddedImage(
+                $qr_result->getString(),
+                'student_qr',
+                'student-qr-' . $student_id . '.png',
+                PHPMailer::ENCODING_BASE64,
+                'image/png'
+            );
+
+            $qr_embedded = true;
+        } catch (\Throwable $qrError) {
+            // A QR problem must never block the registration email
+            error_log('QR generation failed for student ' . $student_id . ': ' . $qrError->getMessage());
+        }
+
+        // Used in the email body: <img src='$qrCodeImage'>
+        $qrCodeImage = $qr_embedded
+            ? 'cid:student_qr'
+            : "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
+
+        // Session text for the email (e.g. SESSION_01 -> Session 01)
+        $sessionHtml = '';
+        if (!empty($session)) {
+            $sessionLabel = ucwords(strtolower(str_replace('_', ' ', $session)));
+            $sessionHtml = "<p style='font-size:30px; font-weight: 900; color:#1e3a8a; margin:0 0 20px;'>" . htmlspecialchars($sessionLabel) . "</p>";
+        }
         // Path to the banner image
-        $bannerImagePath = __DIR__ . '/images/GradutionBanner2026.jpg';
+        $bannerImagePath = __DIR__ . '/images/graduation_nov_2026.jpg';
 
         // --- Build HTML Email ---
         // --- Build Professional HTML Email ---
@@ -309,10 +372,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         
                         <!-- QR Code Section -->
-                        <div class='qr-section' style=background-color: white;>
+                        <div class='qr-section' style='background-color: #ffffff;'>
                             <p><strong>Your Payment QR Code</strong></p>
                             <p>Please present this QR code to the cashier when making your graduation fee payment:</p>
-                        
+                            $sessionHtml
                             <img src='$qrCodeImage' alt='Payment QR Code'>
                         </div>
 
@@ -346,15 +409,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ";
 
         // --- Send Email via PHPMailer ---
-        $mail = new PHPMailer(true);
         try {
             $mail->isSMTP();
             $mail->Host = 'smtp.office365.com';
             $mail->SMTPAuth = true;
             $mail->Username = 'bmsgraduation@bms.ac.lk';
-            $mail->Password = 'vspcktnnkhtwhxgr';
+            $mail->Password = 'fsdfs';
             // $mail->Username = 'noreply@bms.ac.lk';
-            // $mail->Password = 'sdfsdfsdf';
+            // $mail->Password = 'adfaf';
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
             $mail->Port = 587;
 
