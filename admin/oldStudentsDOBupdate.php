@@ -96,7 +96,7 @@ foreach ($rows as $r) {
 
                     <header class="at-head">
                         <div>
-                            <h1>DOB Updates</h1>
+                            <h1>Edit Student</h1>
                             <p>Correct a student's ID, date of birth or active status, then save that row.</p>
                         </div>
                     </header>

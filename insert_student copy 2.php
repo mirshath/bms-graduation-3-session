@@ -356,7 +356,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     
                     <!-- Title Section -->
                     <div class='email-title'>
-                        <h1>BMS Award Ceremony 2026</h1>
+                        <h1>BMS DEGREE CONVOCATION 2026</h1>
                         <p>Registration Confirmation</p>
                     </div>
                     
@@ -367,8 +367,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                         
                         <div class='message-text'>
-                            <p>Congratulations! We are delighted to confirm your successful registration for the <strong>BMS Award Ceremony 2026</strong>.</p>
-                            <p>We are pleased to confirm your registration for BMS Award Ceremony 2026.</p>
+                            <p>Congratulations! We are delighted to confirm your successful registration for the <strong>BMS DEGREE CONVOCATION 2026</strong>.</p>
+                            <p>We are pleased to confirm your registration for BMS DEGREE CONVOCATION 2026.</p>
                         </div>
                         
                         <!-- QR Code Section -->
@@ -436,7 +436,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->addEmbeddedImage($bannerImagePath, 'bmslogo');
 
             $mail->isHTML(true);
-            $mail->Subject = "BMS Award Ceremony 2026 - Registration Confirmation";
+            $mail->Subject = "BMS DEGREE CONVOCATION - Registration Confirmation";
             $mail->Body = $emailBody;
 
             $mail->send();

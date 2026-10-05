@@ -531,7 +531,7 @@ try {
         <tr>
             <td align="center" bgcolor="#667eea" style="background-color:#667eea; padding:32px 24px;">
                 <div style="font-size:12px; letter-spacing:2px; color:#dfe4ff; text-transform:uppercase; margin-bottom:8px;">
-                    Award Ceremony 2026
+                BMS DEGREE CONVOCATION 2026
                 </div>
                 <h1 style="margin:0; font-size:24px; line-height:30px; color:#ffffff; font-weight:bold;">
                     Graduation Payment Receipt
@@ -549,7 +549,7 @@ try {
             <td style="padding:28px 32px 8px 32px; font-size:15px; line-height:24px; color:#374151;">
                 <p style="margin:0 0 14px 0;">Dear <strong>{$safe_name}</strong>,</p>
                 <p style="margin:0 0 14px 0;">
-                    Thank you for your payment for <strong>AWARD CEREMONY 2026</strong>.
+                    Thank you for your payment for <strong>BMS DEGREE CONVOCATION 2026</strong>.
                     Your payment receipt is attached to this email as a PDF.
                 </p>
             </td>

@@ -9,7 +9,7 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <title>BMS Award Ceremony 2026</title>
+    <title>BMS DEGREE CONVOCATION 2026</title>
 
     <link rel="stylesheet" href="assets/style.css">
 
@@ -123,9 +123,9 @@
 </head>
 
 <body id="page-top">
-    
-    
-    
+
+
+
     <script>
         // function checkSession() {
         //     fetch('check_session.php')
@@ -146,10 +146,10 @@
         //     setInterval(checkSession, 3000); // repeat every 3 seconds
         // });
     </script>
-    
-    
-    
-    
+
+
+
+
     <script>
         function checkSession() {
             fetch('check_session.php')
@@ -167,13 +167,4 @@
             checkSession(); // Immediate check on load
             setInterval(checkSession, 3000); // Recheck every 3 seconds
         });
-        
     </script>
-    
-    
-    
-    
-    
-    
-    
-    

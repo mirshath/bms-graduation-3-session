@@ -26,10 +26,6 @@ if ($result) {
     $loadError = true;
     error_log("Bulk data page - program load error: " . mysqli_error($conn));
 }
-
-// Distinct sessions (SESSION_01, SESSION_02, ...) from data_tables
-$sessions = array_values(array_unique(array_filter($programs, fn($v) => trim((string)$v) !== '')));
-sort($sessions, SORT_NATURAL);
 ?>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -236,12 +232,6 @@ sort($sessions, SORT_NATURAL);
         font-weight: 500;
         outline: 0;
         transition: border-color .15s, box-shadow .15s;
-    }
-
-    .bd-note {
-        margin-top: 6px;
-        font-size: 13px;
-        color: var(--muted);
     }
 
     .bd-input[readonly] {
@@ -601,24 +591,18 @@ sort($sessions, SORT_NATURAL);
                             <form id="bulkUploadForm" action="upload_bulk_data.php" method="POST" enctype="multipart/form-data">
 
                                 <div class="bd-field">
-                                    <label for="sessionSelect"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Session <span class="req">*</span></label>
-                                    <select name="session_time" class="bd-input" id="sessionSelect" required>
-                                        <option value="">Select a session</option>
-                                        <?php foreach ($sessions as $sess): ?>
-                                            <option value="<?php echo bd_h($sess); ?>"><?php echo bd_h($sess); ?></option>
+                                    <label for="programSelect"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Program <span class="req">*</span></label>
+                                    <select name="program_name" class="bd-input" id="programSelect" required>
+                                        <option value="">Select a program</option>
+                                        <?php foreach ($programs as $name => $session): ?>
+                                            <option value="<?php echo bd_h($name); ?>"><?php echo bd_h($name); ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
 
                                 <div class="bd-field">
-                                    <label for="programSelect"><i class="fas fa-graduation-cap" aria-hidden="true"></i> Program <span class="req">*</span></label>
-                                    <select name="program_name" class="bd-input" id="programSelect" required>
-                                        <option value="">Select a program</option>
-                                        <?php foreach ($programs as $name => $sess): ?>
-                                            <option value="<?php echo bd_h($name); ?>"><?php echo bd_h($name); ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <div class="bd-note" id="programNote">Pick a session first to see only its programs.</div>
+                                    <label for="programSession"><i class="fas fa-calendar-alt" aria-hidden="true"></i> Session</label>
+                                    <input type="text" name="session_time" id="programSession" class="bd-input" placeholder="Shown after you pick a program" readonly>
                                 </div>
 
                                 <div class="bd-field">
@@ -708,49 +692,18 @@ sort($sessions, SORT_NATURAL);
 
         // Program -> session mapping (keys are raw program names)
         var programSessions = <?php echo json_encode($programs, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-        var allPrograms = Object.keys(programSessions);
-        var $session = $('#sessionSelect'),
-            $program = $('#programSelect');
 
         if ($.fn.select2) {
-            $session.select2({
-                placeholder: 'Select a session',
-                allowClear: true,
-                width: '100%'
-            });
-            $program.select2({
+            $('#programSelect').select2({
                 placeholder: 'Select a program',
                 allowClear: true,
                 width: '100%'
             });
         }
 
-        // Rebuild the program list for the chosen session (all programs when no session)
-        function loadPrograms(sess, keep) {
-            var list = allPrograms.filter(function(n) {
-                return !sess || programSessions[n] === sess;
-            });
-            $program.empty().append(new Option('Select a program', '', false, false));
-            list.forEach(function(n) {
-                $program.append(new Option(n, n, false, false));
-            });
-            $program.val(keep && list.indexOf(keep) !== -1 ? keep : '').trigger('change.select2');
-            $('#programNote').text(sess ?
-                list.length + ' program' + (list.length === 1 ? '' : 's') + ' in ' + sess + '.' :
-                'Pick a session first to see only its programs.');
-        }
-
-        $session.on('change', function() {
-            loadPrograms($(this).val(), $program.val());
-        });
-
-        // Choosing a program fills in its session
-        $program.on('change', function() {
+        $('#programSelect').on('change', function() {
             var p = $(this).val();
-            if (p && programSessions[p] && $session.val() !== programSessions[p]) {
-                $session.val(programSessions[p]).trigger('change.select2');
-                loadPrograms(programSessions[p], p);
-            }
+            $('#programSession').val(p && programSessions[p] ? programSessions[p] : '');
         });
 
         // File picker feedback + .csv check

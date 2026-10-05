@@ -545,7 +545,7 @@ include('./includes/header.php'); // Include your database connection file
 </style>
 
 <main class="reg mt-4 body_bg">
-    <img src="./images/graduation_nov_2026.jpg" alt="BMS Award Ceremony 2026 banner" class="reg-banner">
+    <img src="./images/graduation_nov_2026.jpg" alt="BMS DEGREE CONVOCATION 2026 banner" class="reg-banner">
     <header class="reg-head">
         <h1 style="font-size: 35px; font-weight: 700; text-align: center;">BMS DEGREE CONVOCATION 2026 <br>
             <span style="font-size: 25px;">REGISTRATION FORM</span>

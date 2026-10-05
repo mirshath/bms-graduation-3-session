@@ -1,0 +1,17 @@
+<?php
+// Database configuration
+// $host = 'localhost'; // Database server
+// $username = 'root';  // Database username
+// $password = '';      // Database password (default is empty for localhost)
+// $database = 'bms_graduation_3_session'; // Your database name
+
+// // Create a connection
+// $conn = new mysqli($host, $username, $password, $database);
+
+// // Check the connection
+// if ($conn->connect_error) {
+//     die("Connection failed: " . $conn->connect_error);
+// }
+
+
+// ---------------- 

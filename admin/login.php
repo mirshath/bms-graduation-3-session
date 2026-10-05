@@ -365,7 +365,7 @@ $conn->close();
         <aside class="brand">
             <div class="copy">
                 <h1>BMS Graduations</h1>
-                <p>Admin portal for the Award Ceremony 2026: registrations, payments and invitations.</p>
+                <p>Admin portal for the  <b>BMS DEGREE CONVOCATION 2026: </b> registrations, payments and invitations.</p>
             </div>
             <small>&copy; 2026 BMS Graduation. All rights reserved.</small>
         </aside>

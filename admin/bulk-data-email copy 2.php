@@ -416,27 +416,6 @@ sort($sessions, SORT_NATURAL);
         color: var(--bad);
     }
 
-    .be-hint {
-        display: none;
-        margin-bottom: 14px;
-        padding: 10px 14px;
-        border: 1px solid #f3dcae;
-        border-radius: 10px;
-        background: var(--warn-bg);
-        color: var(--warn);
-        font-size: 13px;
-        font-weight: 500;
-    }
-
-    .be-hint.show {
-        display: block;
-    }
-
-    .be-stale {
-        opacity: .45;
-        pointer-events: none;
-    }
-
     .be-bad-ic {
         background: var(--bad-bg) !important;
         color: var(--bad) !important;
@@ -845,7 +824,6 @@ sort($sessions, SORT_NATURAL);
 
                     <!-- results (filled by fetch_program_data.php) -->
                     <section class="at-card be-result">
-                        <div id="staleHint" class="be-hint" role="status"></div>
                         <div id="programDataResult">
                             <div class="be-empty">
                                 <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
@@ -930,96 +908,36 @@ sort($sessions, SORT_NATURAL);
         var $btn = $('#fetchProgramData'),
             $out = $('#programDataResult'),
             $msg = $('#pickError'),
-            $hint = $('#staleHint'),
-            btnHtml = $btn.html(),
-            currentXhr = null, // request in flight
-            requestId = 0, // lets us ignore answers from older requests
-            loadedProgram = ''; // program whose data is on screen now
+            btnHtml = $btn.html();
 
-        // Remove the previous program's table and handlers so nothing old is left behind
-        function clearResult() {
-            if ($.fn.DataTable && $.fn.DataTable.isDataTable('#programDataTable')) {
-                $('#programDataTable').DataTable().destroy();
-            }
-            $(document).off('click.beSend');
-            $out.empty();
-            $out.removeClass('be-stale');
-            $hint.removeClass('show').empty();
-        }
-
-        function showError(text) {
-            $out.html('<div class="be-empty"><i class="fas fa-exclamation-triangle be-bad-ic" aria-hidden="true"></i><strong>Could not load students</strong><span></span></div>');
-            $out.find('span').text(text);
-        }
-
-        function loadProgram(programName) {
-            // Cancel anything still loading, then start clean for the newly chosen program
-            if (currentXhr) {
-                currentXhr.abort();
-                currentXhr = null;
-            }
-            var myId = ++requestId;
-            clearResult();
-
-            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Fetching…');
-            $out.html('<div class="be-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Loading students for ' + $('<div>').text(programName).html() + '…</span></div>');
-
-            currentXhr = $.ajax({
-                url: 'fetch_program_data.php',
-                type: 'POST',
-                cache: false,
-                timeout: 60000,
-                data: {
-                    program_name: programName,
-                    session: $session.val() || programSessions[programName] || ''
-                },
-                success: function(response) {
-                    if (myId !== requestId) return; // a newer fetch took over
-                    loadedProgram = programName;
-                    $out.html(response);
-                },
-                error: function(xhr, status) {
-                    if (status === 'abort' || myId !== requestId) return;
-                    loadedProgram = '';
-                    showError(status === 'timeout' ?
-                        'The server took too long to answer. Try Fetch data again.' :
-                        'Check your connection and try Fetch data again.');
-                },
-                complete: function() {
-                    if (myId !== requestId) return;
-                    currentXhr = null;
-                    $btn.prop('disabled', false).html(btnHtml);
-                }
-            });
-        }
-
-        // Fetch data always loads the program that is selected right now (also re-loads the same one)
         $btn.on('click', function() {
-            var programName = $program.val();
+            var programName = $('#programSelect').val();
             if (!programName) {
                 $msg.addClass('show');
                 return;
             }
             $msg.removeClass('show');
-            loadProgram(programName);
-        });
 
-        // Changing the session can clear the program too; refresh the "old data" notice
-        $session.on('change', function() {
-            $program.trigger('change');
-        });
+            $btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin" aria-hidden="true"></i> Fetching…');
+            $out.html('<div class="be-loading"><i class="fas fa-spinner fa-spin" aria-hidden="true"></i><span>Loading students…</span></div>');
 
-        // Picked a different program while old data is showing: say so, so it is never mistaken for the new one
-        $program.on('change', function() {
-            var p = $(this).val();
-            if (loadedProgram && p !== loadedProgram) {
-                $out.addClass('be-stale');
-                $hint.text(p ? 'These students belong to the previous program. Click Fetch data to load the selected one.' :
-                    'Select a program and click Fetch data to refresh.').addClass('show');
-            } else {
-                $out.removeClass('be-stale');
-                $hint.removeClass('show').empty();
-            }
+            $.ajax({
+                url: 'fetch_program_data.php',
+                type: 'POST',
+                data: {
+                    program_name: programName,
+                    session: $session.val() || programSessions[programName] || ''
+                },
+                success: function(response) {
+                    $out.html(response);
+                },
+                error: function() {
+                    $out.html('<div class="be-empty"><i class="fas fa-exclamation-triangle" aria-hidden="true" style="background:#fdecea;color:#c0372f"></i><strong>Could not load students</strong><span>Check your connection and try Fetch data again.</span></div>');
+                },
+                complete: function() {
+                    $btn.prop('disabled', false).html(btnHtml);
+                }
+            });
         });
     });
 </script>

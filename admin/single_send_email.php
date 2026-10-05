@@ -118,7 +118,7 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
         $mail->addAddress($toEmail);
 
         $mail->isHTML(true);
-        $mail->Subject = 'BMS Award Ceremony Seat Allocation Notification';
+        $mail->Subject = 'BMS DEGREE CONVOCATION Seat Allocation Notification';
 
         // Generate QR code
         $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($studentId);
@@ -128,12 +128,12 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
         <div style="font-family: Arial, Helvetica, sans-serif; color: #222;">
             <div style="max-width:500px; margin:auto; border:1px solid #E5E5E5; font-size: 16px; background:#fafbfc; border-radius:8px; box-shadow:0 1px 5px rgba(0,0,0,0.04); padding:36px 32px 32px 32px;">
                 <div style="border-bottom:2px solid #1d3557; padding-bottom:6px; margin-bottom:24px;">
-                    <h2 style="margin:0; color:#1d3557; letter-spacing:1px; font-weight:600; font-size:23px;">BMS Award Ceremony 2026 - Seat Number</h2>
+                    <h2 style="margin:0; color:#1d3557; letter-spacing:1px; font-weight:600; font-size:23px;">BMS DEGREE CONVOCATION 2026 - Seat Number</h2>
                 </div>
 
                 <p style="margin:0 0 18px 0;">Dear <strong>' . htmlspecialchars(!empty($callingName) ? $callingName : $nameInFull) . '</strong>,</p>
                 
-                <p style="color:#2b3137;">  <span style="color:#2980b9;">Congratulations and thank you for the registration for the BMS Award Ceremony 2026.</span>  Please find below your Seat Number allocated for you. <br><br>
+                <p style="color:#2b3137;">  <span style="color:#2980b9;">Congratulations and thank you for the registration for the BMS DEGREE CONVOCATION 2026.</span>  Please find below your Seat Number allocated for you. <br><br>
                  Please provide the QR code given below at the Registration Desk at the Entrance of the BMICH Lotus Hall before 8.30am to mark your presence and to guide you to your seat </p>
                 
                 <table style="width:100%; border-collapse:collapse; margin:24px 0 16px 0;">
@@ -169,7 +169,7 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
                 </p>
                 <div style="margin-top:36px; color:#67717c;">
                     Best regards,<br>
-                    <span style="font-weight:600;">BMS Award Ceremony Team</span>
+                    <span style="font-weight:600;">BMS DEGREE CONVOCATION TEAM</span>
                 </div>
             </div>
         </div>
