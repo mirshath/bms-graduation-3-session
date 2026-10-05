@@ -124,48 +124,25 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     <!-- Roles: admin, finance -->
     <!-- ============================================ -->
     <?php if ($can_finance): ?>
-
         <?php $nav_label('Finance'); ?>
+        <!-- <?php $nav_link('payment_reg', 'fa-credit-card', 'Payment Registration'); ?> -->
+        <!-- <?php $nav_link('payment-reports', 'fa-chart-line', 'Payment Report'); ?> -->
 
-        <!-- Payment Dropdown -->
-        <?php
-
-        $paymentMenu = [
+        <!-- Payment  Dropdown -->
+        <?php $nav_menu('paymentSectionDropdown', 'collapsePaymentDropDwn', 'fa-ticket-alt', 'Finance', [
             ['payment_reg', 'fa-credit-card', 'Payment Registration'],
             ['payment-reports', 'fa-chart-line', 'Payment Report'],
-        ];
-
-        // Only users with $can_shared permission can access Payment Success Student
-        if ($can_shared) {
-            $paymentMenu[] = [
-                'payment_success_students',
-                'fa-check-circle',
-                'Payment Success Student'
-            ];
-        }
-
-        $nav_menu(
-            'paymentSectionDropdown',
-            'collapsePaymentDropDwn',
-            'fa-ticket-alt',
-            'Finance',
-            $paymentMenu
-        );
-
-        ?>
+        ]); ?>
 
         <!-- Extra Ticket Dropdown -->
         <?php $nav_menu('extraTicketDropdown', 'collapseExtraTicket', 'fa-ticket-alt', 'Extra Ticket', [
             ['extra-ticket-buying', 'fa-cart-plus', 'Buy Extra Ticket'],
-            ['extra-ticket-data', 'fa-list', 'Ticket Log / Data'],
+            ['extra-ticket-data',   'fa-list',      'Ticket Log / Data'],
         ]); ?>
 
-        <!-- Ticket Issues & Invitation Showing -->
-        <?php $nav_link(
-            'ticket_invitation_issue',
-            'fa-ticket-alt',
-            'Ticket & Invitation Issues'
-        ); ?>
+        <!-- Ticket isses & Invitaion Showing  -->
+        <!-- <?php $nav_link('live_scan.php', 'fa-ticket-alt', 'Ticket & Invitation Issues'); ?> -->
+        <?php $nav_link('ticket_invitation_issue', 'fa-ticket-alt', 'Ticket & Invitation Issues'); ?>
 
     <?php endif; ?>
 
@@ -178,51 +155,24 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     <?php endif; ?>
 
     <?php if ($can_shared): ?>
-
-        <!-- <?php $nav_link('payment_success_students', 'fa-check-circle', 'Payment Success Student'); ?> -->
+        <?php $nav_link('payment_success_students', 'fa-check-circle', 'Payment Success Student'); ?>
 
         <!-- Students Dropdown -->
-        <?php
-
-        $studentsMenu = [
-            ['oldStudentsDB', 'fa-history', 'Old Students'],
+        <?php $nav_menu('studentsDropdown', 'collapseStudents', 'fa-users-cog', 'Students', [
+            ['oldStudentsDB',     'fa-history',       'Old Students'],
             ['registeredStudents', 'fa-user-graduate', 'Registered Students'],
-        ];
 
-        // Only admin can access Upload Student
-        if ($is_admin) {
-            $studentsMenu[] = [
-                'upload_student_db',
-                'fa-user-graduate',
-                'Upload Student'
-            ];
-        }
-
-        // Only invitation role / allowed invitation users can access Edit Student
-        if ($can_invite) {
-            $studentsMenu[] = [
-                'oldStudentsDOBupdate',
-                'fa-calendar-alt',
-                'Edit Student'
-            ];
-        }
-
-        $nav_menu(
-            'studentsDropdown',
-            'collapseStudents',
-            'fa-users-cog',
-            'Students',
-            $studentsMenu
-        );
-
-        ?>
-
+        ]); ?>
     <?php endif; ?>
 
 
+
+    
+
     <!-- INVITATION ROLE: admin, invitation -->
     <?php if ($can_invite): ?>
-        <!-- <?php $nav_link('oldStudentsDOBupdate', 'fa-calendar-alt', 'Edit Student'); ?> -->
+
+        <?php $nav_link('oldStudentsDOBupdate', 'fa-calendar-alt', 'Edit Student'); ?>
     <?php endif; ?>
 
     <!-- ============================================ -->
@@ -243,7 +193,7 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     <!-- ============================================ -->
     <?php if ($is_admin): ?>
         <?php $nav_label('Administration'); ?>
-
+        <?php $nav_link('upload_student_db', 'fa-user-graduate', 'Upload Student'); ?>
         <?php $nav_link('user', 'fa-user-plus', 'User Create'); ?>
 
         <!-- Bulk Actions Dropdown -->

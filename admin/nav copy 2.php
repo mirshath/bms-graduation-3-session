@@ -124,48 +124,26 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     <!-- Roles: admin, finance -->
     <!-- ============================================ -->
     <?php if ($can_finance): ?>
-
         <?php $nav_label('Finance'); ?>
+        <!-- <?php $nav_link('payment_reg', 'fa-credit-card', 'Payment Registration'); ?> -->
+        <!-- <?php $nav_link('payment-reports', 'fa-chart-line', 'Payment Report'); ?> -->
 
-        <!-- Payment Dropdown -->
-        <?php
-
-        $paymentMenu = [
+        <!-- Payment  Dropdown -->
+        <?php $nav_menu('paymentSectionDropdown', 'collapsePaymentDropDwn', 'fa-ticket-alt', 'Finance', [
             ['payment_reg', 'fa-credit-card', 'Payment Registration'],
             ['payment-reports', 'fa-chart-line', 'Payment Report'],
-        ];
+        ]); ?>
 
-        // Only users with $can_shared permission can access Payment Success Student
-        if ($can_shared) {
-            $paymentMenu[] = [
-                'payment_success_students',
-                'fa-check-circle',
-                'Payment Success Student'
-            ];
-        }
-
-        $nav_menu(
-            'paymentSectionDropdown',
-            'collapsePaymentDropDwn',
-            'fa-ticket-alt',
-            'Finance',
-            $paymentMenu
-        );
-
-        ?>
 
         <!-- Extra Ticket Dropdown -->
         <?php $nav_menu('extraTicketDropdown', 'collapseExtraTicket', 'fa-ticket-alt', 'Extra Ticket', [
             ['extra-ticket-buying', 'fa-cart-plus', 'Buy Extra Ticket'],
-            ['extra-ticket-data', 'fa-list', 'Ticket Log / Data'],
+            ['extra-ticket-data',   'fa-list',      'Ticket Log / Data'],
         ]); ?>
 
-        <!-- Ticket Issues & Invitation Showing -->
-        <?php $nav_link(
-            'ticket_invitation_issue',
-            'fa-ticket-alt',
-            'Ticket & Invitation Issues'
-        ); ?>
+        <!-- Ticket isses & Invitaion Showing  -->
+        <!-- <?php $nav_link('live_scan.php', 'fa-ticket-alt', 'Ticket & Invitation Issues'); ?> -->
+        <?php $nav_link('ticket_invitation_issue', 'fa-ticket-alt', 'Ticket & Invitation Issues'); ?>
 
     <?php endif; ?>
 
