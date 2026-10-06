@@ -32,31 +32,11 @@ function at_payCls(string $v): string
     return 'off';
 }
 
-// "Higher Diploma in Biomedical Science - Batch 29"  ->  "Higher Diploma in Biomedical Science"
-function at_base_program(string $p): string
-{
-    return trim(preg_replace('/\s*-\s*Batch\s*\d+\s*$/i', '', trim($p)));
-}
-
 $rows = [];
 $loadError = false;
-// The session is taken from data_tables by matching the program name (falls back to the student's own session value).
-// data_tables is grouped first so a program listed twice can never duplicate a student row.
-$result = mysqli_query($conn, "
-    SELECT r.*, d.session_name
-    FROM registered_students r
-    LEFT JOIN (
-        SELECT TRIM(programName) AS pname, MIN(session) AS session_name
-        FROM data_tables
-        WHERE programName IS NOT NULL AND programName != ''
-        GROUP BY TRIM(programName)
-    ) d ON TRIM(r.program_name) = d.pname
-    ORDER BY r.id DESC
-");
+$result = mysqli_query($conn, "SELECT * FROM registered_students ORDER BY id DESC");
 if ($result) {
     while ($r = mysqli_fetch_assoc($result)) {
-        $ds = trim((string)($r['session_name'] ?? ''));
-        $r['session'] = $ds !== '' ? $ds : trim((string)($r['session'] ?? ''));
         $rows[] = $r;
     }
 } else {
@@ -70,20 +50,6 @@ $totalAttended = 0;
 $totalGradPaid = 0;
 $sessionList = [];
 $programList = [];
-
-// Unique sessions and the programs inside each one, from data_tables
-$sessionPrograms = [];
-$sp = mysqli_query($conn, "SELECT DISTINCT TRIM(session) AS session, TRIM(programName) AS programName
-                           FROM data_tables
-                           WHERE session IS NOT NULL AND TRIM(session) != ''
-                             AND programName IS NOT NULL AND TRIM(programName) != ''
-                           ORDER BY session ASC, programName ASC");
-if ($sp) {
-    while ($x = mysqli_fetch_assoc($sp)) {
-        $sessionPrograms[$x['session']][] = $x['programName'];
-    }
-}
-$programNames = [];
 $feeList = [];
 $gradList = [];
 foreach ($rows as $r) {
@@ -94,10 +60,10 @@ foreach ($rows as $r) {
     if ($g === 'paid' || $g === 'completed') $totalGradPaid++;
 
     $s = trim((string)($r['session'] ?? ''));
+    if ($s !== '') $sessionList[$s] = true;
+
     $p = trim((string)($r['program_name'] ?? ''));
-    if ($s !== '' && $p !== '') $sessionPrograms[$s][] = $p;   // in case a student's program is missing from data_tables
     if ($p !== '' && !isset($programList[$p])) $programList[$p] = $s;
-    if ($p !== '') $programNames[at_base_program($p)] = true;
 
     $f = trim((string)($r['crsfee_payment_status'] ?? ''));
     $feeList[$f !== '' ? $f : 'N/A'] = true;
@@ -105,15 +71,7 @@ foreach ($rows as $r) {
     $gv = trim((string)($r['graduation_payment_status'] ?? ''));
     $gradList[$gv !== '' ? $gv : 'N/A'] = true;
 }
-foreach ($sessionPrograms as $k => $list) {
-    $list = array_values(array_unique($list));
-    sort($list, SORT_NATURAL | SORT_FLAG_CASE);
-    $sessionPrograms[$k] = $list;
-}
-ksort($sessionPrograms);
-$sessionList = array_fill_keys(array_keys($sessionPrograms), true);
-$programNames = array_keys($programNames);
-sort($programNames, SORT_NATURAL | SORT_FLAG_CASE);
+ksort($sessionList);
 ksort($programList);
 ksort($feeList);
 ksort($gradList);
@@ -1256,61 +1214,20 @@ $totalGradPending = $totalStudents - $totalGradPaid;
             word-break: break-word;
         }
 
-        table#dataTable th:nth-child(1) {
-            width: 3%;
-        }
-
-        table#dataTable th:nth-child(2) {
-            width: 6.5%;
-        }
-
-        table#dataTable th:nth-child(3) {
-            width: 10.5%;
-        }
-
-        table#dataTable th:nth-child(4) {
-            width: 7.5%;
-        }
-
-        table#dataTable th:nth-child(5) {
-            width: 6.5%;
-        }
-
-        table#dataTable th:nth-child(6) {
-            width: 10.5%;
-        }
-
-        table#dataTable th:nth-child(7) {
-            width: 7.5%;
-        }
-
-        table#dataTable th:nth-child(8) {
-            width: 11%;
-        }
-
-        table#dataTable th:nth-child(9) {
-            width: 6.5%;
-        }
-
-        table#dataTable th:nth-child(10) {
-            width: 6.5%;
-        }
-
-        table#dataTable th:nth-child(11) {
-            width: 5.5%;
-        }
-
-        table#dataTable th:nth-child(12) {
-            width: 6.5%;
-        }
-
-        table#dataTable th:nth-child(13) {
-            width: 5.5%;
-        }
-
-        table#dataTable th:nth-child(14) {
-            width: 6.5%;
-        }
+        table#dataTable th:nth-child(1)  { width: 3%; }
+        table#dataTable th:nth-child(2)  { width: 6.5%; }
+        table#dataTable th:nth-child(3)  { width: 10.5%; }
+        table#dataTable th:nth-child(4)  { width: 7.5%; }
+        table#dataTable th:nth-child(5)  { width: 6.5%; }
+        table#dataTable th:nth-child(6)  { width: 10.5%; }
+        table#dataTable th:nth-child(7)  { width: 7.5%; }
+        table#dataTable th:nth-child(8)  { width: 11%; }
+        table#dataTable th:nth-child(9)  { width: 6.5%; }
+        table#dataTable th:nth-child(10) { width: 6.5%; }
+        table#dataTable th:nth-child(11) { width: 5.5%; }
+        table#dataTable th:nth-child(12) { width: 6.5%; }
+        table#dataTable th:nth-child(13) { width: 5.5%; }
+        table#dataTable th:nth-child(14) { width: 6.5%; }
 
         table#dataTable .at-person {
             min-width: 0;
@@ -1403,25 +1320,25 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                     <section class="at-kpis">
                         <div class="at-card at-kpi">
                             <span class="at-kpi-ic"><i class="fas fa-users" aria-hidden="true"></i></span>
-                            <div><span class="k">Registered</span><strong id="kpiTotal"><?php echo $totalStudents; ?></strong></div>
+                            <div><span class="k">Registered</span><strong><?php echo $totalStudents; ?></strong></div>
                         </div>
                         <div class="at-card at-kpi ok">
                             <span class="at-kpi-ic"><i class="fas fa-user-check" aria-hidden="true"></i></span>
-                            <div><span class="k">Attended</span><strong id="kpiAtt"><?php echo $totalAttended; ?></strong></div>
+                            <div><span class="k">Attended</span><strong><?php echo $totalAttended; ?></strong></div>
                         </div>
                         <div class="at-card at-kpi ok">
                             <span class="at-kpi-ic"><i class="fas fa-receipt" aria-hidden="true"></i></span>
-                            <div><span class="k">Graduation paid</span><strong id="kpiPaid"><?php echo $totalGradPaid; ?></strong></div>
+                            <div><span class="k">Graduation paid</span><strong><?php echo $totalGradPaid; ?></strong></div>
                         </div>
                         <div class="at-card at-kpi warn">
                             <span class="at-kpi-ic"><i class="fas fa-hourglass-half" aria-hidden="true"></i></span>
-                            <div><span class="k">Graduation pending</span><strong id="kpiPending"><?php echo $totalGradPending; ?></strong></div>
+                            <div><span class="k">Graduation pending</span><strong><?php echo $totalGradPending; ?></strong></div>
                         </div>
                     </section>
 
                     <!-- filters -->
                     <section class="at-card at-filters">
-                        <div class="at-grid">
+                        <div class="at-grid three">
                             <div class="at-field">
                                 <label for="sessionFilter"><i class="fas fa-filter"></i> Session</label>
                                 <select id="sessionFilter" class="at-sel">
@@ -1433,21 +1350,11 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                             </div>
 
                             <div class="at-field">
-                                <label for="programNameFilter"><i class="fas fa-filter"></i> Program name (no batch)</label>
-                                <select id="programNameFilter" class="at-sel">
-                                    <option value="">All Program Names</option>
-                                    <?php foreach ($programNames as $pn): ?>
-                                        <option value="<?php echo at_h($pn); ?>"><?php echo at_h($pn); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <div class="at-field">
-                                <label for="programFilter"><i class="fas fa-filter"></i> Program (with batch)</label>
+                                <label for="programFilter"><i class="fas fa-filter"></i> Program</label>
                                 <select id="programFilter" class="at-sel">
                                     <option value="">All Programs</option>
                                     <?php foreach ($programList as $pv => $ps): ?>
-                                        <option value="<?php echo at_h($pv); ?>"><?php echo at_h($pv); ?></option>
+                                        <option value="<?php echo at_h($pv); ?>" data-session="<?php echo at_h($ps); ?>"><?php echo at_h($pv); ?></option>
                                     <?php endforeach; ?>
                                 </select>
                             </div>
@@ -1553,9 +1460,7 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                                     $cDate = $created !== '' ? substr($created, 0, 10) : '';
                                     $cTime = strlen($created) > 11 ? substr($created, 11) : '';
                                 ?>
-                                    <tr data-pname="<?php echo at_h(at_base_program($program)); ?>"
-                                        data-att="<?php echo $attOk ? 1 : 0; ?>"
-                                        data-grad="<?php echo in_array(strtolower($grad), ['paid', 'completed'], true) ? 1 : 0; ?>">
+                                    <tr>
                                         <td data-label="#"><span class="at-n"><?php echo $counter++; ?></span></td>
                                         <td data-label="Student ID"><?php echo $sid !== '' ? '<span class="at-id">' . at_h($sid) . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
                                         <td data-label="Full name">
@@ -1638,41 +1543,12 @@ $totalGradPending = $totalStudents - $totalGradPaid;
         try {
             // Nicer dropdowns when Select2 is available (falls back to the styled native select)
             if ($.fn.select2) {
-                $('#sessionFilter').select2({
-                    placeholder: 'All Sessions',
-                    allowClear: true,
-                    width: '100%'
-                });
-                $('#programNameFilter').select2({
-                    placeholder: 'All Program Names',
-                    allowClear: true,
-                    width: '100%'
-                });
-                $('#programFilter').select2({
-                    placeholder: 'All Programs',
-                    allowClear: true,
-                    width: '100%'
-                });
-                $('#mealFilter').select2({
-                    placeholder: 'All Meals',
-                    allowClear: true,
-                    width: '100%'
-                });
-                $('#feeFilter').select2({
-                    placeholder: 'All Fee Status',
-                    allowClear: true,
-                    width: '100%'
-                });
-                $('#gradFilter').select2({
-                    placeholder: 'All Payment Status',
-                    allowClear: true,
-                    width: '100%'
-                });
-                $('#attendFilter').select2({
-                    placeholder: 'All Attendance',
-                    allowClear: true,
-                    width: '100%'
-                });
+                $('#sessionFilter').select2({ placeholder: 'All Sessions', allowClear: true, width: '100%' });
+                $('#programFilter').select2({ placeholder: 'All Programs', allowClear: true, width: '100%' });
+                $('#mealFilter').select2({ placeholder: 'All Meals', allowClear: true, width: '100%' });
+                $('#feeFilter').select2({ placeholder: 'All Fee Status', allowClear: true, width: '100%' });
+                $('#gradFilter').select2({ placeholder: 'All Payment Status', allowClear: true, width: '100%' });
+                $('#attendFilter').select2({ placeholder: 'All Attendance', allowClear: true, width: '100%' });
             }
 
             var table = $('#dataTable').DataTable({
@@ -1701,9 +1577,7 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                         text: '<i class="fas fa-file-excel"></i> Excel',
                         className: 'btn btn-sm at-b at-xl',
                         title: 'Registered Students',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
+                        exportOptions: { columns: ':visible' }
                     },
                     {
                         extend: 'pdfHtml5',
@@ -1712,9 +1586,7 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                         title: 'Registered Students',
                         orientation: 'landscape',
                         pageSize: 'A4',
-                        exportOptions: {
-                            columns: ':visible'
-                        },
+                        exportOptions: { columns: ':visible' },
                         customize: function(doc) {
                             doc.defaultStyle.fontSize = 7;
                             doc.styles.tableHeader.fontSize = 8;
@@ -1726,18 +1598,14 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                         text: '<i class="fas fa-file-csv"></i> CSV',
                         className: 'btn btn-sm at-b at-csv',
                         title: 'Registered Students',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
+                        exportOptions: { columns: ':visible' }
                     },
                     {
                         extend: 'print',
                         text: '<i class="fas fa-print"></i> Print',
                         className: 'btn btn-sm at-b at-prt',
                         title: 'Registered Students',
-                        exportOptions: {
-                            columns: ':visible'
-                        },
+                        exportOptions: { columns: ':visible' },
                         customize: function(win) {
                             $(win.document.body).find('table').addClass('display').css('font-size', '11px');
                             $(win.document.body).find('h1').css('text-align', 'center');
@@ -1747,110 +1615,17 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                         extend: 'copy',
                         text: '<i class="fas fa-copy"></i> Copy',
                         className: 'btn btn-sm at-b at-cp',
-                        exportOptions: {
-                            columns: ':visible'
-                        }
+                        exportOptions: { columns: ':visible' }
                     }
                 ]
             });
 
             // Column positions: 7 = Program, 8 = Student meal, 9 = Guest meal,
             // 10 = Course fee, 11 = Graduation payment, 12 = Attended, 14 = Session (hidden)
-            // Sessions and their programs come from data_tables (built in PHP)
-            var sessionPrograms = <?php echo json_encode($sessionPrograms, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE); ?>;
             var allPrograms = [];
             $('#programFilter option[value!=""]').each(function() {
-                allPrograms.push($(this).val());
+                allPrograms.push({ value: $(this).val(), session: $(this).data('session') || '' });
             });
-
-            // "Higher Diploma in Biomedical Science - Batch 29" -> "Higher Diploma in Biomedical Science"
-            function baseName(p) {
-                return $.trim(p).replace(/\s*-\s*Batch\s*\d+\s*$/i, '');
-            }
-
-            // programs allowed by the chosen session (all programs when none) and the chosen program name
-            function programsFor(session, name) {
-                var list = session && sessionPrograms[session] ? sessionPrograms[session] : allPrograms;
-                if (name) {
-                    list = $.grep(list, function(p) {
-                        return baseName(p) === name;
-                    });
-                }
-                return list;
-            }
-
-            function namesFor(session) {
-                var seen = {},
-                    names = [];
-                $.each(programsFor(session, ''), function(_, p) {
-                    var n = baseName(p);
-                    if (n && !seen[n]) {
-                        seen[n] = true;
-                        names.push(n);
-                    }
-                });
-                return names.sort(function(x, y) {
-                    return x.localeCompare(y, undefined, {
-                        sensitivity: 'base',
-                        numeric: true
-                    });
-                });
-            }
-
-            function rebuild($sel, list, allLabel, keep) {
-                $sel.empty().append($('<option>').val('').text(allLabel));
-                $.each(list, function(_, v) {
-                    $sel.append($('<option>').val(v).text(v));
-                });
-                $sel.val(keep || '').trigger('change.select2');
-            }
-
-            // Session -> Program name -> Program. Each list only offers what the choice above allows;
-            // a lower choice is kept when it is still valid, otherwise cleared.
-            function cascade(rebuildNames) {
-                var ses = $('#sessionFilter').val() || '';
-                var name = $('#programNameFilter').val() || '';
-                var prog = $('#programFilter').val() || '';
-
-                var names = namesFor(ses);
-                if (name && $.inArray(name, names) < 0) name = '';
-                if (rebuildNames) rebuild($('#programNameFilter'), names, 'All Program Names', name);
-
-                var progs = programsFor(ses, name);
-                if (prog && $.inArray(prog, progs) < 0) prog = '';
-                rebuild($('#programFilter'), progs, 'All Programs', prog);
-
-                table.column(7).search(prog === '' ? '' : exact(prog), true, false);
-                table.column(14).search(ses === '' ? '' : exact(ses), true, false);
-                table.draw();
-            }
-
-            // "Program name" has no column of its own: each row carries its name in data-pname
-            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                if (settings.nTable.id !== 'dataTable') return true;
-                var name = $('#programNameFilter').val();
-                if (!name) return true;
-                var tr = settings.aoData[dataIndex] && settings.aoData[dataIndex].nTr;
-                return !!tr && tr.getAttribute('data-pname') === name;
-            });
-
-            // the four summary cards follow whatever is currently filtered / searched
-            function updateKpis() {
-                var total = 0,
-                    att = 0,
-                    paid = 0;
-                table.rows({
-                    search: 'applied'
-                }).nodes().each(function(tr) {
-                    total++;
-                    if (tr.getAttribute('data-att') === '1') att++;
-                    if (tr.getAttribute('data-grad') === '1') paid++;
-                });
-                $('#kpiTotal').text(total);
-                $('#kpiAtt').text(att);
-                $('#kpiPaid').text(paid);
-                $('#kpiPending').text(total - paid);
-            }
 
             function esc(v) {
                 return $('<div>').text(v).html();
@@ -1874,7 +1649,6 @@ $totalGradPending = $totalStudents - $totalGradPaid;
                 var v;
 
                 if ((v = $('#sessionFilter').val())) parts.push('Session: <strong>' + esc(v) + '</strong>');
-                if ((v = $('#programNameFilter').val())) parts.push('Program name: <strong>' + esc(v) + '</strong>');
                 if ((v = $('#programFilter').val())) parts.push('Program: <strong>' + esc(v) + '</strong>');
                 if ((v = $('#mealFilter').val())) parts.push('Meal: <strong>' + esc(v) + '</strong>');
                 if ((v = $('#feeFilter').val())) parts.push('Course fee: <strong>' + esc(v) + '</strong>');
@@ -1889,11 +1663,27 @@ $totalGradPending = $totalStudents - $totalGradPaid;
             }
 
             $('#sessionFilter').on('change', function() {
-                cascade(true);
-            });
+                var ses = $(this).val() || '';
+                var $pf = $('#programFilter');
+                var current = $pf.val();
+                var stillValid = false;
 
-            $('#programNameFilter').on('change', function() {
-                cascade(false);
+                // narrow the Program list to this session
+                $pf.empty().append('<option value="">All Programs</option>');
+                allPrograms.forEach(function(o) {
+                    if (ses === '' || o.session === ses) {
+                        $pf.append($('<option>', { value: o.value, text: o.value, 'data-session': o.session }));
+                        if (o.value === current) stillValid = true;
+                    }
+                });
+                if (stillValid) {
+                    $pf.val(current);
+                } else {
+                    table.column(7).search('');
+                }
+                $pf.trigger('change.select2');
+
+                table.column(14).search(ses === '' ? '' : exact(ses), true, false).draw();
             });
 
             $('#programFilter').on('change', function() {
@@ -1927,18 +1717,14 @@ $totalGradPending = $totalStudents - $totalGradPaid;
             });
 
             $('#resetFilter').on('click', function() {
-                $('#sessionFilter, #programNameFilter, #programFilter, #mealFilter, #feeFilter, #gradFilter, #attendFilter').val('');
-                $('#sessionFilter, #mealFilter, #feeFilter, #gradFilter, #attendFilter').trigger('change.select2');
-                table.columns().search('');
-                cascade(true); // rebuilds the full name + program lists and redraws
+                $('#sessionFilter, #programFilter, #mealFilter, #feeFilter, #gradFilter, #attendFilter').val('');
+                $('#sessionFilter').trigger('change'); // rebuilds the full program list
+                $('#mealFilter, #feeFilter, #gradFilter, #attendFilter').trigger('change.select2');
+                table.columns().search('').draw();
             });
 
-            table.on('draw', function() {
-                updateFilterInfo();
-                updateKpis();
-            });
+            table.on('draw', updateFilterInfo);
             updateFilterInfo();
-            updateKpis();
 
         } catch (e) {
             console.error("DataTable initialization error:", e);

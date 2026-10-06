@@ -34,11 +34,29 @@ function at_initials(string $name): string
     return mb_strtoupper($first . $last);
 }
 
+// "Higher Diploma in Biomedical Science - Batch 29"  ->  "Higher Diploma in Biomedical Science"
+function at_base_program(string $p): string
+{
+    return trim(preg_replace('/\s*-\s*Batch\s*\d+\s*$/i', '', trim($p)));
+}
+
 // Load every old student
 $rows = [];
 $loadError = false;
 try {
-    $result = mysqli_query($conn, "SELECT * FROM old_student_db ORDER BY id DESC");
+    // old_student_db has no session, so it is taken from data_tables by matching the program name.
+    // data_tables is grouped first so a program listed twice can never duplicate a student row.
+    $result = mysqli_query($conn, "
+        SELECT o.*, d.session_name
+        FROM old_student_db o
+        LEFT JOIN (
+            SELECT TRIM(programName) AS pname, MIN(session) AS session_name
+            FROM data_tables
+            WHERE programName IS NOT NULL AND programName != ''
+            GROUP BY TRIM(programName)
+        ) d ON TRIM(o.program) = d.pname
+        ORDER BY o.id DESC
+    ");
     if (!$result) {
         throw new Exception(mysqli_error($conn));
     }
@@ -58,6 +76,33 @@ foreach ($rows as $r) {
     if (strtolower(trim($r['payment_status'] ?? '')) === 'paid') $totalPaid++;
 }
 $totalNotRegistered = $totalStudents - $totalRegistered;
+
+// Unique sessions (and the programs inside each one) from data_tables, used by the cascading filters
+$sessionPrograms = [];
+try {
+    $sp = mysqli_query($conn, "SELECT DISTINCT TRIM(session) AS session, TRIM(programName) AS programName
+                               FROM data_tables
+                               WHERE session IS NOT NULL AND TRIM(session) != ''
+                                 AND programName IS NOT NULL AND TRIM(programName) != ''
+                               ORDER BY session ASC, programName ASC");
+    if ($sp) {
+        while ($r = mysqli_fetch_assoc($sp)) {
+            $sessionPrograms[$r['session']][] = $r['programName'];
+        }
+    }
+} catch (Exception $e) {
+    error_log("Session filter error: " . $e->getMessage());
+}
+$sessionList = array_keys($sessionPrograms);
+
+// Unique program names without the batch (for the "Program name" filter)
+$programNames = [];
+foreach ($rows as $r) {
+    $pn = at_base_program((string)($r['program'] ?? ''));
+    if ($pn !== '') $programNames[$pn] = true;
+}
+$programNames = array_keys($programNames);
+sort($programNames, SORT_NATURAL | SORT_FLAG_CASE);
 ?>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1117,42 +1162,46 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
         }
 
         table#dataTable th:nth-child(2) {
-            width: 7.5%;
+            width: 6.5%;
         }
 
         table#dataTable th:nth-child(3) {
-            width: 7.5%;
+            width: 7%;
         }
 
         table#dataTable th:nth-child(4) {
-            width: 14%;
-        }
-
-        table#dataTable th:nth-child(5) {
-            width: 7.5%;
-        }
-
-        table#dataTable th:nth-child(6) {
-            width: 8.5%;
-        }
-
-        table#dataTable th:nth-child(7) {
-            width: 14%;
-        }
-
-        table#dataTable th:nth-child(8) {
             width: 13%;
         }
 
+        table#dataTable th:nth-child(5) {
+            width: 7%;
+        }
+
+        table#dataTable th:nth-child(6) {
+            width: 8%;
+        }
+
+        table#dataTable th:nth-child(7) {
+            width: 12%;
+        }
+
+        table#dataTable th:nth-child(8) {
+            width: 12%;
+        }
+
         table#dataTable th:nth-child(9) {
-            width: 8.5%;
+            width: 8%;
         }
 
         table#dataTable th:nth-child(10) {
-            width: 9.5%;
+            width: 8%;
         }
 
         table#dataTable th:nth-child(11) {
+            width: 8.5%;
+        }
+
+        table#dataTable th:nth-child(12) {
             width: 7%;
         }
 
@@ -1203,6 +1252,32 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
     }
 </style>
 
+<style>
+    /* six filters in two tidy rows of three */
+    .at-grid.six {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    @media (max-width: 1199px) {
+        .at-grid.six {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 575px) {
+        .at-grid.six {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    table#dataTable .at-ses {
+        padding: 3px 8px;
+        font-size: 10.5px;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+</style>
+
 <!-- Page Wrapper -->
 <div id="wrapper">
     <!-- Sidebar -->
@@ -1240,27 +1315,47 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                     <section class="at-kpis">
                         <div class="at-card at-kpi">
                             <span class="at-kpi-ic"><i class="fas fa-users" aria-hidden="true"></i></span>
-                            <div><span class="k">Total students</span><strong><?php echo $totalStudents; ?></strong></div>
+                            <div><span class="k">Total students</span><strong id="kpiTotal"><?php echo $totalStudents; ?></strong></div>
                         </div>
                         <div class="at-card at-kpi ok">
                             <span class="at-kpi-ic"><i class="fas fa-user-check" aria-hidden="true"></i></span>
-                            <div><span class="k">Registered</span><strong><?php echo $totalRegistered; ?></strong></div>
+                            <div><span class="k">Registered</span><strong id="kpiReg"><?php echo $totalRegistered; ?></strong></div>
                         </div>
                         <div class="at-card at-kpi warn">
                             <span class="at-kpi-ic"><i class="fas fa-user-clock" aria-hidden="true"></i></span>
-                            <div><span class="k">Not registered</span><strong><?php echo $totalNotRegistered; ?></strong></div>
+                            <div><span class="k">Not registered</span><strong id="kpiNot"><?php echo $totalNotRegistered; ?></strong></div>
                         </div>
                         <div class="at-card at-kpi">
                             <span class="at-kpi-ic"><i class="fas fa-receipt" aria-hidden="true"></i></span>
-                            <div><span class="k">Course fee paid</span><strong><?php echo $totalPaid; ?></strong></div>
+                            <div><span class="k">Course fee paid</span><strong id="kpiPaid"><?php echo $totalPaid; ?></strong></div>
                         </div>
                     </section>
 
                     <!-- filters -->
                     <section class="at-card at-filters">
-                        <div class="at-grid">
+                        <div class="at-grid six">
                             <div class="at-field">
-                                <label for="programFilter"><i class="fas fa-filter"></i> Program</label>
+                                <label for="sessionFilter"><i class="fas fa-filter"></i> Session</label>
+                                <select id="sessionFilter" class="at-sel">
+                                    <option value="">All Sessions</option>
+                                    <?php foreach ($sessionList as $ses): ?>
+                                        <option value="<?php echo at_h($ses); ?>"><?php echo at_h($ses); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="at-field">
+                                <label for="programNameFilter"><i class="fas fa-filter"></i> Program name (no batch)</label>
+                                <select id="programNameFilter" class="at-sel">
+                                    <option value="">All Program Names</option>
+                                    <?php foreach ($programNames as $pn): ?>
+                                        <option value="<?php echo at_h($pn); ?>"><?php echo at_h($pn); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+
+                            <div class="at-field">
+                                <label for="programFilter"><i class="fas fa-filter"></i> Program (with batch)</label>
                                 <select id="programFilter" class="at-sel">
                                     <option value="">All Programs</option>
                                     <?php
@@ -1328,6 +1423,7 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                                     <th>Phone No</th>
                                     <th>Given Email</th>
                                     <th>Program</th>
+                                    <th>Session</th>
                                     <th>Course Fee Status</th>
                                     <th>Registered / Not</th>
                                     <th>Active</th>
@@ -1346,6 +1442,9 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                                     $in_no      = trim((string)($row['in_no'] ?? ''));
                                     $payment    = trim((string)($row['payment_status'] ?? ''));
                                     $status     = trim((string)($row['status'] ?? ''));
+                                    $session    = trim((string)($row['session_name'] ?? ''));
+                                    $sesCls     = '';
+                                    if (preg_match('/(\d+)/', $session, $m)) $sesCls = 's' . (int)$m[1];
                                     if ($payment === '') $payment = 'N/A';
                                     if ($status === '')  $status  = 'N/A';
 
@@ -1364,7 +1463,9 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                                     if (strcasecmp($status, 'registered') === 0)           $stCls = 'ok';
                                     elseif (strcasecmp($status, 'not registered') === 0)   $stCls = 'bad';
                                 ?>
-                                    <tr>
+                                    <tr data-pname="<?php echo at_h(at_base_program($program)); ?>"
+                                        data-reg="<?php echo $stCls === 'ok' ? 1 : 0; ?>"
+                                        data-paid="<?php echo $payCls === 'ok' ? 1 : 0; ?>">
                                         <td data-label="#"><span class="at-n"><?php echo $counter++; ?></span></td>
                                         <td data-label="Invitation no"><?php echo $in_no !== '' ? '<span class="at-mono">' . at_h($in_no) . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
                                         <td data-label="Student ID"><?php echo $student_id !== '' ? '<span class="at-id">' . at_h($student_id) . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
@@ -1382,6 +1483,7 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                                         <td data-label="Phone"><?php echo $mobile !== '' ? '<span class="at-mono">' . at_h($mobile) . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
                                         <td data-label="Email"><?php echo $email !== '' ? '<span class="at-em"><a class="at-mail" href="mailto:' . at_h($email) . '">' . at_h($email) . '</a></span>' : '<span class="at-na">N/A</span>'; ?></td>
                                         <td data-label="Program"><?php echo $program !== '' ? '<div class="at-prog">' . at_h($program) . '</div>' : '<span class="at-na">N/A</span>'; ?></td>
+                                        <td data-label="Session"><?php echo $session !== '' ? '<span class="at-ses ' . $sesCls . '">' . at_h($session) . '</span>' : '<span class="at-na">N/A</span>'; ?></td>
                                         <td data-label="Course fee"><span class="at-st <?php echo $payCls; ?>"><?php echo at_h($payment); ?></span></td>
                                         <td data-label="Registration"><span class="at-st <?php echo $stCls; ?>"><?php echo at_h($status); ?></span></td>
                                         <td data-label="Active"><span class="at-st <?php echo $actCls; ?>"><?php echo at_h($active); ?></span></td>
@@ -1438,6 +1540,16 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
         try {
             // Nicer dropdowns when Select2 is available (falls back to the styled native select)
             if ($.fn.select2) {
+                $('#sessionFilter').select2({
+                    placeholder: 'All Sessions',
+                    allowClear: true,
+                    width: '100%'
+                });
+                $('#programNameFilter').select2({
+                    placeholder: 'All Program Names',
+                    allowClear: true,
+                    width: '100%'
+                });
                 $('#programFilter').select2({
                     placeholder: 'All Programs',
                     allowClear: true,
@@ -1534,12 +1646,95 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                 ]
             });
 
-            // Column positions: 7 = Program, 8 = Course fee, 9 = Registered / Not, 10 = Active
+            // Column positions: 7 = Program, 8 = Session, 9 = Course fee, 10 = Registered / Not, 11 = Active
+            // Sessions and their programs come from data_tables (built in PHP)
+            var sessionPrograms = <?php echo json_encode($sessionPrograms, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_UNESCAPED_UNICODE); ?>;
+            var allPrograms = [];
+            $('#programFilter option').each(function() {
+                if (this.value !== '') allPrograms.push(this.value);
+            });
+
+            // "Higher Diploma in Biomedical Science - Batch 29" -> "Higher Diploma in Biomedical Science"
+            function baseName(p) {
+                return $.trim(p).replace(/\s*-\s*Batch\s*\d+\s*$/i, '');
+            }
+
+            // programs allowed by the chosen session (all programs when no session) and the chosen program name
+            function programsFor(session, name) {
+                var list = session && sessionPrograms[session] ? sessionPrograms[session] : allPrograms;
+                if (name) {
+                    list = $.grep(list, function(p) {
+                        return baseName(p) === name;
+                    });
+                }
+                return list;
+            }
+
+            function fillNames(session) {
+                var seen = {},
+                    names = [];
+                $.each(programsFor(session, ''), function(_, p) {
+                    var n = baseName(p);
+                    if (n && !seen[n]) {
+                        seen[n] = true;
+                        names.push(n);
+                    }
+                });
+                names.sort(function(x, y) {
+                    return x.localeCompare(y, undefined, {
+                        sensitivity: 'base',
+                        numeric: true
+                    });
+                });
+                var $n = $('#programNameFilter').empty().append($('<option>').val('').text('All Program Names'));
+                $.each(names, function(_, n) {
+                    $n.append($('<option>').val(n).text(n));
+                });
+                $n.val('');
+            }
+
+            function fillPrograms(session, name) {
+                var $p = $('#programFilter').empty().append($('<option>').val('').text('All Programs'));
+                $.each(programsFor(session, name), function(_, p) {
+                    $p.append($('<option>').val(p).text(p));
+                });
+                $p.val('');
+            }
+
+            // "Program name" has no column of its own: each row carries its name in data-pname
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                if (settings.nTable.id !== 'dataTable') return true;
+                var name = $('#programNameFilter').val();
+                if (!name) return true;
+                var tr = settings.aoData[dataIndex] && settings.aoData[dataIndex].nTr;
+                return !!tr && tr.getAttribute('data-pname') === name;
+            });
+
+            // the four summary cards follow whatever is currently filtered / searched
+            function updateKpis() {
+                var total = 0,
+                    reg = 0,
+                    paid = 0;
+                table.rows({
+                    search: 'applied'
+                }).nodes().each(function(tr) {
+                    total++;
+                    if (tr.getAttribute('data-reg') === '1') reg++;
+                    if (tr.getAttribute('data-paid') === '1') paid++;
+                });
+                $('#kpiTotal').text(total);
+                $('#kpiReg').text(reg);
+                $('#kpiNot').text(total - reg);
+                $('#kpiPaid').text(paid);
+            }
+
             function esc(v) {
                 return $('<div>').text(v).html();
             }
 
             function updateFilterInfo() {
+                var session = $('#sessionFilter').val();
+                var pname = $('#programNameFilter').val();
                 var program = $('#programFilter').val();
                 var status = $('#statusFilter').val();
                 var fee = $('#feeFilter').val();
@@ -1547,6 +1742,8 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                 var info = table.page.info();
                 var parts = [];
 
+                if (session) parts.push('Session: <strong>' + esc(session) + '</strong>');
+                if (pname) parts.push('Program name: <strong>' + esc(pname) + '</strong>');
                 if (program) parts.push('Program: <strong>' + esc(program) + '</strong>');
                 if (status) parts.push('Status: <strong>' + (status === 'N/A' ? 'Not Registered' : esc(status)) + '</strong>');
                 if (fee) parts.push('Fee: <strong>' + esc(fee) + '</strong>');
@@ -1559,6 +1756,24 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
                 }
             }
 
+            // session -> narrows the program name list and the program list
+            $('#sessionFilter').on('change', function() {
+                var v = $(this).val() || '';
+                fillNames(v);
+                fillPrograms(v, '');
+                $('#programNameFilter, #programFilter').val('').trigger('change.select2');
+                table.column(7).search('');
+                table.column(8).search(v === '' ? '' : '^' + $.fn.dataTable.util.escapeRegex(v) + '$', true, false).draw();
+            });
+
+            // program name (no batch) -> narrows the program list to its batches
+            $('#programNameFilter').on('change', function() {
+                var v = $(this).val() || '';
+                fillPrograms($('#sessionFilter').val() || '', v);
+                $('#programFilter').val('').trigger('change.select2');
+                table.column(7).search('').draw();
+            });
+
             $('#programFilter').on('change', function() {
                 var v = $(this).val() || '';
                 table.column(7).search(v === '' ? '' : '^' + $.fn.dataTable.util.escapeRegex(v) + '$', true, false).draw();
@@ -1567,37 +1782,43 @@ $totalNotRegistered = $totalStudents - $totalRegistered;
             $('#statusFilter').on('change', function() {
                 var v = $(this).val() || '';
                 if (v === '') {
-                    table.column(9).search('').draw();
+                    table.column(10).search('').draw();
                 } else if (v === 'N/A') {
-                    table.column(9).search('^(N/A|Not Registered)$', true, false).draw();
+                    table.column(10).search('^(N/A|Not Registered)$', true, false).draw();
                 } else {
-                    table.column(9).search('^' + $.fn.dataTable.util.escapeRegex(v) + '$', true, false).draw();
+                    table.column(10).search('^' + $.fn.dataTable.util.escapeRegex(v) + '$', true, false).draw();
                 }
             });
 
             $('#feeFilter').on('change', function() {
                 var v = $(this).val() || '';
-                table.column(8).search(v === '' ? '' : '^' + $.fn.dataTable.util.escapeRegex(v) + '$', true, false).draw();
+                table.column(9).search(v === '' ? '' : '^' + $.fn.dataTable.util.escapeRegex(v) + '$', true, false).draw();
             });
 
             $('#activeFilter').on('change', function() {
                 var v = $(this).val() || '';
                 if (v === '') {
-                    table.column(10).search('').draw();
+                    table.column(11).search('').draw();
                 } else if (v === 'completed') {
-                    table.column(10).search('^completed$', true, false).draw();
+                    table.column(11).search('^completed$', true, false).draw();
                 } else {
-                    table.column(10).search('^not[- ]completed$', true, false).draw();
+                    table.column(11).search('^not[- ]completed$', true, false).draw();
                 }
             });
 
             $('#resetFilter').on('click', function() {
-                $('#programFilter, #statusFilter, #feeFilter, #activeFilter').val('').trigger('change.select2');
+                fillNames('');
+                fillPrograms('', '');
+                $('#sessionFilter, #programNameFilter, #programFilter, #statusFilter, #feeFilter, #activeFilter').val('').trigger('change.select2');
                 table.columns().search('').draw();
             });
 
-            table.on('draw', updateFilterInfo);
+            table.on('draw', function() {
+                updateFilterInfo();
+                updateKpis();
+            });
             updateFilterInfo();
+            updateKpis();
 
         } catch (e) {
             console.error("DataTable initialization error:", e);
