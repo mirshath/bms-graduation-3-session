@@ -381,7 +381,7 @@ try {
         $mail->SMTPAuth   = true;
         $mail->Username   = 'bmsgraduation@bms.ac.lk';
 
-        $mail->Password   = 'vspcktnnkhtwhxgr';
+        $mail->Password   = 'dsds';
 
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;

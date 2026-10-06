@@ -7,6 +7,11 @@ $admin_id   = intval($_SESSION['admin_id'] ?? 0);
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
+use Endroid\QrCode\Builder\Builder;
+use Endroid\QrCode\Encoding\Encoding;
+use Endroid\QrCode\ErrorCorrectionLevel;
+use Endroid\QrCode\RoundBlockSizeMode;
+use Endroid\QrCode\Writer\PngWriter;
 
 include("../database/connection.php");
 require '../vendor/autoload.php';
@@ -326,6 +331,40 @@ try {
     }
 
     // =========================================================
+    // 9B. GET PROGRAM SESSION (data_tables.session)
+    // =========================================================
+    // Same lookup as the payment page: program name -> data_tables.session
+
+    $program_session = '';
+
+    $stmtProgSession = $conn->prepare("
+        SELECT `session`
+        FROM `data_tables`
+        WHERE TRIM(`programName`) = TRIM(?)
+        ORDER BY `active` DESC, `id` DESC
+        LIMIT 1
+    ");
+
+    if ($stmtProgSession) {
+        $stmtProgSession->bind_param("s", $program_name);
+
+        if ($stmtProgSession->execute()) {
+            $progSessionRes = $stmtProgSession->get_result();
+
+            if ($progSessionRes && $progSessionRow = $progSessionRes->fetch_assoc()) {
+                $program_session = trim((string)($progSessionRow['session'] ?? ''));
+            }
+        }
+
+        $stmtProgSession->close();
+    }
+
+    // Fallback: the session saved on the student record
+    if ($program_session === '') {
+        $program_session = trim((string)($student['session'] ?? ''));
+    }
+
+    // =========================================================
     // 10. SEND EMAIL
     // =========================================================
 
@@ -342,7 +381,7 @@ try {
         $mail->SMTPAuth   = true;
         $mail->Username   = 'bmsgraduation@bms.ac.lk';
 
-        $mail->Password   = 'vspcktnnkhtwhxgr';
+        $mail->Password   = 'dsdsd';
 
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = 587;
@@ -379,51 +418,61 @@ try {
         $total_formatted = number_format($total_amount, 2);
 
         // ---------- QR CODE (student ID only, same as the payment page) ----------
-        $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($student_id);
+        // Generated locally with endroid/qr-code (composer) and embedded in the email.
+        $qr_embedded = false;
 
-        // Download the QR image on the server and embed it inside the email
-        // (works even when the email app blocks external images).
-        $qr_binary = false;
+        try {
+            $qr_result = (new Builder(
+                writer: new PngWriter(),
+                data: $student_id,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::High,
+                size: 300,
+                margin: 10,
+                roundBlockSizeMode: RoundBlockSizeMode::Margin
+            ))->build();
 
-        if (function_exists('curl_init')) {
-            $ch = curl_init($qrCodeImage);
-            curl_setopt_array($ch, [
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_TIMEOUT        => 10,
-                CURLOPT_CONNECTTIMEOUT => 5,
-            ]);
-            $qr_binary = curl_exec($ch);
-            $qr_http   = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-
-            if ($qr_http !== 200) {
-                $qr_binary = false;
-            }
-        } elseif (ini_get('allow_url_fopen')) {
-            $ctx = stream_context_create(['http' => ['timeout' => 10]]);
-            $qr_binary = @file_get_contents($qrCodeImage, false, $ctx);
-        }
-
-        if ($qr_binary !== false && $qr_binary !== '') {
             // Embedded inline -> referenced in the HTML as cid:student_qr
             $mail->addStringEmbeddedImage(
-                $qr_binary,
+                $qr_result->getString(),
                 'student_qr',
                 'student-qr-' . $student_id . '.png',
                 PHPMailer::ENCODING_BASE64,
                 'image/png'
             );
-            $qr_src = 'cid:student_qr';
-        } else {
-            // Fallback: link to the QR service directly
-            error_log('QR download failed for student ' . $student_id . ', using external URL.');
-            $qr_src = htmlspecialchars($qrCodeImage, ENT_QUOTES, 'UTF-8');
+
+            $qr_embedded = true;
+        } catch (\Throwable $qrError) {
+            // A QR problem must never block the receipt email
+            error_log('QR generation failed for student ' . $student_id . ': ' . $qrError->getMessage());
         }
 
-        $qr_block = '
-                <img src="' . $qr_src . '" width="180" height="180" alt="Student ID QR Code: ' . $safe_student_id . '"
+        if ($qr_embedded) {
+            $qr_block = '
+                <img src="cid:student_qr" width="180" height="180" alt="Student ID QR Code: ' . $safe_student_id . '"
                      style="display:block; margin:0 auto; width:180px; height:180px; border:0;">';
+        } else {
+            $qr_block = '
+                <p style="margin:0; font-size:14px; color:#555555;">
+                    QR code unavailable. Please quote your Student ID at the counter.
+                </p>';
+        }
+
+        // Session label above the QR, e.g. SESSION_01 -> "Session 01"
+        $session_block = '';
+
+        if ($program_session !== '') {
+            $session_label = ucwords(strtolower(str_replace('_', ' ', $program_session)));
+            $safe_session  = htmlspecialchars($session_label, ENT_QUOTES, 'UTF-8');
+
+            $session_block = '
+                            <div style="margin-bottom:16px;">
+                                <span style="display:inline-block; background-color:#667eea; color:#ffffff; font-size:16px; font-weight:bold; letter-spacing:1px; padding:8px 22px; border-radius:20px;">
+                                    ' . $safe_session . '
+                                </span>
+                               
+                            </div>';
+        }
 
         // Optional extra-ticket row
         $extra_row = '';
@@ -525,11 +574,13 @@ try {
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:2px dashed #667eea; border-radius:10px;">
                     <tr>
                         <td align="center" style="padding:22px 16px;">
+                            {$session_block}
                             <div style="font-size:13px; font-weight:bold; color:#667eea; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
                                 Your Invitation QR Code
                             </div>
+
                             <div style="font-size:13px; color:#6b7280; margin-bottom:14px;">
-                                Show this at the counter to collect your invitation
+                                Show this at the counter to collect your invitation and tickets
                             </div>
 
                             <!-- white card keeps the QR scannable even in dark mode -->
@@ -540,25 +591,10 @@ try {
                                     </td>
                                 </tr>
                             </table>
-
-                            <div style="margin-top:12px; font-size:15px; font-weight:bold; color:#111827; letter-spacing:1px;">
-                                {$safe_student_id}
-                            </div>
+                    
                         </td>
                     </tr>
                 </table>
-            </td>
-        </tr>
-
-        <!-- HOW TO COLLECT -->
-        <tr>
-            <td style="padding:20px 32px 8px 32px; font-size:14px; line-height:22px; color:#374151;">
-                <p style="margin:0 0 6px 0; font-weight:bold; color:#111827;">How to collect your invitation</p>
-                <ol style="margin:0; padding-left:20px;">
-                    <li>Open this email on your phone, or bring a printed copy.</li>
-                    <li>Present the QR code above at the invitation collection counter.</li>
-                    <li>Bring your student ID card for verification.</li>
-                </ol>
             </td>
         </tr>
 
