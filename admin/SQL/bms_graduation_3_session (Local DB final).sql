@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 02, 2026 at 01:42 PM
+-- Generation Time: Oct 06, 2026 at 05:46 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -41,7 +41,7 @@ CREATE TABLE `admin` (
 --
 
 INSERT INTO `admin` (`id`, `admin_name`, `email`, `password`, `role`, `created_at`) VALUES
-(1, 'Admin', 'admin@bms.ac.lk', '$2y$10$ygq.jvBdwcXgUKMq0wW.3.gPrvrGQGN.mD0de9Qj3aZMKmDMYPn0O', 'admin', '2026-09-28 06:20:39');
+(1, 'Admin', 'admin@bms.ac.lk', '$2y$10$oiMRQMf.tomVqqx10T5OQeivN.GpDKajHfnde0KWpDCq4TCyTcNPW', 'admin', '2026-09-28 06:20:39');
 
 --
 -- Triggers `admin`
@@ -101,13 +101,6 @@ CREATE TABLE `bulk_data_table` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `bulk_data_table`
---
-
-INSERT INTO `bulk_data_table` (`id`, `student_id`, `seat_no`, `program_name`, `session_time`, `email_sent_yes_no`, `email_sent_time`, `created_at`, `graduated_status`, `student_result`, `calling_name`) VALUES
-(1, '123456', 'S001', 'BTEC Higher National Diploma in Business - Batch 18', 'SESSION_01', 'No', NULL, '2026-09-30 05:16:34', 'Yes', '', 'MMM Mirshath');
-
---
 -- Triggers `bulk_data_table`
 --
 DELIMITER $$
@@ -162,7 +155,7 @@ CREATE TABLE `data_tables` (
   `freeTicket` int(50) DEFAULT NULL,
   `extraTicketFee` int(50) DEFAULT NULL,
   `session` varchar(50) DEFAULT NULL,
-  `cloak` tinyint(4) NOT NULL DEFAULT 1,
+  `cloak` tinyint(4) NOT NULL DEFAULT 0,
   `slashes` tinyint(4) NOT NULL DEFAULT 0,
   `hats` tinyint(4) NOT NULL DEFAULT 0,
   `active` tinyint(4) NOT NULL DEFAULT 1
@@ -173,7 +166,7 @@ CREATE TABLE `data_tables` (
 --
 
 INSERT INTO `data_tables` (`id`, `programName`, `graduationFee`, `freeTicket`, `extraTicketFee`, `session`, `cloak`, `slashes`, `hats`, `active`) VALUES
-(1, 'BTEC Higher National Diploma in Business - Batch 18', 30000, 2, 4000, 'SESSION_01', 1, 1, 1, 1),
+(1, 'BTEC Higher National Diploma in Business - Batch 18', 30000, 2, 4000, 'SESSION_01', 1, 1, 0, 1),
 (2, 'Higher Diploma in Biomedical Science - Batch 29', 30000, 2, 4000, 'SESSION_01', 1, 0, 0, 1),
 (3, 'Higher Diploma In Biotechnology - Batch 23', 30000, 2, 4000, 'SESSION_02', 1, 1, 1, 1),
 (4, 'Higher Diploma in Food Science and Nutrition- Batch 05', 30000, 2, 4000, 'SESSION_02', 1, 0, 0, 1),
@@ -240,6 +233,37 @@ DELIMITER ;
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `extra_guest_meals`
+--
+
+CREATE TABLE `extra_guest_meals` (
+  `id` int(11) NOT NULL,
+  `student_id` varchar(50) NOT NULL,
+  `student_name` varchar(255) NOT NULL,
+  `program_name` varchar(255) NOT NULL,
+  `session` varchar(255) DEFAULT NULL,
+  `receipt_number` varchar(20) NOT NULL COMMENT 'links the guests to the payment',
+  `extra_ticket_log_id` int(11) NOT NULL DEFAULT 0 COMMENT '0 = bought with the graduation payment; otherwise extra_ticket_log.id',
+  `guest_type` varchar(20) NOT NULL COMMENT 'Guest 01, Guest 02 ...',
+  `meal_type` enum('Vegetarian','Non-Vegetarian') NOT NULL,
+  `entered_by` varchar(255) NOT NULL COMMENT 'logged-in admin (from session)',
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Triggers `extra_guest_meals`
+--
+DELIMITER $$
+CREATE TRIGGER `prevent_extra_guest_meals_delete` BEFORE DELETE ON `extra_guest_meals` FOR EACH ROW BEGIN
+    SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Deletion from extra_guest_meals table is not allowed.';
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `extra_ticket_log`
 --
 
@@ -257,15 +281,6 @@ CREATE TABLE `extra_ticket_log` (
   `issued_adExtra_ticket` varchar(255) DEFAULT NULL,
   `issued_adExtra_ticket_by` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `extra_ticket_log`
---
-
-INSERT INTO `extra_ticket_log` (`id`, `student_id`, `student_name`, `program_name`, `session`, `added_tickets`, `ticket_price`, `total_added`, `added_by`, `added_on`, `issued_adExtra_ticket`, `issued_adExtra_ticket_by`) VALUES
-(1, '123456', 'Minzar Mohamadhu Mohamed Mirshath', 'BTEC Higher National Diploma in Business - Batch 18', 'SESSION_01', 4, 4000.00, 16000.00, 'Admin', '2026-09-27 14:40:37', 'issued', 'Admin'),
-(2, '123456', 'Minzar Mohamadhu Mohamed Mirshath', 'BTEC Higher National Diploma in Business - Batch 18', 'SESSION_01', 5, 4000.00, 20000.00, 'Admin', '2026-10-02 14:46:05', 'issued', 'Admin'),
-(3, '123', 'Ahamaed Khan', 'Higher Diploma in Medical Biotechnology - Batch 03', 'SESSION_03', 3, 4000.00, 12000.00, 'Admin', '2026-10-02 14:53:00', NULL, NULL);
 
 --
 -- Triggers `extra_ticket_log`
@@ -331,22 +346,6 @@ CREATE TABLE `notifications` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `notifications`
---
-
-INSERT INTO `notifications` (`id`, `table_name`, `record_id`, `student_id`, `action_type`, `description`, `status`, `created_at`) VALUES
-(1, 'payment_records', 1, '123456', 'INSERT', 'New payment record added for student ID 123456, program: BTEC Higher National Diploma in Business - Batch 18, amount: 38000', 'read', '2026-09-27 09:10:02'),
-(2, 'registered_students', 2, '123456', 'UPDATE', 'Student record updated for Minzar Mohamadhu Mohamed Mirshath, graduation payment status: paid', 'read', '2026-09-27 09:10:02'),
-(3, 'payment_records', 1, '123456', 'UPDATE', 'Payment record updated for student ID 123456, receipt number: GC20264422', 'read', '2026-09-27 09:10:26'),
-(4, 'extra_ticket_log', 1, '123456', 'INSERT', 'Added 4 extra ticket(s) worth Rs. 16000.00', 'read', '2026-09-27 09:10:37'),
-(5, 'extra_ticket_log', 1, '123456', 'UPDATE', 'Updated extra tickets: 4 ticket(s), total Rs. 16000.00', 'read', '2026-09-27 09:10:45'),
-(6, 'extra_ticket_log', 2, '123456', 'INSERT', 'Added 5 extra ticket(s) worth Rs. 20000.00', 'read', '2026-10-02 09:16:05'),
-(7, 'extra_ticket_log', 2, '123456', 'UPDATE', 'Updated extra tickets: 5 ticket(s), total Rs. 20000.00', 'read', '2026-10-02 09:18:38'),
-(8, 'payment_records', 2, '123', 'INSERT', 'New payment record added for student ID 123, program: Higher Diploma in Medical Biotechnology - Batch 03, amount: 46000', 'read', '2026-10-02 09:22:12'),
-(9, 'registered_students', 1, '123', 'UPDATE', 'Student record updated for Ahamaed Khan, graduation payment status: paid', 'read', '2026-10-02 09:22:12'),
-(10, 'extra_ticket_log', 3, '123', 'INSERT', 'Added 3 extra ticket(s) worth Rs. 12000.00', 'read', '2026-10-02 09:23:00');
-
 -- --------------------------------------------------------
 
 --
@@ -363,18 +362,21 @@ CREATE TABLE `old_student_db` (
   `mobile_no` int(15) DEFAULT NULL,
   `payment_status` varchar(50) DEFAULT NULL,
   `status` varchar(50) DEFAULT NULL,
-  `in_no` int(11) DEFAULT NULL
+  `in_no` int(11) DEFAULT NULL,
+  `active` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `old_student_db`
 --
 
-INSERT INTO `old_student_db` (`id`, `student_id`, `name`, `DOB`, `given_email`, `program`, `mobile_no`, `payment_status`, `status`, `in_no`) VALUES
-(1, '123456', 'Minzar Mohamadhu Mohamed Mirshath', '1999-01-19', 'mirshath.mmm@gmail.com', 'BTEC Higher National Diploma in Business - Batch 18', 766158014, 'paid', 'registered', 1),
-(2, '12345', 'Hasni Nihar', '1999-02-19', 'mirshath.mmm@gmail.com', 'BTEC Higher National Diploma in Business - Batch 18', 72265421, 'paid', 'registered', 2),
-(3, '678', 'Thilshath Khan', '1999-02-19', 'mirshath.mmm@gmail.com', 'Higher Diploma In Biotechnology - Batch 23', 722548901, 'paid', NULL, 3),
-(4, '123', 'Ahamaed Khan', '1999-02-19', 'mirshath.mmm@gmail.com', 'Higher Diploma in Medical Biotechnology - Batch 03', 723540901, 'paid', 'registered', 4);
+INSERT INTO `old_student_db` (`id`, `student_id`, `name`, `DOB`, `given_email`, `program`, `mobile_no`, `payment_status`, `status`, `in_no`, `active`) VALUES
+(1, '123456', 'Minzar Mohamadhu Mohamed Mirshath', '1999-01-19', 'mirshath.mmm@gmail.com', 'BTEC Higher National Diploma in Business - Batch 18', 766158014, 'paid', 'registered', 1, 'completed'),
+(2, '12345', 'Hasni Nihar', '1999-01-19', 'mirshath.mmm@gmail.com', 'BTEC Higher National Diploma in Business - Batch 18', 72265421, 'paid', 'registered', 2, 'completed'),
+(3, '678', 'Thilshath Khan', '1999-01-19', 'mirshath.mmm@gmail.com', 'Higher Diploma In Biotechnology - Batch 23', 722548901, 'paid', 'registered', 3, 'completed'),
+(4, '123', 'Ahamaed Khan', '1999-01-19', 'mirshath.mmm@gmail.com', 'Higher Diploma in Medical Biotechnology - Batch 03', 723540901, 'paid', 'registered', 4, 'completed'),
+(5, '000', 'khan', '1999-01-19', 'mirshath.mmm@gmail.com', 'Higher Diploma in Medical Biotechnology - Batch 03', 723540901, 'paid', NULL, 5, 'completed'),
+(6, 'ID_TEST', 'Example Student Name', '1999-01-19', 'student@example.com', 'Higher Diploma in Biomedical Science - Batch 29', 771234567, 'paid', 'registered', 1, 'completed');
 
 --
 -- Triggers `old_student_db`
@@ -408,16 +410,6 @@ CREATE TABLE `payment_email_log` (
   `sent_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `payment_email_log`
---
-
-INSERT INTO `payment_email_log` (`id`, `student_id`, `name_in_full`, `email_address`, `program_name`, `seat_no`, `session_time`, `email_type`, `status`, `error_message`, `sent_by`, `sent_at`) VALUES
-(1, '123456', 'Minzar Mohamadhu Mohamed Mirshath', 'yournumplz@gmail.com', 'BTEC Higher National Diploma in Business - Batch 18', 'S001', 'SESSION_01', 'single', 'sent', NULL, 1, '2026-10-02 10:36:09'),
-(2, '123', 'Ahamaed Khan', 'yournumplz@gmail.com', 'Higher Diploma in Medical Biotechnology - Batch 03', NULL, NULL, 'single', 'sent', NULL, 1, '2026-10-02 10:39:29'),
-(3, '123456', 'Minzar Mohamadhu Mohamed Mirshath', 'yournumplz@gmail.com', 'BTEC Higher National Diploma in Business - Batch 18', 'S001', 'SESSION_01', 'single', 'sent', NULL, 1, '2026-09-27 14:40:05'),
-(4, '123', 'Ahamaed Khan', 'yournumplz@gmail.com', 'Higher Diploma in Medical Biotechnology - Batch 03', NULL, NULL, 'single', 'sent', NULL, 1, '2026-10-02 14:52:16');
-
 -- --------------------------------------------------------
 
 --
@@ -439,14 +431,6 @@ CREATE TABLE `payment_records` (
   `payment_date` timestamp NOT NULL DEFAULT current_timestamp(),
   `created_by` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `payment_records`
---
-
-INSERT INTO `payment_records` (`id`, `student_id`, `program_name`, `graduation_fee`, `free_ticket_count`, `extra_ticket_count`, `extra_ticket_fee`, `issued_ex_ticket`, `issued_by`, `total_amount`, `receipt_number`, `payment_date`, `created_by`) VALUES
-(1, '123456', 'BTEC Higher National Diploma in Business - Batch 18', 30000.00, 2, 2, 8000.00, 'issued', 'Admin', 38000, 'GC20264422', '2026-09-27 09:10:02', 'Admin'),
-(2, '123', 'Higher Diploma in Medical Biotechnology - Batch 03', 30000.00, 2, 4, 16000.00, NULL, NULL, 46000, 'GC20266809', '2026-10-02 09:22:12', 'Admin');
 
 --
 -- Triggers `payment_records`
@@ -518,15 +502,6 @@ CREATE TABLE `registered_students` (
   `guest_meals_02` varchar(255) DEFAULT NULL,
   `created_at` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `registered_students`
---
-
-INSERT INTO `registered_students` (`id`, `student_id`, `in_no`, `dob`, `name_in_full`, `title`, `calling_name`, `confirmation`, `program_name`, `session`, `given_email_add`, `email_address`, `phone_no`, `attend`, `crsfee_payment_status`, `graduation_payment_status`, `invitation_collected`, `updated_at_invitation`, `student_meals`, `guest_meals`, `guest_meals_02`, `created_at`) VALUES
-(1, '123', 4, '1999-02-19', 'Ahamaed Khan', 'Ms.', 'Dilmi Navanjana', 1, 'Higher Diploma in Medical Biotechnology - Batch 03', 'SESSION_03', 'mirshath.mmm@gmail.com', 'yournumplz@gmail.com', '+94723540901', NULL, 'paid', 'paid', 'collected', '2026-10-02 14:52:12', 'Vegetarian', 'Non-Vegetarian', 'Non-Vegetarian', '2026-10-02 10:15:56'),
-(2, '123456', 1, '1999-01-19', 'Minzar Mohamadhu Mohamed Mirshath', 'Mrs.', 'Dilmi Navanjana', 1, 'BTEC Higher National Diploma in Business - Batch 18', 'SESSION_01', 'mirshath.mmm@gmail.com', 'yournumplz@gmail.com', '+94766158014', NULL, 'paid', 'paid', 'collected', '2026-09-27 14:40:02', 'Non-Vegetarian', 'Non-Vegetarian', 'Non-Vegetarian', '2026-10-02 10:17:40'),
-(3, '12345', NULL, '1999-02-19', 'Hasni Nihar', 'Ms.', 'Dilmi Navanjana', 1, 'BTEC Higher National Diploma in Business - Batch 18', 'SESSION_01', 'mirshath.mmm@gmail.com', 'yournumplz@gmail.com', '+94722654213', NULL, 'paid', 'Not-Completed', NULL, NULL, 'Non-Vegetarian', 'Non-Vegetarian', 'Non-Vegetarian', '2026-10-02 10:18:24');
 
 --
 -- Triggers `registered_students`
@@ -610,6 +585,15 @@ ALTER TABLE `email_log`
   ADD KEY `fk_sent_by` (`sent_by`);
 
 --
+-- Indexes for table `extra_guest_meals`
+--
+ALTER TABLE `extra_guest_meals`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uq_student_receipt_log_guest` (`student_id`,`receipt_number`,`extra_ticket_log_id`,`guest_type`),
+  ADD KEY `idx_student_id` (`student_id`),
+  ADD KEY `idx_session` (`session`);
+
+--
 -- Indexes for table `extra_ticket_log`
 --
 ALTER TABLE `extra_ticket_log`
@@ -668,7 +652,7 @@ ALTER TABLE `admin`
 -- AUTO_INCREMENT for table `bulk_data_table`
 --
 ALTER TABLE `bulk_data_table`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `clothing_collections`
@@ -689,40 +673,46 @@ ALTER TABLE `email_log`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `extra_guest_meals`
+--
+ALTER TABLE `extra_guest_meals`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `extra_ticket_log`
 --
 ALTER TABLE `extra_ticket_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `notifications`
 --
 ALTER TABLE `notifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `old_student_db`
 --
 ALTER TABLE `old_student_db`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `payment_email_log`
 --
 ALTER TABLE `payment_email_log`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `payment_records`
 --
 ALTER TABLE `payment_records`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `registered_students`
 --
 ALTER TABLE `registered_students`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
