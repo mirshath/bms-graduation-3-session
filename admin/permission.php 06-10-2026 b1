@@ -1,0 +1,553 @@
+<?php
+session_start();
+
+/* ------------------------------------------------------------------
+ * Access: logged-in ADMIN only
+ * ------------------------------------------------------------------ */
+if (!isset($_SESSION['admin_id']) || ($_SESSION['admin_name'] ?? '') === 'Unknown Admin') {
+    header("Location: login");
+    exit();
+}
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header("Location: index");
+    exit();
+}
+
+include("../database/connection.php");
+
+/* ------------------------------------------------------------------
+ * Create the table automatically (safe to run every time)
+ * ------------------------------------------------------------------ */
+$conn->query("
+    CREATE TABLE IF NOT EXISTS `role_permissions` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `role` varchar(100) NOT NULL,
+      `page_slug` varchar(100) NOT NULL,
+      `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `uniq_role_page` (`role`, `page_slug`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+");
+
+/* ------------------------------------------------------------------
+ * Page catalog  (same pages / groups / icons as nav.php)
+ * group => [ slug => [label, icon] ]
+ * ------------------------------------------------------------------ */
+$pageCatalog = [
+    'Overview' => [
+        'index' => ['Dashboard', 'fa-tachometer-alt'],
+    ],
+    'Front desk' => [
+        'scan' => ['Scan Attendance Table', 'fa-barcode'],
+    ],
+    'Finance' => [
+        'payment_reg'              => ['Payment Registration', 'fa-credit-card'],
+        'payment-reports'          => ['Payment Report', 'fa-chart-line'],
+        'payment_success_students' => ['Payment Success Student', 'fa-check-circle'],
+        'extra-ticket-buying'      => ['Buy Extra Ticket', 'fa-cart-plus'],
+        'extra-ticket-data'        => ['Ticket Log / Data', 'fa-list'],
+        'ticket_invitation_issue'  => ['Ticket & Invitation Issues', 'fa-ticket-alt'],
+    ],
+    'Students' => [
+        'oldStudentsDB'        => ['Old Students', 'fa-history'],
+        'registeredStudents'   => ['Registered Students', 'fa-user-graduate'],
+        'upload_student_db'    => ['Upload Student', 'fa-user-graduate'],
+        'oldStudentsDOBupdate' => ['Edit Student', 'fa-calendar-alt'],
+    ],
+    'Cloak room' => [
+        'clothCollection' => ['Cloak Issuing', 'fa-tshirt'],
+        'cloakReturn'     => ['Cloak Collecting', 'fa-undo'],
+        'cloakReport'     => ['Cloak Report', 'fa-chart-bar'],
+    ],
+    'Administration' => [
+        'user'                  => ['User Create', 'fa-user-plus'],
+        'permission'            => ['Role Permissions', 'fa-user-lock'],
+        'bulk-data'             => ['Bulk Upload', 'fa-upload'],
+        'bulk-data-email'       => ['Bulk Email', 'fa-envelope'],
+        'view_email_logs'       => ['Logs For Seat No', 'fa-list-alt'],
+        'mark_graduate'         => ['Graduate Std Mark', 'fa-graduation-cap'],
+        'invitation-collection' => ['Invitation Issue', 'fa-envelope-open'],
+    ],
+    'Reports' => [
+        'allocatedSeatOrder' => ['Report Seat Order', 'fa-chair'],
+        'meals_report'       => ['Report Meals', 'fa-utensils'],
+    ],
+];
+
+// flat list of valid slugs (used to validate what is posted)
+$validSlugs = [];
+foreach ($pageCatalog as $items) {
+    foreach ($items as $slug => $meta) {
+        $validSlugs[$slug] = true;
+    }
+}
+
+/* ------------------------------------------------------------------
+ * Fetch ALL roles  (known roles + any other role found in `admin`)
+ * ------------------------------------------------------------------ */
+$roles = [
+    'admin'              => 'Admin',
+    'finance'            => 'Finance',
+    'invitation'         => 'Invitation',
+    'registrationDesk'   => 'Registration Desk',
+    'clothCollectReturn' => 'Cloth Collection/Return',
+    'coordinator'        => 'Coordinator',
+];
+$rq = $conn->query("SELECT DISTINCT role FROM admin WHERE role IS NOT NULL AND role <> ''");
+if ($rq) {
+    while ($r = $rq->fetch_assoc()) {
+        $val = trim((string)$r['role']);
+        if ($val !== '' && !isset($roles[$val])) {
+            $roles[$val] = ucfirst($val);
+        }
+    }
+}
+
+/* ------------------------------------------------------------------
+ * CSRF token
+ * ------------------------------------------------------------------ */
+if (empty($_SESSION['perm_csrf'])) {
+    $_SESSION['perm_csrf'] = bin2hex(random_bytes(32));
+}
+
+$errorMsg = '';
+
+/* ------------------------------------------------------------------
+ * SAVE  (done BEFORE header.php so the redirect works)
+ * ------------------------------------------------------------------ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['savePermissions'])) {
+    $postRole  = (string)($_POST['role'] ?? '');
+    $postToken = (string)($_POST['csrf'] ?? '');
+
+    if (!hash_equals($_SESSION['perm_csrf'], $postToken)) {
+        $errorMsg = "Invalid request. Please refresh the page and try again.";
+    } elseif (!isset($roles[$postRole])) {
+        $errorMsg = "Please select a valid role.";
+    } elseif ($postRole === 'admin') {
+        $errorMsg = "Admin always has full access and cannot be changed.";
+    } else {
+        // keep only slugs that really exist in the catalog
+        $selected = [];
+        foreach ((array)($_POST['pages'] ?? []) as $slug) {
+            $slug = (string)$slug;
+            if (isset($validSlugs[$slug])) {
+                $selected[$slug] = true;
+            }
+        }
+        $selected = array_keys($selected);
+
+        $conn->begin_transaction();
+        try {
+            // 1) remove the old permissions of this role
+            $del = $conn->prepare("DELETE FROM role_permissions WHERE role = ?");
+            $del->bind_param("s", $postRole);
+            if (!$del->execute()) {
+                throw new Exception($del->error);
+            }
+            $del->close();
+
+            // 2) insert the checked pages
+            if ($selected) {
+                $ins = $conn->prepare("INSERT INTO role_permissions (role, page_slug) VALUES (?, ?)");
+                foreach ($selected as $slug) {
+                    $ins->bind_param("ss", $postRole, $slug);
+                    if (!$ins->execute()) {
+                        throw new Exception($ins->error);
+                    }
+                }
+                $ins->close();
+            }
+
+            $conn->commit();
+            header("Location: " . basename($_SERVER['PHP_SELF']) . "?role=" . urlencode($postRole) . "&saved=" . count($selected));
+            exit();
+        } catch (Throwable $e) {
+            $conn->rollback();
+            $errorMsg = "Database error. Permissions were not saved.";
+        }
+    }
+}
+
+/* ------------------------------------------------------------------
+ * Selected role + its saved pages
+ * ------------------------------------------------------------------ */
+$selectedRole = (string)($_POST['role'] ?? $_GET['role'] ?? '');
+if (!isset($roles[$selectedRole])) {
+    $selectedRole = '';
+}
+
+$checked = [];
+if ($selectedRole !== '') {
+    if ($errorMsg !== '' && isset($_POST['pages'])) {
+        foreach ((array)$_POST['pages'] as $s) {
+            $checked[(string)$s] = true;
+        }
+    } else {
+        $st = $conn->prepare("SELECT page_slug FROM role_permissions WHERE role = ?");
+        $st->bind_param("s", $selectedRole);
+        $st->execute();
+        $st->bind_result($slugOut);
+        while ($st->fetch()) {
+            $checked[$slugOut] = true;
+        }
+        $st->close();
+    }
+}
+
+$successMsg = '';
+if (isset($_GET['saved'])) {
+    $successMsg = "Permissions saved successfully (" . (int)$_GET['saved'] . " page(s) allowed).";
+}
+
+$isAdminRole = ($selectedRole === 'admin');
+
+include("includes/header.php");
+?>
+
+<style>
+    .pm {
+        --pm-brand: #3b5bdb;
+        --pm-brand-bg: #eef2ff;
+        --pm-ink: #1b2437;
+        --pm-muted: #6b7690;
+        --pm-line: #e6eaf2;
+        --pm-radius: 14px;
+        color: var(--pm-ink);
+    }
+
+    .pm * {
+        box-sizing: border-box;
+    }
+
+    .pm-title {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 800;
+        letter-spacing: -.02em;
+    }
+
+    .pm-sub {
+        margin: 4px 0 18px;
+        font-size: 14px;
+        color: var(--pm-muted);
+    }
+
+    .pm-card {
+        background: #fff;
+        border: 1px solid var(--pm-line);
+        border-radius: var(--pm-radius);
+        padding: 20px;
+        margin-bottom: 18px;
+        box-shadow: 0 1px 3px rgba(20, 30, 60, .05);
+    }
+
+    .pm-alert {
+        padding: 12px 16px;
+        border-radius: 10px;
+        margin-bottom: 16px;
+        font-size: 14px;
+    }
+
+    .pm-alert.ok {
+        background: #e8f7ee;
+        color: #146c3a;
+        border: 1px solid #bfe6cf;
+    }
+
+    .pm-alert.bad {
+        background: #fdecec;
+        color: #9b1c1c;
+        border: 1px solid #f5c2c2;
+    }
+
+    .pm-alert.info {
+        background: var(--pm-brand-bg);
+        color: #2b3f9e;
+        border: 1px solid #cdd7ff;
+    }
+
+    .pm-label {
+        font-weight: 600;
+        font-size: 13px;
+        margin-bottom: 6px;
+        display: block;
+    }
+
+    .pm-select {
+        width: 100%;
+        max-width: 380px;
+        padding: 10px 12px;
+        border: 1px solid var(--pm-line);
+        border-radius: 10px;
+        font-size: 14px;
+        background: #fff;
+    }
+
+    .pm-tools {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .pm-btn {
+        border: 1px solid var(--pm-line);
+        background: #fff;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--pm-ink);
+    }
+
+    .pm-btn:hover {
+        background: #f6f8fc;
+    }
+
+    .pm-btn.primary {
+        background: var(--pm-brand);
+        border-color: var(--pm-brand);
+        color: #fff;
+    }
+
+    .pm-btn.primary:hover {
+        background: #2f4bc0;
+    }
+
+    .pm-count {
+        margin-left: auto;
+        font-size: 13px;
+        color: var(--pm-muted);
+    }
+
+    .pm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 16px;
+    }
+
+    .pm-group {
+        border: 1px solid var(--pm-line);
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    .pm-group-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #f6f8fc;
+        border-bottom: 1px solid var(--pm-line);
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: .04em;
+    }
+
+    .pm-group-head label {
+        font-weight: 600;
+        font-size: 12px;
+        text-transform: none;
+        letter-spacing: 0;
+        cursor: pointer;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--pm-muted);
+    }
+
+    .pm-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--pm-line);
+        cursor: pointer;
+        margin: 0;
+        font-size: 14px;
+    }
+
+    .pm-item:last-child {
+        border-bottom: 0;
+    }
+
+    .pm-item:hover {
+        background: #fafbff;
+    }
+
+    .pm-item i {
+        width: 18px;
+        color: var(--pm-muted);
+        text-align: center;
+    }
+
+    .pm-item small {
+        margin-left: auto;
+        color: #a0a9bd;
+        font-size: 11px;
+    }
+
+    .pm input[type=checkbox] {
+        width: 17px;
+        height: 17px;
+        cursor: pointer;
+    }
+</style>
+
+<div id="wrapper">
+    <?php include("nav.php"); ?>
+    <div id="content-wrapper" class="d-flex flex-column">
+        <div id="content">
+            <?php include("includes/topnav.php"); ?>
+            <div class="container-fluid mt-4 pm">
+
+                <h1 class="pm-title">Role Permissions</h1>
+                <p class="pm-sub">Choose a role, tick the pages it can open and save.</p>
+
+                <?php if ($successMsg !== ''): ?>
+                    <div class="pm-alert ok"><i class="fas fa-check-circle"></i> <?= htmlspecialchars($successMsg) ?></div>
+                <?php endif; ?>
+                <?php if ($errorMsg !== ''): ?>
+                    <div class="pm-alert bad"><i class="fas fa-exclamation-circle"></i> <?= htmlspecialchars($errorMsg) ?></div>
+                <?php endif; ?>
+
+                <!-- Step 1: choose role (GET) -->
+                <div class="pm-card">
+                    <form method="get" action="<?= htmlspecialchars(basename($_SERVER['PHP_SELF'])) ?>">
+                        <label class="pm-label" for="roleSelect">Role</label>
+                        <select name="role" id="roleSelect" class="pm-select" onchange="this.form.submit()">
+                            <option value="" <?= $selectedRole === '' ? 'selected' : '' ?>>-- Select a role --</option>
+                            <?php foreach ($roles as $val => $label): ?>
+                                <option value="<?= htmlspecialchars($val) ?>" <?= $selectedRole === $val ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($label) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <noscript><button type="submit" class="pm-btn">Load</button></noscript>
+                    </form>
+                </div>
+
+                <!-- Step 2: choose pages (POST) -->
+                <?php if ($selectedRole !== ''): ?>
+                    <form method="post" action="<?= htmlspecialchars(basename($_SERVER['PHP_SELF'])) ?>" id="permForm">
+                        <input type="hidden" name="csrf" value="<?= htmlspecialchars($_SESSION['perm_csrf']) ?>">
+                        <input type="hidden" name="role" value="<?= htmlspecialchars($selectedRole) ?>">
+
+                        <div class="pm-card">
+                            <?php if ($isAdminRole): ?>
+                                <div class="pm-alert info">
+                                    <i class="fas fa-info-circle"></i>
+                                    Admin always has access to every page, so it cannot be edited here.
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="pm-tools">
+                                <?php if (!$isAdminRole): ?>
+                                    <button type="button" class="pm-btn" id="checkAll"><i class="fas fa-check-double"></i> Select all</button>
+                                    <button type="button" class="pm-btn" id="uncheckAll"><i class="fas fa-times"></i> Clear all</button>
+                                <?php endif; ?>
+                                <span class="pm-count" id="pmCount"></span>
+                            </div>
+
+                            <div class="pm-grid">
+                                <?php foreach ($pageCatalog as $groupName => $items): ?>
+                                    <div class="pm-group">
+                                        <div class="pm-group-head">
+                                            <span><?= htmlspecialchars($groupName) ?></span>
+                                            <?php if (!$isAdminRole): ?>
+                                                <label><input type="checkbox" class="group-toggle"> All</label>
+                                            <?php endif; ?>
+                                        </div>
+                                        <?php foreach ($items as $slug => $meta): ?>
+                                            <label class="pm-item">
+                                                <input type="checkbox" class="page-check" name="pages[]"
+                                                    value="<?= htmlspecialchars($slug) ?>"
+                                                    <?= ($isAdminRole || isset($checked[$slug])) ? 'checked' : '' ?>
+                                                    <?= $isAdminRole ? 'disabled' : '' ?>>
+                                                <i class="fas <?= htmlspecialchars($meta[1]) ?>"></i>
+                                                <span><?= htmlspecialchars($meta[0]) ?></span>
+                                                <small><?= htmlspecialchars($slug) ?></small>
+                                            </label>
+                                        <?php endforeach; ?>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+
+                        <?php if (!$isAdminRole): ?>
+                            <button type="submit" name="savePermissions" value="1" class="pm-btn primary">
+                                <i class="fas fa-save"></i> Save Permissions
+                            </button>
+                        <?php endif; ?>
+                    </form>
+                <?php endif; ?>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        var form = document.getElementById('permForm');
+        if (!form) return;
+
+        var checks = form.querySelectorAll('.page-check');
+        var counter = document.getElementById('pmCount');
+
+        function refresh() {
+            var n = 0;
+            checks.forEach(function(c) {
+                if (c.checked) n++;
+            });
+            counter.textContent = n + ' of ' + checks.length + ' pages selected';
+
+            form.querySelectorAll('.pm-group').forEach(function(g) {
+                var t = g.querySelector('.group-toggle');
+                if (!t) return;
+                var boxes = g.querySelectorAll('.page-check');
+                t.checked = Array.prototype.every.call(boxes, function(b) {
+                    return b.checked;
+                });
+            });
+        }
+
+        function setAll(state) {
+            checks.forEach(function(c) {
+                if (!c.disabled) c.checked = state;
+            });
+            refresh();
+        }
+
+        var all = document.getElementById('checkAll');
+        var none = document.getElementById('uncheckAll');
+        if (all) all.addEventListener('click', function() {
+            setAll(true);
+        });
+        if (none) none.addEventListener('click', function() {
+            setAll(false);
+        });
+
+        form.querySelectorAll('.group-toggle').forEach(function(t) {
+            t.addEventListener('change', function() {
+                t.closest('.pm-group').querySelectorAll('.page-check').forEach(function(b) {
+                    if (!b.disabled) b.checked = t.checked;
+                });
+                refresh();
+            });
+        });
+
+        checks.forEach(function(c) {
+            c.addEventListener('change', refresh);
+        });
+        refresh();
+    })();
+</script>
+
+</body>
+
+</html>

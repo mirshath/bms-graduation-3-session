@@ -70,7 +70,6 @@ $roleMap = [
     'invitation'         => ['Invitation',             'fa-envelope-open-text', 'um-r-invite'],
     'registrationdesk'   => ['Registration Desk',      'fa-clipboard-list',    'um-r-reg'],
     'clothcollectreturn' => ['Cloth Collection/Return', 'fa-shirt',             'um-r-cloth'],
-    'coordinator'        => ['Coordinator',            'fa-user-tie',          'um-r-coord'],
 ];
 function um_role($roleMap, $raw)
 {
@@ -220,11 +219,6 @@ $totalAdmins = count($admins);
     .um-r-cloth {
         background: #f3ebfd;
         color: #7a3fc4;
-    }
-
-    .um-r-coord {
-        background: #e3f7f5;
-        color: #0f8a80;
     }
 
     .um-r-other {
@@ -801,7 +795,6 @@ $totalAdmins = count($admins);
                                             <!-- <option value="invitation">Invitation</option> -->
                                             <option value="registrationDesk">Registration Desk</option>
                                             <option value="clothCollectReturn">Cloth Collection/Return</option>
-                                            <option value="coordinator">Coordinator</option>
                                         </select>
                                     </div>
                                 </div>
@@ -953,7 +946,6 @@ $totalAdmins = count($admins);
                                 <!-- <option value="invitation">Invitation</option> -->
                                 <option value="registrationDesk">Registration Desk</option>
                                 <option value="clothCollectReturn">Cloth Collection/Return</option>
-                                <option value="coordinator">Coordinator</option>
                             </select>
                         </div>
                     </div>

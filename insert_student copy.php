@@ -382,52 +382,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <p>We are pleased to confirm your registration for BMS DEGREE CONVOCATION 2026.</p>
                         </div>
                         
-                      
-
-                        <!-- Registration & Payment Deadline -->
-                        <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='margin:25px 0; border:1px solid #e2e8f0; border-radius:8px; border-collapse:separate; overflow:hidden;'>
-                            <tr>
-                                <td style='background-color:#1e3a8a; color:#ffffff; padding:12px 20px; font-size:16px; font-weight:600; text-align:center;'>
-                                    Registration and Payment Deadline
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style='background-color:#fef2f2; padding:20px; text-align:center; border-bottom:1px solid #e2e8f0;'>
-                                    <p style='margin:0; font-size:28px; font-weight:800; color:#b91c1c; letter-spacing:1px;'>30/10/2026</p>
-                                    <p style='margin:8px 0 0; font-size:14px; color:#7f1d1d;'>(Kindly make the payments on or before this date)</p>
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style='background-color:#ffffff; padding:18px 20px; text-align:center; font-size:14px; color:#334155; line-height:1.7;'>
-                                    Kindly visit the <strong>BMS Finance Department</strong> to make the payment by scanning your QR code.
-                                </td>
-                            </tr>
-                        </table>
-
-                          <!-- QR Code Section -->
+                        <!-- QR Code Section -->
                         <div class='qr-section' style='background-color: #ffffff;'>
                             <p><strong>Your Payment QR Code</strong></p>
                             <p>Please present this QR code to the cashier when making your graduation fee payment:</p>
                             $sessionHtml
                             <img src='$qrCodeImage' alt='Payment QR Code'>
                         </div>
-
-                        <!-- Finance Department Office Hours -->
-                        <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='margin:25px 0; border:1px solid #e2e8f0; border-radius:8px; border-collapse:separate; overflow:hidden;'>
-                            <tr>
-                                <td colspan='2' style='background-color:#f1f5f9; color:#1e3a8a; padding:12px 20px; font-size:16px; font-weight:600; text-align:center; border-bottom:1px solid #e2e8f0;'>
-                                    Finance Department Office Hours
-                                </td>
-                            </tr>
-                            <tr>
-                                <td style='padding:14px 20px; font-size:14px; color:#334155; font-weight:600; border-bottom:1px solid #e2e8f0; width:45%;'>Monday to Saturday</td>
-                                <td style='padding:14px 20px; font-size:14px; color:#475569; border-bottom:1px solid #e2e8f0;'>9.00 am &ndash; 4.30 pm</td>
-                            </tr>
-                            <tr>
-                                <td style='padding:14px 20px; font-size:14px; color:#334155; font-weight:600; width:45%;'>Sunday</td>
-                                <td style='padding:14px 20px; font-size:14px; color:#475569;'>9.00 am &ndash; 12.30 pm</td>
-                            </tr>
-                        </table>
 
                         <!-- Important Note -->
                         <div class='important-note'>

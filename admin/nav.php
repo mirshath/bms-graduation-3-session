@@ -2,26 +2,51 @@
 // Current page (works with or without ".php" and ignores ?query=strings)
 $current_url = basename(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', ".php");
 $role = $_SESSION['role'] ?? ''; // Current user role
+$is_admin = ($role === 'admin');  // admin always sees everything
 
 // ---------------------------------------------------------------------------
-// Who can see what (same rules as before)
+// Database connection (normally already included by the page)
 // ---------------------------------------------------------------------------
-$can_front   = in_array($role, ['admin', 'registrationDesk']);                         // scan
-$can_finance = in_array($role, ['admin', 'finance']);                                  // payments + extra tickets
-$can_shared  = in_array($role, ['admin', 'finance', 'invitation', 'registrationDesk']); // payment success + students
-$can_invite  = in_array($role, ['admin', 'invitation']);                               // invitation issue + DOB updates
-$can_cloak   = in_array($role, ['admin', 'clothCollectReturn']);                       // cloak
-$is_admin    = ($role === 'admin');                                                    // admin only
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    include_once(__DIR__ . "/../database/connection.php");
+}
+
+// ---------------------------------------------------------------------------
+// Load the pages this role is allowed to see (table: role_permissions)
+// ---------------------------------------------------------------------------
+$allowed_pages = [];
+if (!$is_admin && $role !== '' && isset($conn) && $conn instanceof mysqli) {
+    try {
+        $perm_stmt = $conn->prepare("SELECT page_slug FROM role_permissions WHERE role = ?");
+        if ($perm_stmt) {
+            $perm_stmt->bind_param("s", $role);
+            $perm_stmt->execute();
+            $perm_stmt->bind_result($perm_slug);
+            while ($perm_stmt->fetch()) {
+                $allowed_pages[$perm_slug] = true;
+            }
+            $perm_stmt->close();
+        }
+    } catch (Throwable $e) {
+        $allowed_pages = []; // table missing / DB error -> show nothing
+    }
+}
+
+// true when the current role may see this page
+$nav_can = function ($slug) use ($is_admin, $allowed_pages) {
+    return $is_admin || isset($allowed_pages[$slug]);
+};
 
 // ---------------------------------------------------------------------------
 // Signed-in user card (bottom of the sidebar)
 // ---------------------------------------------------------------------------
 $role_labels = [
-    'admin'             => 'Administrator',
-    'finance'           => 'Finance',
-    'registrationDesk'  => 'Registration desk',
-    'invitation'        => 'Invitation desk',
+    'admin'              => 'Administrator',
+    'finance'            => 'Finance',
+    'registrationDesk'   => 'Registration desk',
+    'invitation'         => 'Invitation desk',
     'clothCollectReturn' => 'Cloak desk',
+    'coordinator'        => 'Coordinator',
 ];
 $nav_user = trim((string)($_SESSION['admin_name'] ?? ''));
 if ($nav_user === 'Unknown Admin') {
@@ -82,6 +107,83 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
     </li>
 <?php
 };
+
+// ---------------------------------------------------------------------------
+// Full menu definition. Anything not allowed for the role is filtered out.
+// link : ['type'=>'link', 'slug', 'icon', 'label']
+// menu : ['type'=>'menu', 'toggle', 'collapse', 'icon', 'label', 'items'=>[[slug, icon, label], ...]]
+// ---------------------------------------------------------------------------
+$nav_structure = [
+    [
+        'label' => null,
+        'entries' => [
+            ['type' => 'link', 'slug' => 'index', 'icon' => 'fa-tachometer-alt', 'label' => 'Dashboard'],
+        ],
+    ],
+    [
+        'label' => 'Front desk',
+        'entries' => [
+            ['type' => 'link', 'slug' => 'scan', 'icon' => 'fa-barcode', 'label' => 'Scan Attendance Table'],
+        ],
+    ],
+    [
+        'label' => 'Finance',
+        'entries' => [
+            ['type' => 'menu', 'toggle' => 'paymentSectionDropdown', 'collapse' => 'collapsePaymentDropDwn', 'icon' => 'fa-ticket-alt', 'label' => 'Finance', 'items' => [
+                ['payment_reg', 'fa-credit-card', 'Payment Registration'],
+                ['payment-reports', 'fa-chart-line', 'Payment Report'],
+                ['payment_success_students', 'fa-check-circle', 'Payment Success Student'],
+            ]],
+            ['type' => 'menu', 'toggle' => 'extraTicketDropdown', 'collapse' => 'collapseExtraTicket', 'icon' => 'fa-ticket-alt', 'label' => 'Extra Ticket', 'items' => [
+                ['extra-ticket-buying', 'fa-cart-plus', 'Buy Extra Ticket'],
+                ['extra-ticket-data', 'fa-list', 'Ticket Log / Data'],
+            ]],
+            ['type' => 'link', 'slug' => 'ticket_invitation_issue', 'icon' => 'fa-ticket-alt', 'label' => 'Ticket & Invitation Issues'],
+        ],
+    ],
+    [
+        'label' => ' ',
+        'entries' => [
+            ['type' => 'menu', 'toggle' => 'studentsDropdown', 'collapse' => 'collapseStudents', 'icon' => 'fa-users-cog', 'label' => 'Students', 'items' => [
+                ['oldStudentsDB', 'fa-history', 'Old Students'],
+                ['registeredStudents', 'fa-user-graduate', 'Registered Students'],
+                ['upload_student_db', 'fa-user-graduate', 'Upload Student'],
+                ['oldStudentsDOBupdate', 'fa-calendar-alt', 'Edit Student'],
+            ]],
+        ],
+    ],
+    [
+        'label' => null,
+        'entries' => [
+            ['type' => 'menu', 'toggle' => 'cloakDropdown', 'collapse' => 'collapseCloak', 'icon' => 'fa-tshirt', 'label' => 'Cloak', 'items' => [
+                ['clothCollection', 'fa-tshirt', 'Cloak Issuing'],
+                ['cloakReturn', 'fa-undo', 'Cloak Collecting'],
+                ['cloakReport', 'fa-chart-bar', 'Cloak Report'],
+            ]],
+        ],
+    ],
+    [
+        'label' => 'Administration',
+        'entries' => [
+            ['type' => 'link', 'slug' => 'user', 'icon' => 'fa-user-plus', 'label' => 'User Create'],
+            ['type' => 'link', 'slug' => 'permission', 'icon' => 'fa-user-lock', 'label' => 'Role Permissions'],
+            ['type' => 'menu', 'toggle' => 'bulkDropdown', 'collapse' => 'collapseBulk', 'icon' => 'fa-tasks', 'label' => 'Bulk Actions', 'items' => [
+                ['bulk-data', 'fa-upload', 'Bulk Upload'],
+                ['bulk-data-email', 'fa-envelope', 'Bulk Email'],
+                ['view_email_logs', 'fa-list-alt', 'Logs For Seat No'],
+            ]],
+            ['type' => 'link', 'slug' => 'mark_graduate', 'icon' => 'fa-graduation-cap', 'label' => 'Graduate Std Mark'],
+            ['type' => 'link', 'slug' => 'invitation-collection', 'icon' => 'fa-envelope-open', 'label' => 'Invitation Issue'],
+        ],
+    ],
+    [
+        'label' => 'Reports',
+        'entries' => [
+            ['type' => 'link', 'slug' => 'allocatedSeatOrder', 'icon' => 'fa-chair', 'label' => 'Report Seat Order'],
+            ['type' => 'link', 'slug' => 'meals_report', 'icon' => 'fa-utensils', 'label' => 'Report Meals'],
+        ],
+    ],
+];
 ?>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -104,162 +206,46 @@ $nav_menu = function ($toggle_id, $collapse_id, $icon, $label, $items) use ($cur
         <div class="sidebar-brand-text mx-3"><img src="img/logo4.png" class="img-fluid" alt="Logo"></div>
     </a>
 
-    <!-- ============================================ -->
-    <!-- COMMON: Visible to ALL ROLES -->
-    <!-- ============================================ -->
-    <!-- <?php $nav_label('Overview'); ?> -->
-    <?php $nav_link('index', 'fa-tachometer-alt', 'Dashboard'); ?>
-
-    <!-- ============================================ -->
-    <!-- REGISTRATION DESK ROLE -->
-    <!-- Roles: admin, registrationDesk -->
-    <!-- ============================================ -->
-    <?php if ($can_front): ?>
-        <?php $nav_label('Front desk'); ?>
-        <?php $nav_link('scan', 'fa-barcode', 'Scan Attendance Table'); ?>
-    <?php endif; ?>
-
-    <!-- ============================================ -->
-    <!-- FINANCE ROLE -->
-    <!-- Roles: admin, finance -->
-    <!-- ============================================ -->
-    <?php if ($can_finance): ?>
-
-        <?php $nav_label('Finance'); ?>
-
-        <!-- Payment Dropdown -->
-        <?php
-
-        $paymentMenu = [
-            ['payment_reg', 'fa-credit-card', 'Payment Registration'],
-            ['payment-reports', 'fa-chart-line', 'Payment Report'],
-        ];
-
-        // Only users with $can_shared permission can access Payment Success Student
-        if ($can_shared) {
-            $paymentMenu[] = [
-                'payment_success_students',
-                'fa-check-circle',
-                'Payment Success Student'
-            ];
+    <?php
+    // Render ONLY what this role has in the role_permissions table
+    foreach ($nav_structure as $section) {
+        $visible = [];
+        foreach ($section['entries'] as $entry) {
+            if ($entry['type'] === 'link') {
+                if ($nav_can($entry['slug'])) {
+                    $visible[] = $entry;
+                }
+            } else {
+                $items = [];
+                foreach ($entry['items'] as $it) {
+                    if ($nav_can($it[0])) {
+                        $items[] = $it;
+                    }
+                }
+                if ($items) {
+                    $entry['items'] = $items;
+                    $visible[] = $entry;
+                }
+            }
         }
 
-        $nav_menu(
-            'paymentSectionDropdown',
-            'collapsePaymentDropDwn',
-            'fa-ticket-alt',
-            'Finance',
-            $paymentMenu
-        );
-
-        ?>
-
-        <!-- Extra Ticket Dropdown -->
-        <?php $nav_menu('extraTicketDropdown', 'collapseExtraTicket', 'fa-ticket-alt', 'Extra Ticket', [
-            ['extra-ticket-buying', 'fa-cart-plus', 'Buy Extra Ticket'],
-            ['extra-ticket-data', 'fa-list', 'Ticket Log / Data'],
-        ]); ?>
-
-        <!-- Ticket Issues & Invitation Showing -->
-        <?php $nav_link(
-            'ticket_invitation_issue',
-            'fa-ticket-alt',
-            'Ticket & Invitation Issues'
-        ); ?>
-
-    <?php endif; ?>
-
-    <!-- ============================================ -->
-    <!-- STUDENTS: finance, invitation, registration desk (+ invitation issue, DOB) -->
-    <!-- ============================================ -->
-    <?php if ($can_shared || $can_invite): ?>
-        <!-- <?php $nav_label('Students'); ?> -->
-        <?php $nav_label(' '); ?>
-    <?php endif; ?>
-
-    <?php if ($can_shared): ?>
-
-        <!-- <?php $nav_link('payment_success_students', 'fa-check-circle', 'Payment Success Student'); ?> -->
-
-        <!-- Students Dropdown -->
-        <?php
-
-        $studentsMenu = [
-            ['oldStudentsDB', 'fa-history', 'Old Students'],
-            ['registeredStudents', 'fa-user-graduate', 'Registered Students'],
-        ];
-
-        // Only admin can access Upload Student
-        if ($is_admin) {
-            $studentsMenu[] = [
-                'upload_student_db',
-                'fa-user-graduate',
-                'Upload Student'
-            ];
+        if (!$visible) {
+            continue; // nothing allowed here -> hide the section and its label
         }
 
-        // Only invitation role / allowed invitation users can access Edit Student
-        if ($can_invite) {
-            $studentsMenu[] = [
-                'oldStudentsDOBupdate',
-                'fa-calendar-alt',
-                'Edit Student'
-            ];
+        if ($section['label'] !== null) {
+            $nav_label($section['label']);
         }
 
-        $nav_menu(
-            'studentsDropdown',
-            'collapseStudents',
-            'fa-users-cog',
-            'Students',
-            $studentsMenu
-        );
-
-        ?>
-
-    <?php endif; ?>
-
-
-    <!-- INVITATION ROLE: admin, invitation -->
-    <?php if ($can_invite): ?>
-        <!-- <?php $nav_link('oldStudentsDOBupdate', 'fa-calendar-alt', 'Edit Student'); ?> -->
-    <?php endif; ?>
-
-    <!-- ============================================ -->
-    <!-- CLOTH COLLECTION/RETURN ROLE -->
-    <!-- Roles: admin, clothCollectReturn -->
-    <!-- ============================================ -->
-    <?php if ($can_cloak): ?>
-        <!-- <?php $nav_label('Cloak room'); ?> -->
-        <?php $nav_menu('cloakDropdown', 'collapseCloak', 'fa-tshirt', 'Cloak', [
-            ['clothCollection', 'fa-tshirt',    'Cloak Issuing'],
-            ['cloakReturn',     'fa-undo',      'Cloak Collecting'],
-            ['cloakReport',     'fa-chart-bar', 'Cloak Report'],
-        ]); ?>
-    <?php endif; ?>
-
-    <!-- ============================================ -->
-    <!-- ADMIN ONLY -->
-    <!-- ============================================ -->
-    <?php if ($is_admin): ?>
-        <?php $nav_label('Administration'); ?>
-
-        <?php $nav_link('user', 'fa-user-plus', 'User Create'); ?>
-
-        <!-- Bulk Actions Dropdown -->
-        <?php $nav_menu('bulkDropdown', 'collapseBulk', 'fa-tasks', 'Bulk Actions', [
-            ['bulk-data',       'fa-upload',   'Bulk Upload'],
-            ['bulk-data-email', 'fa-envelope', 'Bulk Email'],
-            ['view_email_logs', 'fa-list-alt', 'Logs For Seat No'],
-        ]); ?>
-
-        <?php $nav_link('mark_graduate', 'fa-graduation-cap', 'Graduate Std Mark'); ?>
-        <?php $nav_link('invitation-collection', 'fa-envelope-open', 'Invitation Issue'); ?>
-
-        <?php $nav_label('Reports'); ?>
-        <?php $nav_link('allocatedSeatOrder', 'fa-chair', 'Report Seat Order'); ?>
-        <?php $nav_link('meals_report', 'fa-utensils', 'Report Meals'); ?>
-    <?php endif; ?>
+        foreach ($visible as $entry) {
+            if ($entry['type'] === 'link') {
+                $nav_link($entry['slug'], $entry['icon'], $entry['label']);
+            } else {
+                $nav_menu($entry['toggle'], $entry['collapse'], $entry['icon'], $entry['label'], $entry['items']);
+            }
+        }
+    }
+    ?>
 
     <!-- Signed-in user -->
     <li class="nav-profile" title="<?= htmlspecialchars(($nav_user !== '' ? $nav_user . ' - ' : '') . $nav_role_label) ?>">

@@ -983,25 +983,32 @@ include('./includes/header.php'); // Include your database connection file
                 <p class="error-message"> Please verify the <b>Student ID</b> and <b>Date of Birth</b>, and try again. </p>
                 <p class="error-message"> If you require further assistance, please contact your coordinator. </p> <!-- Contact Section -->
                 <div class="contact-container">
-                    <div class="row g-3"> <!-- Undergraduate Business -->
+                    <div class="row g-3">
+
+                        <!-- Undergraduate Business -->
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
                                 <div class="contact-title"> Undergraduate Business </div> <a href="mailto:thilshath@bms.ac.lk" class="contact-email"> thilshath@bms.ac.lk </a>
                             </div>
-                        </div> <!-- Undergraduate Science -->
-                        <div class="col-12 col-md-6">
-                            <div class="contact-box">
-                                <div class="contact-title"> Undergraduate Science </div> <a href="mailto:bioadmin@bms.ac.lk" class="contact-email"> Erangee Mendis </a>
-                            </div>
-                        </div> <!-- Postgraduate Business -->
+                        </div>
+
+                        <!-- Postgraduate Business -->
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
                                 <div class="contact-title"> Postgraduate Business </div> <a href="mailto:mirshath@bms.ac.lk" class="contact-email"> mirshath@bms.ac.lk </a>
                             </div>
-                        </div> <!-- GDM -->
+                        </div>
+                        <!-- Undergraduate Science -->
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
-                                <div class="contact-title"> Graduate Diploma in Management </div> <a href="mailto:ruwani.f@bms.ac.lk" class="contact-email"> Ruwani Fernando </a>
+                                <div class="contact-title"> Undergraduate/Postgraduate Science </div> <a href="mailto:bioadmin@bms.ac.lk" class="contact-email"> bioadmin@bms.ac.lk </a>
+                            </div>
+                        </div>
+
+                        <!-- GDM -->
+                        <div class="col-12 col-md-6">
+                            <div class="contact-box">
+                                <div class="contact-title"> Graduate Diploma in Management </div> <a href="mailto:ruwani.f@bms.ac.lk" class="contact-email"> ruwani.f@bms.ac.lk </a>
                             </div>
                         </div>
                     </div>
