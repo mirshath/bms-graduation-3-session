@@ -555,8 +555,39 @@ try {
             </td>
         </tr>
 
-        <!-- PAYMENT SUMMARY -->
+     
+        <!-- QR CODE -->
         <tr>
+            <td align="center" style="padding:24px 32px 8px 32px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:2px dashed #667eea; border-radius:10px;">
+                    <tr>
+                        <td align="center" style="padding:22px 16px;">
+                            {$session_block}
+                            <div style="font-size:13px; font-weight:bold; color:#667eea; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
+                                Your Invitation and Tickets
+                            </div>
+
+                            <div style="font-size:13px; color:#6b7280; margin-bottom:14px;">
+                                Show this at the counter to collect your invitation and tickets
+                            </div>
+
+                            <!-- white card keeps the QR scannable even in dark mode -->
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px;">
+                                <tr>
+                                    <td align="center" style="padding:12px;">
+                                        {$qr_block}
+                                    </td>
+                                </tr>
+                            </table>
+                    
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+
+           <!-- PAYMENT SUMMARY -->
+           <tr>
             <td style="padding:8px 32px 8px 32px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid #eceef5; border-radius:8px; border-collapse:separate; overflow:hidden;">
                     <tr>
@@ -584,36 +615,6 @@ try {
                     <tr>
                         <td bgcolor="#f7f8fd" style="background-color:#f7f8fd; padding:14px 16px; color:#111827; font-size:15px; font-weight:bold;">Total Paid</td>
                         <td align="right" bgcolor="#f7f8fd" style="background-color:#f7f8fd; padding:14px 16px; color:#667eea; font-size:18px; font-weight:bold;">LKR {$total_formatted}</td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
-
-        <!-- QR CODE -->
-        <tr>
-            <td align="center" style="padding:24px 32px 8px 32px;">
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:2px dashed #667eea; border-radius:10px;">
-                    <tr>
-                        <td align="center" style="padding:22px 16px;">
-                            {$session_block}
-                            <div style="font-size:13px; font-weight:bold; color:#667eea; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px;">
-                                Your Invitation QR Code
-                            </div>
-
-                            <div style="font-size:13px; color:#6b7280; margin-bottom:14px;">
-                                Show this at the counter to collect your invitation and tickets
-                            </div>
-
-                            <!-- white card keeps the QR scannable even in dark mode -->
-                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" bgcolor="#ffffff" style="background-color:#ffffff; border:1px solid #e5e7eb; border-radius:8px;">
-                                <tr>
-                                    <td align="center" style="padding:12px;">
-                                        {$qr_block}
-                                    </td>
-                                </tr>
-                            </table>
-                    
-                        </td>
                     </tr>
                 </table>
             </td>

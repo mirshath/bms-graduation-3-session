@@ -16,4 +16,3 @@ if (isset($_POST['student_id'])) {
         echo 'not_exists'; // Student ID is not found
     }
 }
-?>

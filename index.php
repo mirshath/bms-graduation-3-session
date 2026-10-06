@@ -971,29 +971,145 @@ include('./includes/header.php'); // Include your database connection file
 </script>
 
 <!-- Modal for Invalid Student ID or DOB -->
-<div id="errorModal" class="modal fade" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-confirm">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center modal-background">
-                <!-- Red Alert Icon (Bootstrap Icons) -->
-                <i class="bi bi-exclamation-circle-fill" style="font-size: 50px; color: red;"></i>
-                <h4 class="eb-garamond fw-bolder" style="font-size: 35px;">Invalid Credentials</h4>
-                <p>Please verify the <b>Student ID</b> and <b>Date of Birth</b>, and try again.</p>
-                <p>If you require further assistance, please contact our coordinator.</p>
-                <p class="fw-bolder">Business </p>
-                <p style="margin-top: -15px;">Clancy Veronika - <a
-                        href="mailto:hnd.admin@bms.ac.lk">hnd.admin@bms.ac.lk</a></p>
-                <p class="fw-bolder">Science </p>
-                <p style="margin-top: -15px;">Erangee Mendis - <a
-                        href="mailto:bioadmin@bms.ac.lk">bioadmin@bms.ac.lk</a></p>
-                <button class="btn btn-primary" data-bs-dismiss="modal">Go Back</button>
+
+<!-- Modal for Invalid Student ID or DOB -->
+<div id="errorModal" class="modal fade" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-confirm">
+        <div class="modal-content"> <!-- Modal Header -->
+            <div class="modal-header border-0"> <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"> </button> </div> <!-- Modal Body -->
+            <div class="modal-body text-center modal-background"> <!-- Error Icon -->
+                <div class="mb-3"> <i class="bi bi-exclamation-circle-fill error-icon"></i> </div> <!-- Title -->
+                <h4 id="errorModalLabel" class="eb-garamond fw-bolder error-title"> Invalid Credentials </h4> <!-- Message -->
+                <p class="error-message"> Please verify the <b>Student ID</b> and <b>Date of Birth</b>, and try again. </p>
+                <p class="error-message"> If you require further assistance, please contact your coordinator. </p> <!-- Contact Section -->
+                <div class="contact-container">
+                    <div class="row g-3"> <!-- Undergraduate Business -->
+                        <div class="col-12 col-md-6">
+                            <div class="contact-box">
+                                <div class="contact-title"> Undergraduate Business </div> <a href="mailto:thilshath@bms.ac.lk" class="contact-email"> thilshath@bms.ac.lk </a>
+                            </div>
+                        </div> <!-- Undergraduate Science -->
+                        <div class="col-12 col-md-6">
+                            <div class="contact-box">
+                                <div class="contact-title"> Undergraduate Science </div> <a href="mailto:bioadmin@bms.ac.lk" class="contact-email"> Erangee Mendis </a>
+                            </div>
+                        </div> <!-- Postgraduate Business -->
+                        <div class="col-12 col-md-6">
+                            <div class="contact-box">
+                                <div class="contact-title"> Postgraduate Business </div> <a href="mailto:mirshath@bms.ac.lk" class="contact-email"> mirshath@bms.ac.lk </a>
+                            </div>
+                        </div> <!-- GDM -->
+                        <div class="col-12 col-md-6">
+                            <div class="contact-box">
+                                <div class="contact-title"> Graduate Diploma in Management </div> <a href="mailto:ruwani.f@bms.ac.lk" class="contact-email"> Ruwani Fernando </a>
+                            </div>
+                        </div>
+                    </div>
+                </div> <!-- Go Back Button -->
+                <div class="mt-4"> <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal"> Go Back </button> </div>
             </div>
         </div>
     </div>
-</div>
+</div> <!-- Modal CSS -->
+
+<style>
+    /* Error Icon */
+    .error-icon {
+        font-size: 50px;
+        color: red;
+    }
+
+    /* Modal Title */
+    .error-title {
+        font-size: 35px;
+        margin-bottom: 15px;
+    }
+
+    /* Error Message */
+    .error-message {
+        margin-bottom: 10px;
+        font-size: 15px;
+    }
+
+    /* Contact Container */
+    .contact-container {
+        width: 100%;
+        max-width: 650px;
+        margin: 20px auto 0;
+    }
+
+    /* Contact Box */
+    .contact-box {
+        background: #f8f9fa;
+        border: 1px solid #e1e1e1;
+        border-radius: 10px;
+        padding: 13px 10px;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    /* Contact Box Hover */
+    .contact-box:hover {
+        border-color: #0d6efd;
+        background: #f1f6ff;
+    }
+
+    /* Contact Title */
+    .contact-title {
+        font-weight: 700;
+        font-size: 15px;
+        color: #212529;
+        margin-bottom: 5px;
+    }
+
+    /* Email */
+    .contact-email {
+        color: #0d6efd;
+        text-decoration: none;
+        font-size: 14px;
+        word-break: break-word;
+    }
+
+    .contact-email:hover {
+        text-decoration: underline;
+    }
+
+    /* Go Back Button */
+    .contact-container+.mt-4 .btn {
+        min-width: 110px;
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 576px) {
+        .error-title {
+            font-size: 28px;
+        }
+
+        .error-message {
+            font-size: 14px;
+        }
+
+        .contact-container {
+            padding: 0 5px;
+        }
+
+        .contact-box {
+            padding: 12px 8px;
+        }
+
+        .contact-title {
+            font-size: 14px;
+        }
+
+        .contact-email {
+            font-size: 13px;
+        }
+    }
+</style>
 
 <!-- Modal for Registration Success -->
 <div id="successModal" class="modal fade" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">

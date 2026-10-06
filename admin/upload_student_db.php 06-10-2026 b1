@@ -436,13 +436,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
-            // IN No is free text (VARCHAR 255) - accept any value, like an Excel cell
             $inNo = null;
             if ($reason === '' && $inRaw !== '') {
-                if (mb_strlen($inRaw) > 255) {
-                    $reason = 'IN No is longer than 255 characters';
+                if (!preg_match('/^\d+$/', $inRaw) || (int)$inRaw > 2147483647) {
+                    $reason = 'IN No must be a whole number';
                 } else {
-                    $inNo = $inRaw;
+                    $inNo = (int)$inRaw;
                 }
             }
 
@@ -477,7 +476,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $emailV  = $email === '' ? null : $email;
 
             try {
-                mysqli_stmt_bind_param($stmt, "sssssissss", $sid, $name, $dob, $emailV, $program, $mobile, $payV, $statusV, $inNo, $activeV);
+                mysqli_stmt_bind_param($stmt, "sssssissis", $sid, $name, $dob, $emailV, $program, $mobile, $payV, $statusV, $inNo, $activeV);
                 mysqli_stmt_execute($stmt);
                 $inserted++;
                 $existing[$key] = true;

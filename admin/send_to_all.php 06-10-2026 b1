@@ -2,11 +2,6 @@
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
-use Endroid\QrCode\Builder\Builder;
-use Endroid\QrCode\Encoding\Encoding;
-use Endroid\QrCode\ErrorCorrectionLevel;
-use Endroid\QrCode\RoundBlockSizeMode;
-use Endroid\QrCode\Writer\PngWriter;
 
 require '../vendor/autoload.php';
 include('../database/connection.php');
@@ -67,35 +62,9 @@ if ($dbResult->num_rows === 0) {
 }
 
 // ------------------------------------------------------
-// Function to generate the QR code locally (endroid/qr-code)
-// Returns the PNG binary string, or null if generation fails.
-// A QR problem must never block the email.
-// ------------------------------------------------------
-function generateStudentQrPng($studentId)
-{
-    try {
-        $qrResult = (new Builder(
-            writer: new PngWriter(),
-            data: (string) $studentId,
-            encoding: new Encoding('UTF-8'),
-            errorCorrectionLevel: ErrorCorrectionLevel::High,
-            size: 300,
-            margin: 40,
-            roundBlockSizeMode: RoundBlockSizeMode::Margin
-        ))->build();
-
-        return $qrResult->getString();
-    } catch (\Throwable $qrError) {
-        error_log('QR generation failed for student ' . $studentId . ': ' . $qrError->getMessage());
-        return null;
-    }
-}
-
-// ------------------------------------------------------
 // Function to send email
-// $qrPng = PNG binary from generateStudentQrPng() (generated once per student)
 // ------------------------------------------------------
-function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $programName, $sessionTime, $callingName = '', $qrPng = null)
+function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $programName, $sessionTime, $callingName = '')
 {
     $mail = new PHPMailer(true);
 
@@ -108,7 +77,6 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
         $mail->Password   = $_ENV['SMTP_PASSWORD'];
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int) $_ENV['SMTP_PORT'];
-        $mail->CharSet    = 'UTF-8';
 
         $mail->setFrom($_ENV['MAIL_FROM_ADDRESS'], $_ENV['MAIL_FROM_NAME']);
         $mail->addAddress($toEmail);
@@ -116,40 +84,8 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
         $mail->isHTML(true);
         $mail->Subject = 'BMS DEGREE CONVOCATION Seat Allocation Notification';
 
-        // ---------- QR CODE (student ID only) ----------
-        // Embedded inline -> referenced in the HTML as cid:student_qr
-        $safeStudentId = htmlspecialchars($studentId, ENT_QUOTES, 'UTF-8');
-        $qr_embedded = false;
-
-        if (!empty($qrPng)) {
-            try {
-                $mail->addStringEmbeddedImage(
-                    $qrPng,
-                    'student_qr',
-                    'student-qr-' . $studentId . '.png',
-                    PHPMailer::ENCODING_BASE64,
-                    'image/png'
-                );
-                $qr_embedded = true;
-            } catch (\Throwable $embedError) {
-                error_log('QR embed failed for student ' . $studentId . ': ' . $embedError->getMessage());
-            }
-        }
-
-        if ($qr_embedded) {
-            $qrBlock = '
-                <div style="text-align:center; margin:18px 0;">
-                    <img src="cid:student_qr" width="160" height="160" alt="Student ID QR Code: ' . $safeStudentId . '"
-                         style="width:160px; height:160px; border-radius:10px; border:2px solid #dde8f5; background:#ffffff;" />
-                </div>';
-        } else {
-            $qrBlock = '
-                <div style="text-align:center; margin:18px 0;">
-                    <p style="margin:0; font-size:14px; color:#555555;">
-                        QR code unavailable. Please quote your Student ID at the registration desk.
-                    </p>
-                </div>';
-        }
+        // QR code
+        $qrCodeImage = "https://api.qrserver.com/v1/create-qr-code/?size=250x250&bgcolor=FFFFFF&margin=50&data=" . urlencode($studentId);
 
         // Email body
         $mail->Body = '
@@ -191,8 +127,9 @@ function sendGraduationEmail($toEmail, $studentId, $nameInFull, $seatNo, $progra
                         Seat No : ' . htmlspecialchars($seatNo) . '
                     </span>
                 </div>
-
-                ' . $qrBlock . '
+                <div style="text-align:center; margin:18px 0;">
+                    <img src="' . $qrCodeImage . '" alt="QR Code" style="width:160px; height:160px; border-radius:10px; border:2px solid #dde8f5; background:#fff;" />
+                </div>
 
                  <p style="margin:12px 0 0 0;">
                     <span style="color:#ef233c; font-weight:bold;">Note:</span> Please note that using Mobile phone inside the hall is strictly prohibited.
@@ -267,6 +204,16 @@ while ($row = $dbResult->fetch_assoc()) {
     $nameInFull  = $row['name_in_full'];
     $seatNo      = $row['seat_no'];
     $programName = $row['program_name'];
+    // $sessionTime = $row['session_time'];
+
+    // $sessionTimeRaw = $row['session_time'] ?? '';
+    // $sessionTime = $sessionTimeRaw;
+    // if (strcasecmp(trim($sessionTimeRaw), 'morning') === 0) {
+    //     $sessionTime = "Session 1 ( 10.00am - 12.00pm )";
+    // } elseif (strcasecmp(trim($sessionTimeRaw), 'evening') === 0) {
+    //     $sessionTime = "Session 2 ( 4.00pm - 7.00pm )";
+    // }
+
 
     $sessionTimeRaw = $row['session_time'] ?? '';
 
@@ -311,13 +258,10 @@ while ($row = $dbResult->fetch_assoc()) {
     // Remove duplicate emails just in case
     $emails_to_send = array_unique($emails_to_send);
 
-    // Generate the QR once per student (reused if the student has two email addresses)
-    $qrPng = generateStudentQrPng($studentId);
-
     // Send emails
     foreach ($emails_to_send as $email_address) {
         try {
-            $emailResult = sendGraduationEmail($email_address, $studentId, $nameInFull, $seatNo, $programName, $sessionTime, $callingName, $qrPng);
+            $emailResult = sendGraduationEmail($email_address, $studentId, $nameInFull, $seatNo, $programName, $sessionTime, $callingName);
 
             if ($emailResult['success']) {
                 $emails_sent++;

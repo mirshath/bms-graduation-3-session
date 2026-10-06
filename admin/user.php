@@ -792,7 +792,7 @@ $totalAdmins = count($admins);
                                             <option value="" disabled <?= empty($_POST['role']) ? 'selected' : '' ?>>Select a role</option>
                                             <option value="admin">Admin</option>
                                             <option value="finance">Finance</option>
-                                            <option value="invitation">Invitation</option>
+                                            <!-- <option value="invitation">Invitation</option> -->
                                             <option value="registrationDesk">Registration Desk</option>
                                             <option value="clothCollectReturn">Cloth Collection/Return</option>
                                         </select>
@@ -943,7 +943,7 @@ $totalAdmins = count($admins);
                             <select name="role" id="editAdminRole" class="form-select" required>
                                 <option value="admin">Admin</option>
                                 <option value="finance">Finance</option>
-                                <option value="invitation">Invitation</option>
+                                <!-- <option value="invitation">Invitation</option> -->
                                 <option value="registrationDesk">Registration Desk</option>
                                 <option value="clothCollectReturn">Cloth Collection/Return</option>
                             </select>
