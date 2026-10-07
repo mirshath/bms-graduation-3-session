@@ -167,6 +167,7 @@ $nav_structure = [
         'entries' => [
             ['type' => 'link', 'slug' => 'user', 'icon' => 'fa-user-plus', 'label' => 'User Create'],
             ['type' => 'link', 'slug' => 'permission', 'icon' => 'fa-user-lock', 'label' => 'Role Permissions'],
+            ['type' => 'link', 'slug' => 'portal_active', 'icon' => 'fa-user-lock', 'label' => 'Portal Active'],
             ['type' => 'menu', 'toggle' => 'bulkDropdown', 'collapse' => 'collapseBulk', 'icon' => 'fa-tasks', 'label' => 'Bulk Actions', 'items' => [
                 ['bulk-data', 'fa-upload', 'Bulk Upload'],
                 ['bulk-data-email', 'fa-envelope', 'Bulk Email'],

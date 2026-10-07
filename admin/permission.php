@@ -88,7 +88,7 @@ foreach ($pageCatalog as $items) {
 $roles = [
     'admin'              => 'Admin',
     'finance'            => 'Finance',
-    'invitation'         => 'Invitation',
+    // 'invitation'         => 'Invitation',
     'registrationDesk'   => 'Registration Desk',
     'clothCollectReturn' => 'Cloth Collection/Return',
     'coordinator'        => 'Coordinator',
@@ -217,7 +217,7 @@ $roleCounts['admin'] = $totalPages; // admin always has everything
 $roleIcons = [
     'admin'              => 'fa-user-shield',
     'finance'            => 'fa-coins',
-    'invitation'         => 'fa-envelope-open-text',
+    // 'invitation'         => 'fa-envelope-open-text',
     'registrationDesk'   => 'fa-clipboard-list',
     'clothCollectReturn' => 'fa-tshirt',
     'coordinator'        => 'fa-user-tie',
