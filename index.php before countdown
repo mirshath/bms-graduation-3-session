@@ -9,41 +9,11 @@ if ($portalRes && ($portalRow = mysqli_fetch_assoc($portalRes))) {
     $portalOpen = ((int)$portalRow['acive'] === 1);
 }
 
-// ---- Portal opening date & time (Sri Lanka time): change it here ----
-$portalOpensAt  = new DateTime('2026-10-10 10:00:00', new DateTimeZone('Asia/Colombo'));
-$portalTargetMs = $portalOpensAt->getTimestamp() * 1000;
-$serverNowMs    = (int) round(microtime(true) * 1000);
-
-// first paint of the countdown (the browser then takes over, synced to the server clock)
-$pcLeft = max(0, intdiv($portalTargetMs - $serverNowMs, 1000));
-$pcPad  = function ($n) {
-    return str_pad((string) $n, 2, '0', STR_PAD_LEFT);
-};
-
-// progress rings: how full each ring is (days ring = up to 30 days, hours = of 24, minutes/seconds = of 60)
-$pcC = 2 * M_PI * 44; // ring circumference (r = 44)
-$pcD = intdiv($pcLeft, 86400);
-$pcH = intdiv($pcLeft % 86400, 3600);
-$pcM = intdiv($pcLeft % 3600, 60);
-$pcS = $pcLeft % 60;
-$pcFill = [
-    'd' => min($pcD + $pcH / 24, 30) / 30,
-    'h' => ($pcH + $pcM / 60) / 24,
-    'm' => ($pcM + $pcS / 60) / 60,
-    's' => $pcS / 60,
-];
-$pcOff = function ($k) use ($pcC, $pcFill) {
-    return number_format($pcC * (1 - $pcFill[$k]), 2, '.', '');
-};
-
 // live status endpoint: index.php?portal_status=1  (polled by the page, no refresh needed)
 if (isset($_GET['portal_status'])) {
     header('Content-Type: application/json');
     header('Cache-Control: no-store, no-cache, must-revalidate');
-    echo json_encode([
-        'open' => $portalOpen,
-        'now'  => (int) round(microtime(true) * 1000), // server clock: every visitor sees the same countdown
-    ]);
+    echo json_encode(['open' => $portalOpen]);
     exit();
 }
 
@@ -591,7 +561,6 @@ include('./includes/header.php'); // Include your database connection file
 </style>
 
 <!-- ===== Portal CLOSED panel (shown / hidden live) ===== -->
-<link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,600&display=swap" rel="stylesheet">
 <style>
     .portal-closed {
@@ -606,12 +575,15 @@ include('./includes/header.php'); // Include your database connection file
         width: 100%;
         height: auto;
         display: block;
+        border-radius: 14px 14px 0 0;
     }
 
     .portal-closed .box {
         background: #fff;
         padding: 48px 28px 44px;
         text-align: center;
+        border-radius: 0 0 14px 14px;
+        box-shadow: 0 18px 40px -24px rgba(23, 35, 61, .35);
     }
 
     .portal-closed .ic {
@@ -691,214 +663,6 @@ include('./includes/header.php'); // Include your database connection file
         }
     }
 
-    /* ---------- one card: banner + message + countdown ---------- */
-    .pc-card {
-        overflow: hidden;
-        border-radius: 14px;
-        background: #fff;
-        box-shadow: 0 26px 48px -30px rgba(31, 75, 182, .4);
-    }
-
-    /* ---------- countdown: progress rings ---------- */
-    .pc-clock {
-        padding: 30px 28px 34px;
-        text-align: center;
-        background: #f6f8fd;
-        border-top: 1px solid var(--line);
-        box-shadow: inset 0 1px 0 #fff;
-    }
-
-    .pc-head,
-    .pc-note {
-        animation: pcRise .7s cubic-bezier(.16, 1, .3, 1) both;
-        animation-delay: calc(var(--i, 0) * 90ms);
-    }
-
-    .pc-label {
-        display: inline-flex;
-        align-items: center;
-        gap: 10px;
-        margin: 0;
-        padding: 7px 15px 7px 13px;
-        border: 1px solid var(--line);
-        border-radius: 999px;
-        background: #fff;
-        color: var(--brand-d);
-        font-size: .72rem;
-        font-weight: 600;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
-
-    .pc-dot {
-        position: relative;
-        flex: none;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--brand);
-    }
-
-    .pc-dot::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        border-radius: 50%;
-        background: var(--brand);
-        animation: pcPing 1.8s cubic-bezier(0, 0, .2, 1) infinite;
-    }
-
-    @keyframes pcPing {
-        0% {
-            transform: scale(1);
-            opacity: .55;
-        }
-
-        80%,
-        100% {
-            transform: scale(2.8);
-            opacity: 0;
-        }
-    }
-
-    .pc-units {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: clamp(8px, 2.6vw, 24px);
-        max-width: 560px;
-        margin: 26px auto 0;
-    }
-
-    .pc-unit {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 14px;
-        min-width: 0;
-        animation: pcRise .7s cubic-bezier(.16, 1, .3, 1) both;
-        animation-delay: calc(var(--i, 0) * 90ms);
-    }
-
-    .pc-ring {
-        position: relative;
-        width: 100%;
-        max-width: 124px;
-        aspect-ratio: 1;
-    }
-
-    .pc-ring svg {
-        display: block;
-        width: 100%;
-        height: 100%;
-        transform: rotate(-90deg);
-        overflow: visible;
-    }
-
-    .pc-ring circle {
-        fill: none;
-        stroke-width: 5;
-        stroke-linecap: round;
-    }
-
-    .pc-trk {
-        stroke: #dde5f6;
-    }
-
-    .pc-fg {
-        stroke: var(--brand);
-        stroke-dasharray: 276.46;
-        animation: pcDraw 1.3s cubic-bezier(.16, 1, .3, 1) backwards;
-        animation-delay: calc(var(--i, 0) * 90ms);
-    }
-
-    @keyframes pcDraw {
-        from {
-            stroke-dashoffset: 276.46px;
-        }
-    }
-
-    .pc-ring b {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: clamp(1.45rem, .7rem + 3.6vw, 2.5rem);
-        font-weight: 500;
-        font-variant-numeric: tabular-nums;
-        letter-spacing: -.05em;
-        line-height: 1;
-        color: var(--ink);
-    }
-
-    .pc-unit--s b {
-        color: var(--brand);
-    }
-
-    .pc-unit>span {
-        color: var(--muted);
-        font-size: .68rem;
-        font-weight: 600;
-        letter-spacing: .12em;
-        text-transform: uppercase;
-    }
-
-    .pc-roll {
-        animation: pcRoll .4s cubic-bezier(.16, 1, .3, 1);
-    }
-
-    @keyframes pcRoll {
-        from {
-            transform: translateY(24%);
-            opacity: 0;
-        }
-    }
-
-    .pc-note {
-        max-width: 44ch;
-        margin: 22px auto 0;
-        color: var(--muted);
-        font-size: .86rem;
-        line-height: 1.55;
-    }
-
-    /* time reached, waiting for the admin switch: rings fill up and breathe */
-    .pc-clock.is-done .pc-fg {
-        stroke-dashoffset: 0 !important;
-        animation: pcBreath 1.8s ease-in-out infinite;
-    }
-
-    @keyframes pcBreath {
-        50% {
-            opacity: .35;
-        }
-    }
-
-    @keyframes pcRise {
-        from {
-            opacity: 0;
-            transform: translateY(14px);
-        }
-    }
-
-    @media (max-width: 575.98px) {
-        .pc-clock {
-            padding: 24px 14px 28px;
-        }
-
-        .pc-units {
-            margin-top: 22px;
-        }
-
-        .pc-unit {
-            gap: 10px;
-        }
-
-        .pc-ring circle {
-            stroke-width: 6;
-        }
-    }
-
     .portal-fade {
         animation: pcFade .45s ease;
     }
@@ -914,13 +678,6 @@ include('./includes/header.php'); // Include your database connection file
 
         .portal-closed .ic::after,
         .portal-closed .auto i,
-        .pc-dot::after,
-        .pc-roll,
-        .pc-head,
-        .pc-unit,
-        .pc-note,
-        .pc-fg,
-        .pc-clock.is-done .pc-fg,
         .portal-fade {
             animation: none;
         }
@@ -928,67 +685,14 @@ include('./includes/header.php'); // Include your database connection file
 </style>
 <div id="portalClosedWrap" style="display: <?php echo $portalOpen ? 'none' : 'block'; ?>;">
     <section class="portal-closed mt-4">
-        <div class="pc-card">
-            <img src="./images/graduation_nov_2026.jpg" alt="BMS DEGREE CONVOCATION 2026 banner">
-            <div class="box">
-                <div class="ic"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
-                <h1>Registration Portal Is Not Open Yet</h1>
-                <p class="sub">Please wait. The registration portal will open soon.</p>
-                <!-- <div class="auto"><i></i> This page updates automatically &mdash; no need to refresh</div> -->
-            </div>
-
-            <!-- ===== Countdown ===== -->
-            <div class="pc-clock<?php echo $pcLeft === 0 ? ' is-done' : ''; ?>" id="pcClock" role="timer" aria-label="Time left until the registration portal opens">
-                <div class="pc-head" style="--i:0">
-                    <p class="pc-label"><i class="pc-dot"></i><span id="pcLabel"><?php echo $pcLeft === 0 ? 'Opening now' : 'Registration opens in'; ?></span></p>
-                </div>
-
-                <div class="pc-units">
-                    <div class="pc-unit" style="--i:1">
-                        <div class="pc-ring">
-                            <svg viewBox="0 0 100 100" aria-hidden="true">
-                                <circle class="pc-trk" cx="50" cy="50" r="44" />
-                                <circle class="pc-fg" data-r="d" cx="50" cy="50" r="44" style="stroke-dashoffset: <?php echo $pcOff('d'); ?>" />
-                            </svg>
-                            <b data-u="d"><?php echo $pcPad($pcD); ?></b>
-                        </div>
-                        <span>Days</span>
-                    </div>
-                    <div class="pc-unit" style="--i:2">
-                        <div class="pc-ring">
-                            <svg viewBox="0 0 100 100" aria-hidden="true">
-                                <circle class="pc-trk" cx="50" cy="50" r="44" />
-                                <circle class="pc-fg" data-r="h" cx="50" cy="50" r="44" style="stroke-dashoffset: <?php echo $pcOff('h'); ?>" />
-                            </svg>
-                            <b data-u="h"><?php echo $pcPad($pcH); ?></b>
-                        </div>
-                        <span>Hours</span>
-                    </div>
-                    <div class="pc-unit" style="--i:3">
-                        <div class="pc-ring">
-                            <svg viewBox="0 0 100 100" aria-hidden="true">
-                                <circle class="pc-trk" cx="50" cy="50" r="44" />
-                                <circle class="pc-fg" data-r="m" cx="50" cy="50" r="44" style="stroke-dashoffset: <?php echo $pcOff('m'); ?>" />
-                            </svg>
-                            <b data-u="m"><?php echo $pcPad($pcM); ?></b>
-                        </div>
-                        <span>Minutes</span>
-                    </div>
-                    <div class="pc-unit pc-unit--s" style="--i:4">
-                        <div class="pc-ring">
-                            <svg viewBox="0 0 100 100" aria-hidden="true">
-                                <circle class="pc-trk" cx="50" cy="50" r="44" />
-                                <circle class="pc-fg" data-r="s" cx="50" cy="50" r="44" style="stroke-dashoffset: <?php echo $pcOff('s'); ?>" />
-                            </svg>
-                            <b data-u="s"><?php echo $pcPad($pcS); ?></b>
-                        </div>
-                        <span>Seconds</span>
-                    </div>
-                </div>
-
-                <p class="pc-note" id="pcNote" style="--i:5" <?php echo $pcLeft === 0 ? '' : 'hidden'; ?>>Opening time reached. This page switches to the form by itself the moment the portal goes live.</p>
-            </div>
+        <img src="./images/graduation_nov_2026.jpg" alt="BMS DEGREE CONVOCATION 2026 banner">
+        <div class="box">
+            <div class="ic"><i class="bi bi-hourglass-split" aria-hidden="true"></i></div>
+            <h1>Registration Portal Is Not Open Yet</h1>
+            <p class="sub">Please wait. The registration portal will open soon.</p>
+            <!-- <div class="auto"><i></i> This page updates automatically &mdash; no need to refresh</div> -->
         </div>
+
     </section>
 </div>
 
@@ -1980,84 +1684,13 @@ include('./includes/header.php'); // Include your database connection file
 </style>
 <!-- Bootstrap JS and dependencies (Optional) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Live portal ON/OFF + opening countdown (no refresh needed) -->
+<!-- Live portal ON/OFF: checks every 3 seconds, switches the page without refresh -->
 <script>
     (function() {
         var openWrap = document.getElementById('portalOpenWrap');
         var closedWrap = document.getElementById('portalClosedWrap');
         var current = <?php echo $portalOpen ? 'true' : 'false'; ?>;
 
-        /* ---------- countdown, synced to the SERVER clock ---------- */
-        var clock = document.getElementById('pcClock');
-        var TARGET = <?php echo $portalTargetMs; ?>; // opening moment (ms)
-        var offset = <?php echo $serverNowMs; ?> - Date.now(); // server clock minus browser clock
-        var C = 276.46; // ring circumference (r = 44)
-        var keys = ['d', 'h', 'm', 's'];
-        var nums = {},
-            rings = {};
-        keys.forEach(function(k) {
-            nums[k] = clock.querySelector('[data-u="' + k + '"]');
-            rings[k] = clock.querySelector('[data-r="' + k + '"]');
-        });
-        var label = document.getElementById('pcLabel');
-        var note = document.getElementById('pcNote');
-        var shown = {},
-            lastFill = {},
-            doneNow = null;
-
-        function pad(n) {
-            return n < 10 ? '0' + n : String(n);
-        }
-
-        function put(k, v) {
-            if (shown[k] === v) return;
-            nums[k].textContent = v;
-            if (shown[k] !== undefined) { // roll only when a number changes, not on first paint
-                nums[k].classList.remove('pc-roll');
-                void nums[k].offsetWidth;
-                nums[k].classList.add('pc-roll');
-            }
-            shown[k] = v;
-        }
-
-        function ring(k, fill) { // rings drain smoothly; jump back to full without animating
-            var r = rings[k];
-            r.style.transition = (lastFill[k] === undefined || fill > lastFill[k]) ? 'none' : 'stroke-dashoffset 1s linear';
-            r.style.strokeDashoffset = (C * (1 - fill)).toFixed(2);
-            lastFill[k] = fill;
-        }
-
-        function tick() {
-            if (current) return; // portal is open, the form is showing
-            var left = Math.max(0, Math.floor((TARGET - (Date.now() + offset)) / 1000));
-            var d = Math.floor(left / 86400),
-                h = Math.floor(left % 86400 / 3600),
-                m = Math.floor(left % 3600 / 60),
-                s = left % 60;
-            put('d', pad(d));
-            put('h', pad(h));
-            put('m', pad(m));
-            put('s', pad(s));
-            ring('d', Math.min(d + h / 24, 30) / 30);
-            ring('h', (h + m / 60) / 24);
-            ring('m', (m + s / 60) / 60);
-            ring('s', s / 60);
-
-            var done = left === 0;
-            if (done !== doneNow) {
-                doneNow = done;
-                clock.classList.toggle('is-done', done);
-                label.textContent = done ? 'Opening now' : 'Registration opens in';
-                note.hidden = !done;
-            }
-        }
-
-        function loop() { // fires just after every server-second boundary
-            if (!document.hidden) tick();
-            setTimeout(loop, 1000 - ((Date.now() + offset) % 1000) + 15);
-        }
-
-        /* ---------- ON / OFF switch ---------- */
         function apply(open) {
             if (open === current) return;
             current = open;
@@ -2073,7 +1706,6 @@ include('./includes/header.php'); // Include your database connection file
                 closedWrap.classList.remove('portal-fade');
                 void closedWrap.offsetWidth;
                 closedWrap.classList.add('portal-fade');
-                tick();
             }
             window.scrollTo({
                 top: 0,
@@ -2083,7 +1715,6 @@ include('./includes/header.php'); // Include your database connection file
 
         function check() {
             if (document.hidden) return;
-            var t0 = Date.now();
             fetch(window.location.pathname + '?portal_status=1', {
                     cache: 'no-store'
                 })
@@ -2091,20 +1722,14 @@ include('./includes/header.php'); // Include your database connection file
                     return r.json();
                 })
                 .then(function(d) {
-                    if (d.now) offset = Math.round(d.now - (t0 + Date.now()) / 2); // re-sync the clock
                     apply(!!d.open);
                 })
                 .catch(function() {
                     /* network hiccup: keep current view, try again next tick */
                 });
         }
-
-        loop();
         setInterval(check, 3000);
-        document.addEventListener('visibilitychange', function() {
-            tick();
-            check();
-        });
+        document.addEventListener('visibilitychange', check);
     })();
 </script>
 </body>
