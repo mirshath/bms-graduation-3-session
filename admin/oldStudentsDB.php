@@ -34,10 +34,20 @@ function at_initials(string $name): string
     return mb_strtoupper($first . $last);
 }
 
-// "Higher Diploma in Biomedical Science - Batch 29"  ->  "Higher Diploma in Biomedical Science"
+// Removes the batch / cohort / intake part after the last dash, e.g.
+//   "BSc (Hons) Biomedical Science - Batch 20 (2025 Cohort)"      -> "BSc (Hons) Biomedical Science"
+//   "Higher Diploma in Biomedical Science - Batch 29"             -> "Higher Diploma in Biomedical Science"
+//   "Master of Business Administration - Cohort 08"               -> "Master of Business Administration"
+//   "BSc (Hons) Accounting and Finance - September 2025"          -> "BSc (Hons) Accounting and Finance"
+// Parts such as "(Marketing)" that are not after a batch/cohort/intake dash are kept.
 function at_base_program(string $p): string
 {
-    return trim(preg_replace('/\s*-\s*Batch\s*\d+\s*$/i', '', trim($p)));
+    $p = trim($p);
+    $months = 'January|February|March|April|May|June|July|August|September|October|November|December';
+    $p = preg_replace('/\s*-\s*(?:Batch|Cohort)\s*\d+[^-]*$/iu', '', $p);   // - Batch 20 (2025 Cohort) / - Cohort 08
+    $p = preg_replace('/\s*-\s*(?:' . $months . ')\s+\d{4}\s*$/iu', '', $p); // - September 2025
+    $p = preg_replace('/\s*\(\s*\d{4}\s*Cohort\s*\)\s*$/iu', '', $p);        // trailing "(2025 Cohort)" with no dash
+    return trim($p);
 }
 
 // Load every old student
@@ -1654,9 +1664,14 @@ sort($programNames, SORT_NATURAL | SORT_FLAG_CASE);
                 if (this.value !== '') allPrograms.push(this.value);
             });
 
-            // "Higher Diploma in Biomedical Science - Batch 29" -> "Higher Diploma in Biomedical Science"
+            // Same rule as at_base_program() in PHP:
+            // "BSc (Hons) Biomedical Science - Batch 20 (2025 Cohort)" -> "BSc (Hons) Biomedical Science"
             function baseName(p) {
-                return $.trim(p).replace(/\s*-\s*Batch\s*\d+\s*$/i, '');
+                var n = $.trim(p);
+                n = n.replace(/\s*-\s*(?:Batch|Cohort)\s*\d+[^-]*$/i, '');
+                n = n.replace(/\s*-\s*(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\s*$/i, '');
+                n = n.replace(/\s*\(\s*\d{4}\s*Cohort\s*\)\s*$/i, '');
+                return $.trim(n);
             }
 
             // programs allowed by the chosen session (all programs when no session) and the chosen program name

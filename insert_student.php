@@ -379,11 +379,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         
                         <div class='message-text'>
                             <p>Congratulations! We are delighted to confirm your successful registration for the <strong>BMS DEGREE CONVOCATION 2026</strong>.</p>
-                            <p>We are pleased to confirm your registration for BMS DEGREE CONVOCATION 2026.</p>
                         </div>
                         
-                      
-
+                    
                         <!-- Registration & Payment Deadline -->
                         <table role='presentation' width='100%' cellpadding='0' cellspacing='0' border='0' style='margin:25px 0; border:1px solid #e2e8f0; border-radius:8px; border-collapse:separate; overflow:hidden;'>
                             <tr>

@@ -424,15 +424,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $reason = 'Invalid email (or longer than 50 characters)';
             }
 
+            // $mobile = null;
+            // if ($reason === '' && $mobRaw !== '') {
+            //     $digits = preg_replace('/\D/', '', $mobRaw);
+            //     if (strlen($digits) === 11 && strpos($digits, '94') === 0) $digits = substr($digits, 2);
+            //     if (strlen($digits) === 10 && $digits[0] === '0') $digits = substr($digits, 1);
+            //     if ($digits === '' || strlen($digits) > 10 || (int)$digits > 2147483647) {
+            //         $reason = 'Invalid mobile number';
+            //     } else {
+            //         $mobile = (int)$digits;
+            //     }
+            // }
             $mobile = null;
+
             if ($reason === '' && $mobRaw !== '') {
+
+                // Keep digits only
                 $digits = preg_replace('/\D/', '', $mobRaw);
-                if (strlen($digits) === 11 && strpos($digits, '94') === 0) $digits = substr($digits, 2);
-                if (strlen($digits) === 10 && $digits[0] === '0') $digits = substr($digits, 1);
-                if ($digits === '' || strlen($digits) > 10 || (int)$digits > 2147483647) {
+
+                // Validate that something remains
+                if ($digits === '') {
+                    $reason = 'Invalid mobile number';
+                }
+                // Allow international numbers (including UAE/Dubai)
+                elseif (strlen($digits) < 7 || strlen($digits) > 15) {
                     $reason = 'Invalid mobile number';
                 } else {
-                    $mobile = (int)$digits;
+                    $mobile = $digits;
                 }
             }
 
