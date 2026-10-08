@@ -1439,29 +1439,73 @@ include('./includes/header.php'); // Include your database connection file
                         <!-- Undergraduate Business -->
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
-                                <div class="contact-title"> Undergraduate Business </div> <a href="mailto:thilshath@bms.ac.lk" class="contact-email"> thilshath@bms.ac.lk </a>
+                                <div class="contact-title"> Undergraduate Business </div>
+                                <a href="mailto:sharmila.r@bms.ac.lk" class="contact-email"> <i class="bi bi-envelope"></i> sharmila.r@bms.ac.lk </a>
+                                <a href="tel:+947XXXXXXXX" style="font-size: 12px;" class="contact-phone">
+                                    <i class="bi bi-telephone"></i> &nbsp;
+                                    +94 704 011 685
+                                </a>
                             </div>
                         </div>
 
                         <!-- Postgraduate Business -->
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
-                                <div class="contact-title"> Postgraduate Business </div> <a href="mailto:mirshath@bms.ac.lk" class="contact-email"> mirshath@bms.ac.lk </a>
+                                <div class="contact-title"> Postgraduate Business </div>
+                                <a href="mailto:thanuja.e@bms.ac.lk" class="contact-email"> <i class="bi bi-envelope"></i> thanuja.e@bms.ac.lk </a>
+                                <a href="tel:+947XXXXXXXX" style="font-size: 12px;" class="contact-phone">
+                                    <i class="bi bi-telephone"></i> &nbsp;
+                                    +94 704 011 689
+                                </a>
                             </div>
                         </div>
                         <!-- Undergraduate Science -->
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
-                                <div class="contact-title"> Undergraduate/Postgraduate Science </div> <a href="mailto:bioadmin@bms.ac.lk" class="contact-email"> bioadmin@bms.ac.lk </a>
+                                <div class="contact-title"> Undergraduate/Postgraduate Science </div>
+                                <a href="mailto:bioadmin@bms.ac.lk" class="contact-email"> <i class="bi bi-envelope"></i> bioadmin@bms.ac.lk </a>
+                                <a href="tel:+947XXXXXXXX" style="font-size: 12px;" class="contact-phone">
+                                    <i class="bi bi-telephone"></i> &nbsp;
+                                    +94 704 001 084
+                                </a>
                             </div>
                         </div>
 
                         <!-- GDM -->
+
                         <div class="col-12 col-md-6">
                             <div class="contact-box">
-                                <div class="contact-title"> Graduate Diploma in Management </div> <a href="mailto:ruwani.f@bms.ac.lk" class="contact-email"> ruwani.f@bms.ac.lk </a>
+                                <div class="contact-title">Graduate Diploma in Management</div>
+
+                                <a href="mailto:ruwani.f@bms.ac.lk" class="contact-email">
+                                    <i class="bi bi-envelope"></i>
+                                    ruwani.f@bms.ac.lk
+                                </a>
+
+                                <a href="tel:+947XXXXXXXX" style="font-size: 12px;" class="contact-phone">
+                                    <i class="bi bi-telephone"></i> &nbsp;
+                                    +94 704 011 709
+                                </a>
                             </div>
                         </div>
+
+                        <style>
+                            .contact-email,
+                            .contact-phone {
+                                text-decoration: none;
+                                color: inherit;
+                            }
+
+                            .contact-email:hover,
+                            .contact-phone:hover {
+                                text-decoration: none;
+                                color: inherit;
+                            }
+                        </style>
+
+
+
+
                     </div>
                 </div> <!-- Go Back Button -->
                 <div class="mt-4"> <button type="button" class="btn btn-primary px-4" data-bs-dismiss="modal"> Go Back </button> </div>
