@@ -1,4 +1,5 @@
 <?php
+session_start();
 // insert_student.php
 include('./database/connection.php'); // Include your database connection file
 
