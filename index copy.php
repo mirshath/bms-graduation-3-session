@@ -1,14 +1,5 @@
 <?php
-// ---- NEVER let the browser / host / CDN cache this page (otherwise a stale "closed" page shows after the portal opens) ----
-session_cache_limiter('nocache');
 session_start();
-header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0, private');
-header('Pragma: no-cache');
-header('Expires: Thu, 01 Jan 1970 00:00:00 GMT');
-header('Surrogate-Control: no-store');       // CDN / reverse proxies
-header('CDN-Cache-Control: no-store');       // Cloudflare
-header('X-LiteSpeed-Cache-Control: no-cache'); // LiteSpeed hosting
-header('X-Accel-Expires: 0');                // Nginx
 // insert_student.php
 include('./database/connection.php'); // Include your database connection file
 
@@ -2138,7 +2129,7 @@ include('./includes/header.php'); // Include your database connection file
         function check() {
             if (document.hidden) return;
             var t0 = Date.now();
-            fetch(window.location.pathname + '?portal_status=1&_=' + Date.now(), {
+            fetch(window.location.pathname + '?portal_status=1', {
                     cache: 'no-store'
                 })
                 .then(function(r) {
@@ -2154,17 +2145,7 @@ include('./includes/header.php'); // Include your database connection file
         }
 
         loop();
-        check(); // verify with the server immediately (fixes a stale cached page right on load)
         setInterval(check, 3000);
-
-        // back/forward cache or restored tab: always re-check, never trust the old screen
-        window.addEventListener('pageshow', function(e) {
-            if (e.persisted) {
-                window.location.reload();
-            } else {
-                check();
-            }
-        });
         document.addEventListener('visibilitychange', function() {
             tick();
             check();
