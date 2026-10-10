@@ -264,25 +264,47 @@ try {
     // =========================================================
     // 8. UPDATE STUDENT PAYMENT STATUS
     // =========================================================
-    // Only the payment status is saved here.
-    // in_no and invitation_collected are NOT touched at payment time any more:
-    // they are saved later, when the desk presses the "Issue" button
-    // (issue_invitation.php / issue_extra_tickets.php / issue_log_tickets.php).
 
-    $stmt3 = $conn->prepare("
-        UPDATE registered_students
-        SET graduation_payment_status = 'paid'
-        WHERE student_id = ?
-    ");
+    $in_no_for_db = ($invitation_number === '')
+        ? null
+        : intval($invitation_number);
 
-    if (!$stmt3) {
-        throw new Exception(
-            'Payment status query preparation failed: ' .
-                $conn->error
-        );
+    if ($in_no_for_db === null) {
+        $stmt3 = $conn->prepare("
+            UPDATE registered_students
+            SET graduation_payment_status = 'paid',
+                invitation_collected = 'collected',
+                updated_at_invitation = NOW()
+            WHERE student_id = ?
+        ");
+
+        if (!$stmt3) {
+            throw new Exception(
+                'Payment status query preparation failed: ' .
+                    $conn->error
+            );
+        }
+
+        $stmt3->bind_param("s", $student_id);
+    } else {
+        $stmt3 = $conn->prepare("
+            UPDATE registered_students
+            SET graduation_payment_status = 'paid',
+                invitation_collected = 'collected',
+                updated_at_invitation = NOW(),
+                in_no = ?
+            WHERE student_id = ?
+        ");
+
+        if (!$stmt3) {
+            throw new Exception(
+                'Payment status query preparation failed: ' .
+                    $conn->error
+            );
+        }
+
+        $stmt3->bind_param("is", $in_no_for_db, $student_id);
     }
-
-    $stmt3->bind_param("s", $student_id);
 
     if (!$stmt3->execute()) {
         throw new Exception(

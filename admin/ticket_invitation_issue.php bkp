@@ -665,11 +665,7 @@ include("includes/header.php");
             btn.dataset.text = label.textContent;
             btn.disabled = true;
             label.textContent = 'Saving…';
-            var endpoints = {
-                log: 'issue_log_tickets.php',
-                invitation: 'issue_invitation.php'
-            };
-            fetch(endpoints[btn.dataset.kind] || 'issue_extra_tickets.php', {
+            fetch(btn.dataset.kind === 'log' ? 'issue_log_tickets.php' : 'issue_extra_tickets.php', {
                     method: 'POST',
                     credentials: 'same-origin',
                     headers: {
@@ -689,8 +685,7 @@ include("includes/header.php");
                 })
                 .then(function(j) {
                     if (!j.ok) throw new Error(j.error || 'Could not save.');
-                    if (btn.dataset.kind === 'invitation') toast(j.already ? 'The invitation was already issued' : 'Invitation issued by ' + (j.by || 'you'));
-                    else toast(j.already ? 'These tickets were already marked as issued' : 'Extra tickets issued by ' + (j.by || 'you'));
+                    toast(j.already ? 'These tickets were already marked as issued' : 'Extra tickets issued by ' + (j.by || 'you'));
                     ver = '';
                     schedule(true); // refresh the panel right away
                 })

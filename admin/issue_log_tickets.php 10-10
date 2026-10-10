@@ -4,11 +4,7 @@
  * Marks the extra tickets bought later (extra_ticket_log) as issued:
  *   extra_ticket_log.issued_adExtra_ticket    = 'issued'
  *   extra_ticket_log.issued_adExtra_ticket_by = logged-in admin name
- * and collects the invitation (this student only):
- *   registered_students.in_no                = invitation number
- *   registered_students.invitation_collected = 'collected'
- * Both are saved in ONE transaction: if the invitation update fails, nothing is saved.
- * Called by the "Issue extra tickets" button on the "Extra tickets added later" card of ticket_invitation_issue.php.
+ * Called by the "Issue extra tickets" button on the "Extra tickets added later" card of live_scan.php.
  */
 session_start();
 header('Content-Type: application/json; charset=utf-8');
@@ -38,19 +34,6 @@ if ($issued_by === '') {
 session_write_close();
 
 include("../database/connection.php");
-
-// find the invitation helper: admin/includes/ first, then the same folder as this file
-$invHelper = null;
-foreach ([__DIR__ . '/includes/invitation_helper.php', __DIR__ . '/invitation_helper.php'] as $cand) {
-    if (is_file($cand)) {
-        $invHelper = $cand;
-        break;
-    }
-}
-if ($invHelper === null) {
-    out(500, ['ok' => false, 'error' => 'invitation_helper.php was not found. Put it next to this file (or in the includes folder).']);
-}
-require_once $invHelper;
 
 $student_id = trim((string)($_POST['student_id'] ?? ''));
 if ($student_id === '') {
@@ -85,8 +68,6 @@ try {
         out(422, ['ok' => false, 'error' => 'This student has no added extra tickets to issue.']);
     }
 
-    $conn->begin_transaction();
-
     // only rows that are not issued yet are touched, so a double click changes nothing
     $st = $conn->prepare(
         "UPDATE extra_ticket_log
@@ -99,24 +80,7 @@ try {
     $changed = $st->affected_rows;
     $st->close();
 
-    // invitation: registered_students SET in_no = ?, invitation_collected = 'collected' WHERE student_id = ?
-    // (skipped by the helper when the student is already 'collected')
-    // false = payment_records.issued_by is not part of this flow
-    $inv = inv_issue_invitation($conn, $student_id, $issued_by, false);
-    if (!$inv['ok']) {
-        $conn->rollback();
-        out(422, ['ok' => false, 'error' => $inv['error']]);
-    }
-
-    $conn->commit();
-
     out(200, ['ok' => true, 'issued' => $changed, 'already' => ($changed === 0), 'by' => $issued_by]);
 } catch (Throwable $e) {
-    if (isset($conn) && $conn instanceof mysqli) {
-        try {
-            $conn->rollback();
-        } catch (Throwable $e2) {
-        }
-    }
     out(500, ['ok' => false, 'error' => 'Could not save. Please try again.']);
 }

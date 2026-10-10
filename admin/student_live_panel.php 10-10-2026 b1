@@ -62,8 +62,7 @@ if (!function_exists('lv_load')) {
         // ---- registered student (graduation_payment_status lives here) ----
         $st = $conn->prepare(
             "SELECT student_id, in_no, dob, name_in_full, program_name, `session`,
-                    crsfee_payment_status, graduation_payment_status,
-                    invitation_collected, updated_at_invitation
+                    crsfee_payment_status, graduation_payment_status
              FROM registered_students
              WHERE student_id = ?"
         );
@@ -226,10 +225,6 @@ if (!function_exists('lv_load')) {
             'guests'     => $free_total + $extra_total,
             'paid_total' => $paid_total,
             'can_issue'  => $has_issued,
-            // invitation (shown when the student has 0 extra tickets)
-            'inv_issued' => strtolower(trim((string)($reg['invitation_collected'] ?? ''))) === 'collected',
-            'inv_by'     => trim((string)($reg['invitation_collected'] ?? '')),
-            'inv_at'     => (string)($reg['updated_at_invitation'] ?? ''),
             'pending_extra' => $pending_extra,
             'issued_all' => ($extra_total > 0 && $pending_extra === 0),
             'issued_by'  => implode(', ', array_keys($by_names)),
@@ -638,24 +633,6 @@ if (!function_exists('lv_load')) {
             .lv-extra.is-zero {
                 background: var(--veg-bg);
                 border-color: #cde7d8;
-            }
-
-            .lv-extra.is-zero .lv-inv-btn {
-                background: var(--success);
-                color: #fff;
-            }
-
-            .lv-extra.is-zero .lv-inv-btn:hover {
-                background: #166a3e;
-            }
-
-            .lv-extra.is-zero .lv-inv-done {
-                color: var(--veg-ink);
-            }
-
-            .lv-extra.is-zero .lv-inv-by {
-                color: var(--veg-ink);
-                opacity: .8;
             }
 
             .lv-extra.is-zero .lv-num,
@@ -1178,58 +1155,6 @@ if (!function_exists('lv_load')) {
         return ob_get_clean();
     }
 
-    /**
-     * Finds the ticket picture of a session on disk, whatever the exact file name looks like.
-     * Looks in img/extra_tickets/ next to this file (or next to its parent folder when this file sits in admin/includes/).
-     * Ignores upper/lower case, "_", "-" and spaces in the name, "session02" = "session2",
-     * and accepts png / jpg / jpeg / webp / gif.
-     * $kind: 'freepass' or 'extra_ticket'.
-     * Returns ['url' => web path or '' when not found, 'tried' => the name that was expected].
-     */
-    function lv_ticket_img($session_no, $kind)
-    {
-        $session_no = (int)$session_no;
-        $want  = 'session' . $session_no . str_replace('_', '', $kind);
-        $tried = 'img/extra_tickets/session' . $session_no . '_' . $kind . '.png';
-
-        foreach ([__DIR__ . '/img/extra_tickets', dirname(__DIR__) . '/img/extra_tickets'] as $dir) {
-            if (!is_dir($dir)) {
-                continue;
-            }
-            $files = @scandir($dir);
-            if (!$files) {
-                continue;
-            }
-            foreach ($files as $f) {
-                if ($f === '.' || $f === '..') {
-                    continue;
-                }
-                $ext = strtolower(pathinfo($f, PATHINFO_EXTENSION));
-                if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp', 'gif'], true)) {
-                    continue;
-                }
-                $base = strtolower(preg_replace('/[\s_\-]+/', '', pathinfo($f, PATHINFO_FILENAME)));
-                $base = preg_replace('/^session0+(\d)/', 'session$1', $base);
-                if ($base !== $want) {
-                    continue;
-                }
-
-                // found: build a web path that does not depend on the page URL
-                $full = $dir . '/' . $f;
-                $real = str_replace('\\', '/', (string)realpath($full));
-                $root = isset($_SERVER['DOCUMENT_ROOT']) ? str_replace('\\', '/', (string)realpath($_SERVER['DOCUMENT_ROOT'])) : '';
-                if ($root !== '' && $real !== '' && strncasecmp($real, $root . '/', strlen($root) + 1) === 0) {
-                    $url = substr($real, strlen($root));
-                    $url = implode('/', array_map('rawurlencode', explode('/', $url)));
-                } else {
-                    $url = 'img/extra_tickets/' . rawurlencode($f); // fallback: relative to the page
-                }
-                return ['url' => $url . '?v=' . (int)@filemtime($full), 'tried' => $tried];
-            }
-        }
-        return ['url' => '', 'tried' => $tried];
-    }
-
     /** The live panel itself (student, programme, session, status, extra tickets, payment record). */
     function lv_render($d)
     {
@@ -1253,14 +1178,15 @@ if (!function_exists('lv_load')) {
         $extra_cls = !$has_rec ? 'is-none' : ($extra > 0 ? ($d['issued_all'] ? 'is-issued' : 'has-extra') : 'is-zero');
         $sess_miss = ($d['session'] === '');
         $grad_paid = $d['grad_paid'];
-        // ticket pictures for the session: SESSION_01 -> img/extra_tickets/session1_freepass.png / session1_extra_ticket.png
-        // (found on disk, so upper/lower case, extension and small name differences do not matter)
-        $tk_list = [];
+        // extra ticket picture for the session: SESSION_01 -> admin/img/extra_tickets/session1_extra_ticket.png
+        $sess_img = '';
         if (preg_match('/^SESSION[\s_\-]*0*(\d+)$/i', trim($d['session']), $sm)) {
-            foreach ([['Free ticket', 'freepass'], ['Extra ticket', 'extra_ticket']] as $t) {
-                $f = lv_ticket_img((int)$sm[1], $t[1]);
-                $tk_list[] = [$t[0], $f['url'], $f['tried']];
-            }
+            $sess_img = 'img/extra_tickets/session' . (int)$sm[1] . '_extra_ticket.png';
+        }
+
+        $sess_img_prnt = '';
+        if (preg_match('/^SESSION[\s_\-]*0*(\d+)$/i', trim($d['session']), $sm)) {
+            $sess_img_prnt = 'img/extra_tickets/session' . (int)$sm[1] . '_freepass.png';
         }
         $has_log   = ((int)$d['log_rows'] > 0);
         $log_cls   = $d['log_issued_all'] ? 'is-issued' : 'has-extra';
@@ -1364,17 +1290,6 @@ if (!function_exists('lv_load')) {
                             </button>
                         <?php endif; ?>
                     <?php endif; ?>
-                    <?php if ($has_rec && $extra === 0): ?>
-                        <?php if ($d['inv_issued']): ?>
-                            <div class="lv-issued lv-inv-done"><i class="fas fa-circle-check" aria-hidden="true"></i> Invitation issued</div>
-                            <?php if ($d['inv_at'] !== ''): ?><div class="lv-issued-by lv-inv-by"><?= $e(date('d M Y, h:i A', strtotime($d['inv_at']))) ?></div><?php endif; ?>
-                        <?php else: ?>
-                            <button type="button" class="lv-issue-btn lv-inv-btn" data-kind="invitation" data-student="<?= $e($d['student_id']) ?>">
-                                <i class="fas fa-envelope-open-text" aria-hidden="true"></i>
-                                <span>Issue the invitation</span>
-                            </button>
-                        <?php endif; ?>
-                    <?php endif; ?>
                 </div>
                 <?php if ($has_log): ?>
                     <!-- extra tickets added later (extra_ticket_log): not issued yet and already issued are kept apart -->
@@ -1410,19 +1325,18 @@ if (!function_exists('lv_load')) {
                     </div>
                 <?php endif; ?>
 
-                <?php if ($tk_list): ?>
+                <?php if ($sess_img_prnt !== '' || $sess_img !== ''): ?>
                     <!-- ticket pictures for this session: small thumbnails side by side (click = full size) -->
                     <div class="lv-card lv-tickets" style="--i:5">
-                        <?php foreach ($tk_list as $tk): ?>
-                            <figure class="lv-tk<?= $tk[1] === '' ? ' is-broken' : '' ?>">
+                        <?php foreach ([['Free ticket', $sess_img_prnt], ['Extra ticket', $sess_img]] as $tk): ?>
+                            <?php if ($tk[1] === '') continue; ?>
+                            <figure class="lv-tk">
                                 <span class="lv-k"><?= $tk[0] ?> for <?= $e($d['session']) ?></span>
-                                <?php if ($tk[1] !== ''): ?>
-                                    <a href="<?= $e($tk[1]) ?>" target="_blank" rel="noopener" title="Click to view full size">
-                                        <img src="<?= $e($tk[1]) ?>" alt="<?= $tk[0] ?> for <?= $e($d['session']) ?>" loading="lazy"
-                                            onerror="this.closest('.lv-tk').classList.add('is-broken')">
-                                    </a>
-                                <?php endif; ?>
-                                <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($tk[2]) ?></b></span>
+                                <a href="<?= $e($tk[1]) ?>" target="_blank" rel="noopener" title="Click to view full size">
+                                    <img src="<?= $e($tk[1]) ?>" alt="<?= $tk[0] ?> for <?= $e($d['session']) ?>" loading="lazy"
+                                        onerror="this.closest('.lv-tk').classList.add('is-broken')">
+                                </a>
+                                <span class="lv-imgmiss">Image not found: <b class="lv-mono"><?= $e($tk[1]) ?></b></span>
                             </figure>
                         <?php endforeach; ?>
                     </div>
