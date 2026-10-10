@@ -1398,7 +1398,7 @@ sort($programNames, SORT_NATURAL | SORT_FLAG_CASE);
                                 <select id="feeFilter" class="at-sel">
                                     <option value="">All Fee Status</option>
                                     <option value="Paid">Paid</option>
-                                    <option value="Pending">Pending</option>
+                                    <option value="unpaid">Pending</option>
                                 </select>
                             </div>
 
